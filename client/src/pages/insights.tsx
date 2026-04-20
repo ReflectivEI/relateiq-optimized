@@ -1,28 +1,47 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { fetchRelateIQState } from "@/lib/relateiq-api";
+import { Button } from "@/components/ui/button";
+import { fetchQuestionnaire } from "@/lib/relateiq-api";
+import { buildContextInsights } from "@/lib/relateiq-analysis";
 
 export default function InsightsPage() {
-  const { data } = useQuery({
-    queryKey: ["/api/state"],
-    queryFn: fetchRelateIQState,
+  const { data: tony } = useQuery({
+    queryKey: ["/api/questionnaire/Tony"],
+    queryFn: () => fetchQuestionnaire("Tony"),
+  });
+  const { data: drew } = useQuery({
+    queryKey: ["/api/questionnaire/Drew"],
+    queryFn: () => fetchQuestionnaire("Drew"),
   });
 
+  const insights = useMemo(() => {
+    if (!tony?.responses?.length || !drew?.responses?.length) return [];
+    return buildContextInsights(tony.responses, drew.responses);
+  }, [tony, drew]);
+
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-6 md:p-8">
       <div>
-        <h1 className="font-serif text-3xl">Insights</h1>
-        <p className="text-muted-foreground">
-          Seed insights from the reverse-engineered product structure and the new relationship-support architecture.
+        <h1 className="font-serif text-4xl text-foreground">Insights</h1>
+        <p className="mt-2 text-muted-foreground">
+          Context insights generated from the uploaded Tony and Drew questionnaire responses.
         </p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {data?.insights.map((insight) => (
-          <Card key={insight.id}>
+
+      <div className="flex flex-wrap gap-3">
+        <Button className="bg-[hsl(145_33%_48%)] hover:bg-[hsl(145_33%_43%)]">Generate Content Insights</Button>
+        <Button variant="outline">Download</Button>
+        <Button variant="outline">Copy</Button>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        {insights.map((insight) => (
+          <Card key={insight.id} className="rounded-3xl">
             <CardHeader>
               <CardTitle>{insight.title}</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
+            <CardContent className="text-[15px] leading-7 text-muted-foreground">
               {insight.body}
             </CardContent>
           </Card>

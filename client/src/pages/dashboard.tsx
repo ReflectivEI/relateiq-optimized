@@ -1,107 +1,94 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { fetchRelateIQState } from "@/lib/relateiq-api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { fetchQuestionnaire } from "@/lib/relateiq-api";
+import { buildContextInsights } from "@/lib/relateiq-analysis";
 
 export default function DashboardPage() {
-  const { data } = useQuery({
-    queryKey: ["/api/state"],
-    queryFn: fetchRelateIQState,
+  const { data: tony } = useQuery({
+    queryKey: ["/api/questionnaire/Tony"],
+    queryFn: () => fetchQuestionnaire("Tony"),
+  });
+  const { data: drew } = useQuery({
+    queryKey: ["/api/questionnaire/Drew"],
+    queryFn: () => fetchQuestionnaire("Drew"),
   });
 
-  if (!data) {
-    return <div className="p-6 text-sm text-muted-foreground">Loading RelateIQ workspace...</div>;
-  }
+  const insights = useMemo(() => {
+    if (!tony?.responses?.length || !drew?.responses?.length) return [];
+    return buildContextInsights(tony.responses, drew.responses);
+  }, [tony, drew]);
 
   return (
-    <div className="space-y-6 p-6">
-      <section className="rounded-3xl border border-border/70 bg-[linear-gradient(135deg,rgba(95,133,114,0.16),rgba(255,255,255,0.92))] p-8">
-        <Badge variant="secondary">Migration Complete</Badge>
-        <h1 className="mt-4 font-serif text-4xl text-foreground">RelateIQ on GitHub + Cloudflare</h1>
-        <p className="mt-3 max-w-3xl text-muted-foreground">
-          This rebuild mirrors the live Base44 product structure, but the runtime is now portable:
-          GitHub-backed source control, static frontend delivery, and a standalone Cloudflare worker API.
+    <div className="space-y-6 p-6 md:p-8">
+      <div className="max-w-4xl">
+        <h1 className="font-serif text-4xl text-foreground">Relationship Intelligence, Available Now</h1>
+        <p className="mt-3 text-muted-foreground">
+          RelateIQ can generate meaningful insights any time from AI Coach conversations, Smart Tool sessions,
+          Weekly Check-Ins, and the questionnaire answers already provided.
         </p>
-      </section>
+      </div>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Profiles</CardTitle>
-            <CardDescription>{data.profiles.length} active partner profiles</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {data.profiles.map((profile) => (
-              <div key={profile.person} className="rounded-xl border border-border/60 p-3">
-                <p className="font-medium">{profile.person}</p>
-                <p className="text-muted-foreground">{profile.communicationStyle}</p>
+      <Card className="border-[hsl(145_20%_87%)] bg-card/90">
+        <CardContent className="space-y-6 p-6">
+          <Button className="h-11 w-full bg-[hsl(145_33%_48%)] hover:bg-[hsl(145_33%_43%)]">
+            Generate Context Insights
+          </Button>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <div className="rounded-2xl border border-border/60 p-5">
+              <p className="font-medium">Context Insights</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Generates from all available data: AI Coach sessions, Smart Tools entries, Weekly Check-ins,
+                questionnaire answers, and stored profile information.
+              </p>
+              <div className="mt-4 space-y-2">
+                {["AI Coach sessions", "Smart Tools entries", "Weekly Check-Ins", "Questionnaire answers"].map((label) => (
+                  <div key={label} className="rounded-full border border-border/60 px-4 py-2 text-sm text-muted-foreground">
+                    {label}
+                  </div>
+                ))}
               </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Questionnaires</CardTitle>
-            <CardDescription>Ready for two 94-question JSON imports</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {data.questionnaires.map((questionnaire) => (
-              <div key={questionnaire.person} className="rounded-xl border border-border/60 p-3">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium">{questionnaire.person}</p>
-                  <Badge variant={questionnaire.importReady ? "secondary" : "outline"}>
-                    {questionnaire.importedQuestions}/{questionnaire.totalQuestions}
-                  </Badge>
-                </div>
-                <p className="mt-1 text-muted-foreground">{questionnaire.sourceFile}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Tools</CardTitle>
-            <CardDescription>Core relationship workflows</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {data.tools.map((tool) => (
-              <Link key={tool.id} href={tool.route}>
-                <div className="rounded-xl border border-border/60 p-3 transition hover:border-primary/40 hover:bg-primary/5">
-                  <p className="font-medium">{tool.name}</p>
-                  <p className="text-muted-foreground">{tool.purpose}</p>
-                </div>
-              </Link>
-            ))}
-          </CardContent>
-        </Card>
-      </section>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Current Shared Insights</CardTitle>
-          <CardDescription>Seeded from the reverse-engineered feature map and migration goals</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-3">
-          {data.insights.map((insight) => (
-            <div key={insight.id} className="rounded-2xl border border-border/60 bg-card p-4">
-              <Badge variant="outline">{insight.theme}</Badge>
-              <p className="mt-3 font-medium">{insight.title}</p>
-              <p className="mt-2 text-sm text-muted-foreground">{insight.body}</p>
             </div>
-          ))}
+
+            <div className="rounded-2xl border border-border/60 p-5">
+              <p className="font-medium">Full Deep Insights</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                A deeper layer that compares both profiles, highlights tension patterns, and suggests better timing
+                and repair approaches.
+              </p>
+              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="rounded-full border border-[hsl(145_20%_85%)] bg-[hsl(145_30%_95%)] px-3 py-1 text-[hsl(145_25%_35%)]">
+                  {tony?.responses?.length === 94 && drew?.responses?.length === 94 ? "Unlocked with profiles" : "Waiting for profiles"}
+                </span>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      <div className="flex gap-3">
-        <Button asChild>
-          <Link href="/questionnaire">Review Import Paths</Link>
+      <div className="grid gap-4 xl:grid-cols-2">
+        {insights.map((insight) => (
+          <Card key={insight.id}>
+            <CardHeader>
+              <CardTitle>{insight.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">{insight.body}</CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <Button asChild variant="outline">
+          <Link href="/profiles">Go To Profiles</Link>
         </Button>
-        <Button variant="outline" asChild>
-          <Link href="/repair">Open Repair Planner</Link>
+        <Button asChild variant="outline">
+          <Link href="/questionnaire">Open Questionnaire</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/insights">Open Insights</Link>
         </Button>
       </div>
     </div>

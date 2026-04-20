@@ -117,6 +117,21 @@ export default {
       return json(await buildState(env), request, env);
     }
 
+    if (url.pathname.startsWith("/api/questionnaire/") && request.method === "GET") {
+      const person = url.pathname.split("/").pop() === "Drew" ? "Drew" : "Tony";
+      const uploaded = await loadUploadedQuestionnaire(env, person);
+      return json(
+        {
+          person,
+          fileName: uploaded?.fileName,
+          uploadedAt: uploaded?.uploadedAt,
+          responses: uploaded?.responses || [],
+        },
+        request,
+        env,
+      );
+    }
+
     if (url.pathname === "/api/coach" && request.method === "POST") {
       const body = await readJson(request);
       return json(

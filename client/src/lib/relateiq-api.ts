@@ -1,5 +1,6 @@
 import { apiRequest } from "@/lib/queryClient";
 import type { AppState } from "@shared/relateiq";
+import type { QuestionnaireResponse } from "@/lib/relateiq-analysis";
 
 export async function fetchRelateIQState(): Promise<AppState> {
   const response = await apiRequest("GET", "/api/state");
@@ -39,5 +40,15 @@ export async function uploadQuestionnaire(input: {
   raw: Record<string, unknown> | Array<Record<string, unknown>>;
 }) {
   const response = await apiRequest("POST", "/api/questionnaire/upload", input);
+  return response.json();
+}
+
+export async function fetchQuestionnaire(person: "Tony" | "Drew"): Promise<{
+  person: "Tony" | "Drew";
+  fileName?: string;
+  uploadedAt?: string;
+  responses: QuestionnaireResponse[];
+}> {
+  const response = await apiRequest("GET", `/api/questionnaire/${person}`);
   return response.json();
 }
