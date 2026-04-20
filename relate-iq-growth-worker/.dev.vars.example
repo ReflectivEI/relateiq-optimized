@@ -1,0 +1,6 @@
+# Copy this file to .dev.vars for local development.
+# OPENAI_API_KEY is optional; if omitted, deterministic fallback replies are used.
+
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4o-mini
+CORS_ORIGINS=https://relate-iq-growth.base44.app

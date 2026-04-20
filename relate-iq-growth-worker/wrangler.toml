@@ -1,0 +1,10 @@
+name = "relate-iq-growth-api"
+main = "index.ts"
+compatibility_date = "2026-04-20"
+
+[[kv_namespaces]]
+binding = "QUESTIONNAIRES"
+id = "69297b2d249e42049de55a96eaefe783"
+
+[vars]
+CORS_ORIGINS = "http://localhost:5173"

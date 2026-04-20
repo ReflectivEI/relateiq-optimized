@@ -1,0 +1,7 @@
+name = "reflectivai-gateway-prod"
+main = "index.ts"
+compatibility_date = "2024-11-12"
+
+[[kv_namespaces]]
+binding = "SESS"
+id = "75ab38c3bd1d4c37a0f91d4ffc5909a7"
