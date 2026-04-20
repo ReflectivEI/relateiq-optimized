@@ -7,4 +7,4 @@ binding = "QUESTIONNAIRES"
 id = "69297b2d249e42049de55a96eaefe783"
 
 [vars]
-CORS_ORIGINS = "http://localhost:5173"
+CORS_ORIGINS = "http://localhost:5173,https://relateiq-growth.pages.dev"
