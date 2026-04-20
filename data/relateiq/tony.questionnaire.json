@@ -1,0 +1,2095 @@
+[
+  {
+    "question_text": "When you're frustrated, what do you tend to do first?",
+    "mode": "individual",
+    "selected_options": [
+      "Get irritated or snappy"
+    ],
+    "answer": "Get irritated or snappy",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b1",
+    "tags": [
+      "frustration_response",
+      "withdrawal",
+      "communication_style"
+    ],
+    "id": "69e461415ac8d6b256a8030b",
+    "created_date": "2026-04-19T04:59:45.374000",
+    "updated_date": "2026-04-19T04:59:45.374000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you feel unheard in a conversation, how do you typically respond?",
+    "mode": "individual",
+    "selected_options": [
+      "Shut down completely"
+    ],
+    "answer": "Shut down completely",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b2",
+    "tags": [
+      "misunderstood_trigger",
+      "conflict_style",
+      "emotional_expression"
+    ],
+    "id": "69e46157f16acd3d4543572e",
+    "created_date": "2026-04-19T05:00:07.080000",
+    "updated_date": "2026-04-19T05:00:11.054000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What is your go-to coping mechanism when tension builds at home?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "When tension builds at home, my go-to coping mechanism is to redirect my energy into something productive, usually building or working on my AI platform or coding projects. I become highly focused, almost obsessive, because it gives me a sense of control and forward progress. Instead of engaging in an argument with Drew, I shift into problem-solving mode where outcomes feel more predictable. This helps me avoid saying something reactive or escalating the situation in the moment. At the same time, it allows me to regulate my emotions without fully shutting down. The tradeoff is that I am often postponing the actual conversation rather than resolving it. From the outside, it might look like I am disengaging, even though my intent is to stabilize and come back in a better headspace.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b3",
+    "tags": [
+      "stress_response",
+      "conflict_avoidance",
+      "coping"
+    ],
+    "id": "69e462cd32a6eaa0d3af1a3d",
+    "created_date": "2026-04-19T05:06:21.039000",
+    "updated_date": "2026-04-19T05:06:21.039000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you respond when you feel criticized — even mildly?",
+    "mode": "individual",
+    "selected_options": [
+      "Get defensive immediately"
+    ],
+    "answer": "Get defensive immediately",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b4",
+    "tags": [
+      "defensiveness",
+      "sensitivity_to_tone",
+      "criticism_response"
+    ],
+    "id": "69e462ee46a6d6995bf8f660",
+    "created_date": "2026-04-19T05:06:54.567000",
+    "updated_date": "2026-04-19T05:06:54.567000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When something is wrong but you haven't said anything yet, what does that usually look like from the outside?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "When something is wrong and I haven’t said anything yet, it usually looks like I’ve gone a bit quiet and more internal. I’m still present, but my energy shifts and I’m not as engaged or expressive. I might redirect my attention to something structured, like my computer or phone, so it seems like I’m busy or focused on something else. I’m likely thinking a lot, replaying what happened and trying to make sense of it before I say anything. From the outside, it can come across as distance or subtle withdrawal rather than something clearly wrong. I’m not outwardly upset, but I’m also not fully connected in the moment. It can feel like something is off, even if I haven’t addressed it directly yet.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b5",
+    "tags": [
+      "emotional_expression",
+      "passive_communication",
+      "partner_perception"
+    ],
+    "id": "69e463387a4e9ab3ae7c3419",
+    "created_date": "2026-04-19T05:08:08.487000",
+    "updated_date": "2026-04-19T05:08:08.487000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you handle it when you've made a mistake or hurt someone?",
+    "mode": "individual",
+    "selected_options": [
+      "Struggle to say sorry even when I know I'm wrong"
+    ],
+    "answer": "Struggle to say sorry even when I know I'm wrong",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b6",
+    "tags": [
+      "accountability",
+      "conflict_style",
+      "emotional_processing"
+    ],
+    "id": "69e46348e2d4eca58267869a",
+    "created_date": "2026-04-19T05:08:24.926000",
+    "updated_date": "2026-04-19T05:08:24.926000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How often do you replay conversations or arguments after the fact?",
+    "mode": "individual",
+    "selected_options": [
+      "3"
+    ],
+    "answer": "3",
+    "weight": "medium",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b7",
+    "tags": [
+      "post_conflict_pattern",
+      "rumination",
+      "emotional_processing"
+    ],
+    "id": "69e4635c5749de6b44d9ed80",
+    "created_date": "2026-04-19T05:08:44.830000",
+    "updated_date": "2026-04-19T05:08:44.830000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you're overwhelmed, what do you do with your obligations?",
+    "mode": "individual",
+    "selected_options": [
+      "Communicate that I'm overwhelmed"
+    ],
+    "answer": "Communicate that I'm overwhelmed",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b8",
+    "tags": [
+      "stress_response",
+      "help_seeking",
+      "communication_style"
+    ],
+    "id": "69e463845907d9dc4652f404",
+    "created_date": "2026-04-19T05:09:24.938000",
+    "updated_date": "2026-04-19T05:09:43.930000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you prefer difficult conversations to start?",
+    "mode": "individual",
+    "selected_options": [
+      "Direct and to the point"
+    ],
+    "answer": "Direct and to the point",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c1",
+    "tags": [
+      "communication_preference",
+      "emotional_safety",
+      "processing_style"
+    ],
+    "id": "69e463c9a9d3d81a65648dfc",
+    "created_date": "2026-04-19T05:10:33.057000",
+    "updated_date": "2026-04-19T05:10:33.057000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "Which communication approach do you respond best to from your partner?",
+    "mode": "individual",
+    "selected_options": [
+      "Logical and solution-focused"
+    ],
+    "answer": "Logical and solution-focused",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c2",
+    "tags": [
+      "communication_preference",
+      "tone_sensitivity",
+      "love_language"
+    ],
+    "id": "69e463dd38b345a0f8d146e2",
+    "created_date": "2026-04-19T05:10:53.225000",
+    "updated_date": "2026-04-19T05:10:53.225000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What makes you feel truly heard by your partner?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I feel truly heard by Drew when he listens without interrupting or trying to immediately fix the situation. It matters that he reflects back what I’m saying in his own words so I know it actually landed. I feel it when he acknowledges my perspective, even if he doesn’t fully agree with it. His tone makes a difference, calm and steady instead of reactive or defensive. A big part of it is that he asks questions and follow-up questions to really understand what I’m going through, instead of just saying “I’m sorry you’re going through that” and moving on with his night. I also feel heard when those questions are thoughtful and show genuine curiosity, not just surface-level check-ins. Timing matters too, when he’s fully present and not distracted, it signals that I’m a priority in that moment. When all of that is there, I can relax and stay open instead of shutting down or pulling inward.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c3",
+    "tags": [
+      "validation_need",
+      "love_language",
+      "communication_need"
+    ],
+    "id": "69e46460533761da2fd0abe4",
+    "created_date": "2026-04-19T05:13:04.500000",
+    "updated_date": "2026-04-19T05:13:04.500000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When something is bothering you, what do you usually do?",
+    "mode": "individual",
+    "selected_options": [
+      "Hint at it indirectly"
+    ],
+    "answer": "Hint at it indirectly",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c4",
+    "tags": [
+      "direct_communication",
+      "avoidant_communication",
+      "passive_communication"
+    ],
+    "id": "69e4647c9534efb85a248a29",
+    "created_date": "2026-04-19T05:13:32.033000",
+    "updated_date": "2026-04-19T05:13:32.033000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you feel when someone raises an issue with you unexpectedly?",
+    "mode": "individual",
+    "selected_options": [
+      "Slightly defensive"
+    ],
+    "answer": "Slightly defensive",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c5",
+    "tags": [
+      "defensiveness",
+      "processing_style",
+      "trigger_unexpected"
+    ],
+    "id": "69e4648c092861170d853060",
+    "created_date": "2026-04-19T05:13:48.501000",
+    "updated_date": "2026-04-19T05:13:48.501000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How comfortable are you expressing disagreement with your partner?",
+    "mode": "individual",
+    "selected_options": [
+      "4"
+    ],
+    "answer": "4",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c6",
+    "tags": [
+      "conflict_comfort",
+      "directness",
+      "emotional_safety"
+    ],
+    "id": "69e464e2932b70f1d81cf28b",
+    "created_date": "2026-04-19T05:15:14.448000",
+    "updated_date": "2026-04-19T05:15:14.448000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you need something emotionally, how do you usually ask for it?",
+    "mode": "individual",
+    "selected_options": [
+      "Drop hints and hope they notice"
+    ],
+    "answer": "Drop hints and hope they notice",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c7",
+    "tags": [
+      "vulnerability",
+      "unmet_needs",
+      "communication_style"
+    ],
+    "id": "69e464fc64a75eab0a01ecec",
+    "created_date": "2026-04-19T05:15:40.400000",
+    "updated_date": "2026-04-19T05:15:40.400000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you feel about silence during a tense moment?",
+    "mode": "individual",
+    "selected_options": [
+      "It makes me anxious"
+    ],
+    "answer": "It makes me anxious",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c8",
+    "tags": [
+      "silence_interpretation",
+      "processing_style",
+      "sensitivity_to_withdrawal"
+    ],
+    "id": "69e4651a250e782e7290ba62",
+    "created_date": "2026-04-19T05:16:10.690000",
+    "updated_date": "2026-04-19T05:16:10.690000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How much of what you're actually feeling do you usually communicate out loud?",
+    "mode": "individual",
+    "selected_options": [
+      "3"
+    ],
+    "answer": "3",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c9",
+    "tags": [
+      "emotional_expressiveness",
+      "vulnerability",
+      "communication_style"
+    ],
+    "id": "69e4652c67f10e11987dcdc1",
+    "created_date": "2026-04-19T05:16:28.961000",
+    "updated_date": "2026-04-19T05:16:28.961000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "During conflict, you tend to:",
+    "mode": "individual",
+    "selected_options": [
+      "Escalate emotionally"
+    ],
+    "answer": "Escalate emotionally",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf1",
+    "tags": [
+      "conflict_style",
+      "escalation_pattern",
+      "withdrawal_pattern"
+    ],
+    "id": "69e4687d10c4b191838988ef",
+    "created_date": "2026-04-19T05:30:37.656000",
+    "updated_date": "2026-04-19T05:30:39.465000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "After conflict, how quickly do you prefer to reconnect?",
+    "mode": "individual",
+    "selected_options": [
+      "After a short cooling-off period"
+    ],
+    "answer": "After a short cooling-off period",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf10",
+    "tags": [
+      "repair_timeline",
+      "post_conflict_pattern",
+      "processing_style"
+    ],
+    "id": "69e46a46dfa11345028aa994",
+    "created_date": "2026-04-19T05:38:14.134000",
+    "updated_date": "2026-04-19T05:38:20.727000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you realize you were wrong, what do you usually do next?",
+    "mode": "individual",
+    "selected_options": [
+      "Explain my perspective",
+      "Move on without addressing it"
+    ],
+    "answer": "Explain my perspective, Move on without addressing it",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf11",
+    "tags": [
+      "accountability",
+      "repair_style",
+      "conflict_style"
+    ],
+    "id": "69e46a55340b6d67d989c62f",
+    "created_date": "2026-04-19T05:38:29.493000",
+    "updated_date": "2026-04-19T05:39:02.438000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you need MOST during a conflict?",
+    "mode": "individual",
+    "selected_options": [
+      "Resolution quickly",
+      "Reassurance that we're okay",
+      "To be heard without being interrupted",
+      "A calm and measured tone"
+    ],
+    "answer": "Resolution quickly, Reassurance that we're okay, To be heard without being interrupted, A calm and measured tone",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf2",
+    "tags": [
+      "needs_in_conflict",
+      "conflict_style"
+    ],
+    "id": "69e468b90e10bb505d0f58b8",
+    "created_date": "2026-04-19T05:31:37.849000",
+    "updated_date": "2026-04-19T05:32:15.163000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "After an argument, how do you usually feel?",
+    "mode": "individual",
+    "selected_options": [
+      "Unresolved until it's talked through again"
+    ],
+    "answer": "Unresolved until it's talked through again",
+    "weight": "medium",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf3",
+    "tags": [
+      "post_conflict_pattern",
+      "rumination",
+      "emotional_recovery"
+    ],
+    "id": "69e468ea40fb5354fb18968f",
+    "created_date": "2026-04-19T05:32:26.445000",
+    "updated_date": "2026-04-19T05:32:28.455000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you feel when a conflict doesn't get resolved cleanly?",
+    "mode": "individual",
+    "selected_options": [
+      "It lingers and affects my mood"
+    ],
+    "answer": "It lingers and affects my mood",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf4",
+    "tags": [
+      "unresolved_conflict",
+      "post_conflict_pattern",
+      "trust"
+    ],
+    "id": "69e4690fc90cdceb179ce4fa",
+    "created_date": "2026-04-19T05:33:03.215000",
+    "updated_date": "2026-04-19T05:33:05.387000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When conflict happens, who do you think typically initiates resolution?",
+    "mode": "individual",
+    "selected_options": [
+      "Depends on the situation"
+    ],
+    "answer": "Depends on the situation",
+    "weight": "medium",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf5",
+    "tags": [
+      "conflict_resolution",
+      "relationship_dynamic",
+      "partner_perception"
+    ],
+    "id": "69e469418deede7be7cc4b4f",
+    "created_date": "2026-04-19T05:33:53.193000",
+    "updated_date": "2026-04-19T05:33:53.193000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How comfortable are you with confrontation in general?",
+    "mode": "individual",
+    "selected_options": [
+      "4"
+    ],
+    "answer": "4",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf6",
+    "tags": [
+      "conflict_comfort",
+      "directness",
+      "conflict_avoidance"
+    ],
+    "id": "69e46954ce6dbb649ca61b47",
+    "created_date": "2026-04-19T05:34:12.068000",
+    "updated_date": "2026-04-19T05:34:12.068000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you're in the middle of a heated moment, what helps you de-escalate?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "When I’m in the middle of a heated moment, what helps me de-escalate is being given space so I don’t react impulsively. Stepping away and redirecting my focus to something structured, like working on my AI projects or coding, helps me regulate and settle my emotions. I need a moment to process internally and get clear on what I’m actually feeling before I can communicate it well. A calm, steady tone from Drew also makes a big difference because it prevents things from escalating further. It helps when there’s no pressure to resolve everything immediately and I’m given the space to come back when I’m ready. At the same time, I respond well to a signal that the conversation will be revisited, so it doesn’t feel like avoidance or dismissal. Once I feel grounded and clear, I’m much more open to re-engaging in a productive way.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf7",
+    "tags": [
+      "de_escalation",
+      "self_regulation",
+      "conflict_style"
+    ],
+    "id": "69e4698b866d40a84012a846",
+    "created_date": "2026-04-19T05:35:07.661000",
+    "updated_date": "2026-04-19T05:35:29.096000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How quickly do you typically cool down after a flare-up?",
+    "mode": "individual",
+    "selected_options": [
+      "3"
+    ],
+    "answer": "3",
+    "weight": "medium",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf8",
+    "tags": [
+      "emotional_recovery",
+      "processing_style",
+      "post_conflict_pattern"
+    ],
+    "id": "69e46a0aaa60a2eb66a46a7b",
+    "created_date": "2026-04-19T05:37:14.818000",
+    "updated_date": "2026-04-19T05:37:14.818000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "After a disagreement, what helps you feel most \"repaired\" or reconnected?",
+    "mode": "individual",
+    "selected_options": [
+      "Changed behavior afterward",
+      "Being understood emotionally"
+    ],
+    "answer": "Changed behavior afterward, Being understood emotionally",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf9",
+    "tags": [
+      "repair_style",
+      "post_conflict_pattern",
+      "reconnection"
+    ],
+    "id": "69e46a17ccb2f794721d8ba8",
+    "created_date": "2026-04-19T05:37:27.242000",
+    "updated_date": "2026-04-19T05:37:51.819000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What patterns from your upbringing still show up in your relationships today?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Patterns from my upbringing that still show up in my relationships today include going quiet and withdrawing when something feels off instead of addressing it in the moment. I tend to internalize my emotions and process things on my own, which comes from having to deal with things without support growing up. I can also slip into passive-aggressive or dismissive behavior at times, even if I’m not fully aware of it in the moment. There’s a part of me that still expects love and connection to be tied to being understood without having to explain everything, which leads me to expect Drew to read between the lines. I’m highly sensitive to tone, especially anything that feels critical, dismissive, or authoritative, because it brings up old patterns of conditional approval. I also place a strong need on feeling truly heard and understood, not just listened to, because that was missing for me growing up. At times, I can default to creating distance or controlling my environment instead of staying emotionally present. Even though I’m aware of these patterns and actively working on them, they still show up, especially under stress or tension.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d1",
+    "tags": [
+      "childhood_patterns",
+      "emotional_blueprint",
+      "unresolved_patterns"
+    ],
+    "id": "69e51af9cabe33b92f7fcb57",
+    "created_date": "2026-04-19T18:12:09.504000",
+    "updated_date": "2026-04-19T18:12:09.504000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When something hurts you, what happens internally first?",
+    "mode": "individual",
+    "selected_options": [
+      "I feel it deeply but don't show it",
+      "I shut down or withdraw"
+    ],
+    "answer": "I feel it deeply but don't show it, I shut down or withdraw",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d10",
+    "tags": [
+      "hurt_response",
+      "emotional_processing",
+      "vulnerability"
+    ],
+    "id": "69e521f8d0b161e8d56fd397",
+    "created_date": "2026-04-19T18:42:00.550000",
+    "updated_date": "2026-04-19T18:42:08.003000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you need emotionally but find hard to ask for?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "What I need emotionally but find hard to ask for is deeper engagement and curiosity when I open up. I want Drew to ask thoughtful follow-up questions and really try to understand what I’m going through, not just listen or offer surface-level support. I also need reassurance that he understands me, not just that he supports me, which feels different. It’s hard for me to directly ask for that because part of me feels like it should happen naturally if the interest and care are there. I also hesitate to ask because in my gut I feel like he won’t really hear what I’m asking for and may dismiss the importance of why I’m asking, so sometimes I don’t ask at all to avoid that disappointment. I struggle to ask for emotional presence in the moment when I’m already feeling vulnerable, especially if I’m not sure how it will be received. I also need consistent connection and closeness, but when that’s missing, I tend to withdraw instead of asking for it. There’s a deeper need to feel seen, understood, and emotionally met without having to over-explain or justify it. Even though I know these are reasonable needs, asking for them directly can feel uncomfortable and exposing.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d2",
+    "tags": [
+      "unmet_needs",
+      "vulnerability",
+      "emotional_needs"
+    ],
+    "id": "69e51bc717b32ff8a3339e6b",
+    "created_date": "2026-04-19T18:15:35.170000",
+    "updated_date": "2026-04-19T18:15:35.170000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What is the hardest thing for you to express to your partner?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "The hardest thing for me to express to Drew is that in the moments I need him most, I don’t feel deeply understood, and that it affects how connected I feel to him. It’s not just that he doesn’t ask questions, it’s that when I share something personal, especially about family or something I’m dealing with, and he responds with “I’m listening” or “I support you” without going deeper, it leaves me feeling like the weight of what I’m saying isn’t landing. What I want to say, but struggle to, is that I need him to ask specific, thoughtful follow-up questions that show he’s trying to understand the situation, my perspective, and why it matters to me. I want to be able to tell him that surface-level responses feel empty to me, even if his intention is good. It’s also hard to say that when he doesn’t engage that way, I interpret it as lack of interest or effort, even though I know that may not be his intent. I struggle to express that this disconnect directly impacts how close I feel to him and why I may pull back or show less affection afterward. There’s also a layer of wanting him to anticipate some of this without me having to spell it out, which I know isn’t always fair, but it’s real for me. Saying all of this out loud feels risky because it can sound like I’m criticizing how he shows up, when what I really want is to feel more connected and understood.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d3",
+    "tags": [
+      "vulnerability",
+      "communication_gap",
+      "emotional_expression"
+    ],
+    "id": "69e51c12ad17b28d395f91c4",
+    "created_date": "2026-04-19T18:16:50.680000",
+    "updated_date": "2026-04-19T18:16:50.680000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you feel hurt, what do you usually do?",
+    "mode": "individual",
+    "selected_options": [
+      "Withdraw until I've processed"
+    ],
+    "answer": "Withdraw until I've processed",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d4",
+    "tags": [
+      "hurt_response",
+      "emotional_expression",
+      "vulnerability"
+    ],
+    "id": "69e52264c4ea0da6a63890a8",
+    "created_date": "2026-04-19T18:43:48.096000",
+    "updated_date": "2026-04-19T18:44:27.754000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you wish your partner understood about you that you've never fully said out loud?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "What I wish Drew understood, but haven’t fully said out loud, is how much depth and engagement actually matter to me in feeling loved. It’s not just about being listened to or supported in a general sense, it’s about feeling like he is genuinely curious and invested in understanding me. When I share something, especially something personal or emotional, I want him to ask specific follow-up questions that show he’s trying to understand the full picture, not just acknowledge it and move on. Without that, it feels like the moment is being checked off rather than experienced together. I also wish he understood that when I go quiet or step away, it’s not because I don’t care, it’s because I’m trying to regulate and come back in a better way. At the same time, I need him to meet me halfway when I return, not stay at the surface.\n\nI haven’t fully said out loud how much I equate curiosity and depth with love, and how the absence of that can feel like disinterest, even if that’s not his intention. Because I wasn’t shown love and affection growing up and had to internalize so much, there are residual effects from that, including trauma responses that can make me swing from shutting down to feeling overwhelmed when I don’t feel respected or given the time to be understood. I wish he understood that this isn’t just preference, it’s tied to how I learned to feel safe in connection. I also haven’t clearly expressed how much it affects me to see him ask endless questions and show deep engagement around things he cares about, like movies, Disneyland, or musicals, but not bring that same curiosity to my life, my experiences, or what I’m going through.\n\nThere’s a pattern I’ve come to expect that I haven’t fully articulated. I share something meaningful, I feel his interest drop, there are no follow-up questions, and I feel the disappointment I already anticipated. That cycle often leads to resentment because it reinforces a belief that my life and passions aren’t worth the same level of attention. When he says he can’t fully understand my experiences because he didn’t grow up the same way, I understand that on one level, but over time it has started to feel like an easy way out of going deeper. What I wish he understood is that I’m not asking him to have lived my experiences, I’m asking him to be curious enough to want to understand them anyway. Underneath all of it, I want him to see that when he stays at the surface, it doesn’t just feel like a communication gap, it makes me feel uninteresting, unseen, and not worth the emotional energy it takes to truly engage.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d5",
+    "tags": [
+      "unspoken_needs",
+      "partner_perception",
+      "vulnerability"
+    ],
+    "id": "69e52073e1c17487ee10487c",
+    "created_date": "2026-04-19T18:35:31.791000",
+    "updated_date": "2026-04-19T18:35:31.791000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What fear do you carry into this relationship — even unconsciously?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "The fear I carry into this relationship, even unconsciously, is that I will not be fully seen, understood, or chosen for who I am at my core. There’s a deeper fear that the pattern from my upbringing will repeat, where love feels conditional and connection fades when I’m not fully aligned with what the other person values or engages with. I worry that no matter how much I try to communicate or show up, it still won’t land in the way I need it to. There’s also a fear that my emotional needs, especially around depth and curiosity, will feel like too much or require more energy than someone is willing to give. When I sense surface-level engagement or lack of follow-up, it reinforces that fear and makes it feel familiar. Part of me anticipates disappointment before it even happens, which leads me to brace myself or pull back. There’s also a fear that if I fully express how much I need to feel understood, it won’t change anything, which makes it risky to be that vulnerable. Underneath all of it, it’s the fear of being emotionally alone in a relationship that matters deeply to me.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d6",
+    "tags": [
+      "attachment_fear",
+      "vulnerability",
+      "emotional_blueprint"
+    ],
+    "id": "69e520a528879f82894aa2e6",
+    "created_date": "2026-04-19T18:36:21.505000",
+    "updated_date": "2026-04-19T18:36:21.505000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How much do you believe you deserve to be fully loved as you are right now?",
+    "mode": "individual",
+    "selected_options": [
+      "4"
+    ],
+    "answer": "4",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d7",
+    "tags": [
+      "self_worth",
+      "vulnerability",
+      "emotional_health"
+    ],
+    "id": "69e522363a5374b6d8b9783f",
+    "created_date": "2026-04-19T18:43:02.522000",
+    "updated_date": "2026-04-19T18:43:29.833000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What version of yourself do you hide from your partner most?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "The version of myself I hide most from Drew is the part that feels deeply sensitive, easily hurt, and affected by moments that might seem small on the surface. For example, when I’m sharing something personal and I notice his attention drop or there are no follow-up questions, I don’t show how quickly that lands as “I’m not interesting” or “this doesn’t matter to him.” Instead of saying that in the moment, I internalize it and act like it didn’t affect me as much as it did. I also hide how much I anticipate that pattern ahead of time, where I already expect the conversation to lose depth, so I go into it guarded or testing whether it will happen again. There’s a version of me that wants to say, “This really hurts, and I need you to show me you care by being curious about me,” but I don’t say it that directly because it feels too vulnerable and exposing.\n\nI also don’t fully show how much my emotional response can escalate internally. What starts as a small moment of disconnection can build into feeling completely unseen, and sometimes even questioning my place or importance in the relationship. On the outside, that might look like me going quiet, getting short, or shifting my focus elsewhere, but underneath, there’s a much bigger emotional reaction happening that I keep to myself. I hide how much that impacts my ability to stay open, connected, and affectionate in that moment. There’s also a part of me that feels like I shouldn’t have to explain all of this, that he should just know or naturally show up that way if the care is there, and I keep that belief to myself instead of challenging it out loud.\n\nI also hide the part of me that feels like I might be “too much” in what I need, especially around depth, attention, and emotional engagement. Instead of fully owning that need, I downplay it or redirect into something else, like work or distraction. Underneath it all, I’m protecting the version of me that wants to be fully seen, deeply understood, and prioritized, but is afraid that if I show just how much that matters to me, it won’t be met in the way I need.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d8",
+    "tags": [
+      "authenticity",
+      "vulnerability",
+      "self_perception"
+    ],
+    "id": "69e5210f93d72fa7fbce131b",
+    "created_date": "2026-04-19T18:38:07.781000",
+    "updated_date": "2026-04-19T18:38:07.781000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When your partner does something that upsets you, what does it usually mean to you?",
+    "mode": "individual",
+    "selected_options": [
+      "I'm not being heard",
+      "They don't understand me"
+    ],
+    "answer": "I'm not being heard, They don't understand me",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d9",
+    "tags": [
+      "emotional_meaning",
+      "misunderstood_trigger",
+      "attachment_pattern"
+    ],
+    "id": "69e52143dfbd111f508c86bb",
+    "created_date": "2026-04-19T18:38:59.866000",
+    "updated_date": "2026-04-19T18:39:14.136000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What makes you feel most misunderstood?",
+    "mode": "individual",
+    "selected_options": [
+      "Lack of follow-up",
+      "Not being asked how I feel",
+      "Dismissive tone"
+    ],
+    "answer": "Lack of follow-up, Not being asked how I feel, Dismissive tone",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e1",
+    "tags": [
+      "misunderstood_trigger",
+      "validation_need",
+      "sensitivity_to_tone"
+    ],
+    "id": "69e46552896b56952b851bf7",
+    "created_date": "2026-04-19T05:17:06.211000",
+    "updated_date": "2026-04-19T05:17:40.371000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What tone of voice instantly puts you on the defensive?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "A tone that is sharp, impatient, or even slightly dismissive will instantly put me on the defensive. If it feels like I’m being talked at instead of talked with, I shut down or brace myself. I’m especially sensitive to any hint of criticism that sounds absolute or blaming, like there’s no room for my perspective. Authoritative or defensive tones without full context also trigger that reaction because they feel premature and one-sided. A raised voice or an edge of frustration in delivery can escalate things quickly for me, even if the words themselves aren’t harsh. Sarcasm or condescension also hits a nerve because it feels disrespectful rather than constructive. I react strongly to tones that feel emotionally charged instead of calm and grounded. What affects me most is not just what’s said, but how it’s said, and when the tone feels controlled, respectful, and steady, I stay open, but when it doesn’t, I immediately become guarded.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e2",
+    "tags": [
+      "tone_sensitivity",
+      "defensiveness",
+      "trigger_tone"
+    ],
+    "id": "69e465dff85cf65e3e04ca1b",
+    "created_date": "2026-04-19T05:19:27.467000",
+    "updated_date": "2026-04-19T05:19:27.467000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "Which situations are most likely to frustrate you in the relationship?",
+    "mode": "individual",
+    "selected_options": [
+      "Feeling ignored or dismissed",
+      "Lack of follow-through on agreements",
+      "Feeling like I'm the only one trying",
+      "Repeating myself"
+    ],
+    "answer": "Feeling ignored or dismissed, Lack of follow-through on agreements, Feeling like I'm the only one trying, Repeating myself",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e3",
+    "tags": [
+      "frustration_trigger",
+      "conflict_trigger",
+      "unmet_needs"
+    ],
+    "id": "69e465e767b70858110b48cb",
+    "created_date": "2026-04-19T05:19:35.479000",
+    "updated_date": "2026-04-19T05:19:59.164000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What tone affects you most negatively?",
+    "mode": "individual",
+    "selected_options": [
+      "Dismissive or bored"
+    ],
+    "answer": "Dismissive or bored",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e4",
+    "tags": [
+      "tone_sensitivity",
+      "emotional_trigger"
+    ],
+    "id": "69e466285f8ccfb683c1c309",
+    "created_date": "2026-04-19T05:20:40.695000",
+    "updated_date": "2026-04-19T05:20:54.185000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What situation in the relationship makes you feel most vulnerable?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I feel most vulnerable in situations where there’s emotional distance or a sense that Drew is pulling away. When communication breaks down or tension goes unspoken, I start to feel exposed because I’m unsure where I stand. It’s especially hard when I’ve opened up or tried to connect and it isn’t fully received or followed through on. I also feel vulnerable when conflict lingers without resolution, because it creates a buildup of uncertainty and overthinking. A big trigger for me is when I don’t feel like I’m truly being heard, just listened to on the surface. Drew will sometimes say he’s listening and repeat back what I said, but without asking questions or trying to go deeper, it feels like there’s no real understanding. I notice this especially when I’m sharing personal situations about family or friends and there’s no curiosity or follow-up. That lack of engagement makes me feel unseen and reinforces the sense of disconnection.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e5",
+    "tags": [
+      "vulnerability",
+      "emotional_trigger",
+      "safety_need"
+    ],
+    "id": "69e46718a397452617c24d73",
+    "created_date": "2026-04-19T05:24:40.290000",
+    "updated_date": "2026-04-19T05:24:40.290000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How sensitive are you to your partner's tone and body language?",
+    "mode": "individual",
+    "selected_options": [
+      "5"
+    ],
+    "answer": "5",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e6",
+    "tags": [
+      "sensitivity_to_tone",
+      "emotional_attunement",
+      "trigger_tone"
+    ],
+    "id": "69e4671ca397452617c24d75",
+    "created_date": "2026-04-19T05:24:44.142000",
+    "updated_date": "2026-04-19T05:24:44.142000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When your partner is stressed, how does it affect you?",
+    "mode": "individual",
+    "selected_options": [
+      "I absorb it and feel stressed too"
+    ],
+    "answer": "I absorb it and feel stressed too",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e7",
+    "tags": [
+      "emotional_absorption",
+      "empathy",
+      "stress_response"
+    ],
+    "id": "69e46726639571bb9d0f012c",
+    "created_date": "2026-04-19T05:24:54.827000",
+    "updated_date": "2026-04-19T05:24:56.465000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "Is there a specific phrase or word that reliably sets you off? Describe it.",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "There isn’t just one specific word, it’s more about certain phrases and how they’re used that reliably set me off. Phrases like “I’m listening” without any follow-up tend to trigger me because they feel performative rather than genuine. It signals surface-level engagement instead of real understanding, especially when no questions come after. I’m also sensitive to statements that sound absolute or dismissive, like my perspective is being minimized or wrapped up too quickly. Anything that feels like a shutdown of the conversation rather than an opening will put me on edge. The trigger is less about the exact wording and more about what it represents, lack of curiosity, lack of depth, and a feeling that I’m not actually being understood. When that happens, I don’t feel safe staying open, and I start to pull back or get defensive. Also, when Drew says \"stop asking me so many questions\" when my genuine intention is seeking to understand the full picture. Also, Drew says this every time we are in the middle of talking, not even arguing at this point yet, but when we are still talking about a topic that I wish he would have approached differently as it relates to me -- when he decides he no longer wants to talk about it, he says the same thing every time, and now it is a trigger and sets me off - he says \"You can stop talking now\". ",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e8",
+    "tags": [
+      "trigger_phrase",
+      "emotional_trigger",
+      "sensitivity"
+    ],
+    "id": "69e4680b85c19c59e391a6b5",
+    "created_date": "2026-04-19T05:28:43.511000",
+    "updated_date": "2026-04-19T16:56:00.188000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "Being around people generally makes you feel:",
+    "mode": "individual",
+    "selected_options": [
+      "Neutral — depends on the people"
+    ],
+    "answer": "Neutral — depends on the people",
+    "weight": "medium",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "energy_social",
+    "question_id": "en1",
+    "tags": [
+      "social_energy",
+      "introversion_extroversion"
+    ],
+    "id": "69e46a8bfd25e90cbf71181e",
+    "created_date": "2026-04-19T05:39:23.356000",
+    "updated_date": "2026-04-19T05:39:23.356000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "After a long or difficult day, what do you most want from your partner?",
+    "mode": "individual",
+    "selected_options": [
+      "Space to decompress alone first"
+    ],
+    "answer": "Space to decompress alone first",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "energy_social",
+    "question_id": "en2",
+    "tags": [
+      "recharge_style",
+      "love_language",
+      "needs_in_stress"
+    ],
+    "id": "69e46aa23881c970b00e7d4e",
+    "created_date": "2026-04-19T05:39:46.607000",
+    "updated_date": "2026-04-19T05:39:50.702000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How much does your energy level affect your ability to communicate well?",
+    "mode": "individual",
+    "selected_options": [
+      "4"
+    ],
+    "answer": "4",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "energy_social",
+    "question_id": "en3",
+    "tags": [
+      "energy_communication",
+      "stress_response",
+      "self_awareness"
+    ],
+    "id": "69e46ae3b1e083b866dd3ab7",
+    "created_date": "2026-04-19T05:40:51.091000",
+    "updated_date": "2026-04-19T05:40:51.091000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What drains you most in a day?",
+    "mode": "individual",
+    "selected_options": [
+      "Unresolved tension at home",
+      "Work pressure or deadlines",
+      "Feeling unseen or unappreciated",
+      "Emotional labor"
+    ],
+    "answer": "Unresolved tension at home, Work pressure or deadlines, Feeling unseen or unappreciated, Emotional labor",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "energy_social",
+    "question_id": "en4",
+    "tags": [
+      "energy_drain",
+      "stress_trigger",
+      "needs"
+    ],
+    "id": "69e46aecc74263980b11945b",
+    "created_date": "2026-04-19T05:41:00.099000",
+    "updated_date": "2026-04-19T05:41:26.018000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What recharges you fastest?",
+    "mode": "individual",
+    "selected_options": [
+      "Time together doing something simple",
+      "Creative activity",
+      "A meaningful conversation",
+      "Laughter and lightness"
+    ],
+    "answer": "Time together doing something simple, Creative activity, A meaningful conversation, Laughter and lightness",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "energy_social",
+    "question_id": "en5",
+    "tags": [
+      "recharge_style",
+      "social_energy",
+      "self_care"
+    ],
+    "id": "69e46b172ac283d21d914f4b",
+    "created_date": "2026-04-19T05:41:43.218000",
+    "updated_date": "2026-04-19T05:41:50.579000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you're drained, how does it affect how you show up in the relationship?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "When I’m drained, I tend to pull inward and become less engaged. I’m still physically present, but my energy shifts and I’m not as responsive or expressive. I’m more likely to retreat into my own head or redirect into something structured instead of leaning into the relationship. It becomes harder to communicate clearly, and I may avoid conversations that feel like they could turn into tension. I’m also more sensitive to tone and quicker to get defensive or shut down. From the outside, it can look like distance or disconnection, even if that’s not my intent. I have less patience and less capacity to stay present in the moment. Overall, I show up more guarded and less available when I’m drained.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "energy_social",
+    "question_id": "en6",
+    "tags": [
+      "energy_communication",
+      "partner_perception",
+      "self_awareness"
+    ],
+    "id": "69e46b9156baa96d66ce14a7",
+    "created_date": "2026-04-19T05:43:45.821000",
+    "updated_date": "2026-04-19T05:43:45.821000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How much quality time with your partner do you feel you currently get in a typical week?",
+    "mode": "individual",
+    "selected_options": [
+      "1"
+    ],
+    "answer": "1",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "energy_social",
+    "question_id": "en7",
+    "tags": [
+      "quality_time",
+      "relationship_satisfaction",
+      "unmet_needs"
+    ],
+    "id": "69e46b9e2d89528b9d544e20",
+    "created_date": "2026-04-19T05:43:58.460000",
+    "updated_date": "2026-04-19T05:43:58.460000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How was conflict handled in your household growing up?",
+    "mode": "individual",
+    "selected_options": [
+      "Inconsistently — it changed"
+    ],
+    "answer": "Inconsistently — it changed",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "family_upbringing",
+    "question_id": "f1",
+    "tags": [
+      "childhood_patterns",
+      "conflict_style",
+      "emotional_blueprint"
+    ],
+    "id": "69e46bb2069103e86cfefdad",
+    "created_date": "2026-04-19T05:44:18.311000",
+    "updated_date": "2026-04-19T05:44:58.867000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How emotionally expressive was your family when you were growing up?",
+    "mode": "individual",
+    "selected_options": [
+      "1"
+    ],
+    "answer": "1",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "family_upbringing",
+    "question_id": "f2",
+    "tags": [
+      "emotional_expressiveness",
+      "childhood_patterns",
+      "emotional_blueprint"
+    ],
+    "id": "69e46bda7c009c942d012508",
+    "created_date": "2026-04-19T05:44:58.429000",
+    "updated_date": "2026-04-19T05:44:58.429000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What did love look like in your family growing up?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Love in my family growing up felt present, but not always expressed in a way that made emotional connection easy or consistent. It was often shown through actions, responsibility, and providing, rather than through open communication or emotional depth. Because of cultural expectations, love was never said out loud or openly shown, and it often felt like it had to be earned. It was typically rewarded when I met my dad’s standards, and when I didn’t, I was ignored, sometimes for weeks or months. There was a pattern of passive-aggressiveness and disappointment communicated through silence, where nothing was addressed directly and I was left to process everything on my own. That created a sense of feeling invisible and unsupported, especially when there was no acknowledgment of what was actually happening. I learned to read between the lines and rationalize things internally because there was no real outlet or support system. Love felt conditional, and that was later confirmed when I came out as gay and my dad stopped speaking to me and disowned me. That experience shaped how I understand love now, making emotional presence, clarity, and being truly seen feel essential.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "family_upbringing",
+    "question_id": "f3",
+    "tags": [
+      "love_language",
+      "attachment_style",
+      "emotional_blueprint"
+    ],
+    "id": "69e46d56748d4eafae6c533d",
+    "created_date": "2026-04-19T05:51:18.110000",
+    "updated_date": "2026-04-19T05:51:18.110000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What did you have to do to feel loved or approved of as a child?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "To feel loved or approved of as a child, I had to meet my dad’s expectations and align with his standards. Love felt tied to performance, behavior, and doing things “right” in his eyes rather than being unconditional. When I succeeded or followed the path he valued, there was a sense of approval, even if it wasn’t expressed directly. When I didn’t, the response was often silence, distance, or passive disappointment, which made it clear something was wrong without ever being addressed. I learned to monitor myself closely and adjust to avoid that withdrawal or disapproval. There wasn’t much room to express how I felt or to be fully myself without risk. Over time, I internalized the idea that love had to be earned and maintained through meeting expectations. That shaped a pattern of seeking clarity, validation, and consistency in how love is shown now.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "family_upbringing",
+    "question_id": "f4",
+    "tags": [
+      "attachment_pattern",
+      "conditional_love",
+      "emotional_blueprint"
+    ],
+    "id": "69e46d7b8221bbcc4a965b4f",
+    "created_date": "2026-04-19T05:51:55.545000",
+    "updated_date": "2026-04-19T05:51:55.545000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What did you vow — consciously or not — to do differently than your parents in relationships?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I vowed to be emotionally present and not rely on silence or distance to handle conflict. I want to communicate directly instead of leaving things unspoken or forcing the other person to read between the lines. I’m committed to making sure my partner feels seen and understood, not just listened to on the surface. I want love to feel unconditional, not tied to meeting expectations or avoiding disapproval. I also value creating a safe space where vulnerability is allowed and supported, not ignored or punished. At the same time, I try to regulate myself before reacting so I don’t repeat patterns of passive aggression or emotional withdrawal. That was my intention, but I can see my dad in me sometimes. I go silent, and I catch myself being passive aggressive or dismissive, often realizing it after the fact. I’m more aware of it now and actively working on it, even if I don’t always catch it in the moment.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "family_upbringing",
+    "question_id": "f5",
+    "tags": [
+      "childhood_patterns",
+      "growth_intention",
+      "emotional_blueprint"
+    ],
+    "id": "69e46e3034b149a9154b89c8",
+    "created_date": "2026-04-19T05:54:56.076000",
+    "updated_date": "2026-04-19T05:54:56.076000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What did you learn from your upbringing that has actually helped your relationship?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "What I learned from my upbringing that has helped my relationship is a strong awareness of how much communication and emotional presence matter. Because I had to read between the lines growing up, I’m very attuned to shifts in tone, energy, and unspoken tension. That helps me pick up on things early, even if I don’t always address them right away. I also developed a high level of self-reflection and internal processing, which allows me to step back, think things through, and avoid reacting impulsively. I am a feeler because of my upbringing and having to deal with so much by myself and in secret, so I feel things deeply. At the same time, I’ve developed a balance between that and a more detached, logical side that can lack emotion but helps ground conflict. I’m able to step out of the emotion and help Drew navigate his thoughts and feelings in a more structured, rational way. There’s a resilience there too, I can sit with discomfort and not immediately fall apart when things feel off. I place a high value on clarity, consistency, and feeling truly understood, which pushes me to want something better in my relationship. I’m intentional about not repeating the same patterns, even if I sometimes fall into them. Overall, it’s given me insight, awareness, and a real commitment to doing relationships differently.\n",
+    "weight": "medium",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "family_upbringing",
+    "question_id": "f6",
+    "tags": [
+      "childhood_patterns",
+      "strengths",
+      "relationship_resources"
+    ],
+    "id": "69e46f4781fbc064afaffd0b",
+    "created_date": "2026-04-19T05:59:35.780000",
+    "updated_date": "2026-04-19T05:59:35.780000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "Which parent or caregiver do you think you're most like in how you handle relationships?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I’m most like my dad in how I handle relationships, even though that’s not always intentional. I can see it in the moments where I go quiet, withdraw, or become passive aggressive instead of addressing things directly. There are times I feel myself shutting down or creating distance when something feels off, which mirrors what I experienced growing up. At the same time, I get the “feeler” part of me from my mom, where I hurt in silence and internalize my emotions. Because of what she endured, she understands that the cultural expectations aren’t worth it. She struggled with depression for much of her life and is now the only one in my family who still speaks with me, calls Drew directly, tells us she loves us, and genuinely just wants us to be happy. I’m much more self-aware of these patterns than either of them were, and I actively try to catch and correct them. I also balance that with a strong desire to communicate, be emotionally present, and do things differently. So while the instinctive reactions can resemble my dad and the emotional depth comes from my mom, the way I reflect on it and work to change it is where I diverge. It’s a mix of inherited patterns and conscious effort to evolve beyond them.\n",
+    "weight": "medium",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "family_upbringing",
+    "question_id": "f7",
+    "tags": [
+      "childhood_patterns",
+      "attachment_style",
+      "emotional_blueprint"
+    ],
+    "id": "69e470660940d4502eae1be4",
+    "created_date": "2026-04-19T06:04:22.947000",
+    "updated_date": "2026-04-19T06:04:22.947000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you need to feel safe enough to be fully honest?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "To feel safe enough to be fully honest, I need to know that what I share will be met with curiosity, not just acknowledgment. Specifically, I need Drew to ask thoughtful follow-up questions that show he’s trying to understand why something matters to me, not just what happened. I also need a calm, non-defensive tone, especially in the first few minutes of the conversation, because that sets the direction of whether I stay open or start to shut down. It’s important that I don’t feel rushed or dismissed, even subtly, because I’m highly sensitive to shifts in attention and engagement. I need evidence of sustained interest, meaning he stays with the conversation long enough to go below the surface, not pivot away after a few minutes.\n\nI also need to feel that my emotions won’t be minimized with generalized responses like “I support you,” but instead grounded in specific understanding of my experience. Another layer is predictability, I need to trust that if I open up, the pattern won’t repeat where I share, he disengages, and I’m left feeling disappointed. When I sense that he is mentally present, asking questions, and tracking what I’m saying, I naturally open up more. Underneath all of it, what creates safety for me is the feeling that I’m worth the time, energy, and emotional effort it takes to truly understand me.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv1",
+    "tags": [
+      "emotional_safety",
+      "vulnerability",
+      "communication_need"
+    ],
+    "id": "69e5233fec3fb5a87484fb50",
+    "created_date": "2026-04-19T18:47:27.801000",
+    "updated_date": "2026-04-19T18:50:27.164000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What tends to make you feel most alone in the relationship?",
+    "mode": "individual",
+    "selected_options": [
+      "Not being understood",
+      "Lack of effort or follow-through"
+    ],
+    "answer": "Not being understood, Lack of effort or follow-through",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv10",
+    "tags": [
+      "loneliness_trigger",
+      "disconnection",
+      "unmet_needs"
+    ],
+    "id": "69e529a6ca191e03a100d546",
+    "created_date": "2026-04-19T19:14:46.650000",
+    "updated_date": "2026-04-19T19:15:12.525000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you let your partner know you need more support without saying it directly?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I usually let Drew know I need more support indirectly by changing my energy and behavior rather than stating it outright. I go quieter, less expressive, and more internal, which is a signal that something is off. I may still be physically present, but I’m not engaging the same way, and I’m watching to see if he notices the shift. I’ll sometimes share something partially, almost like a test, to see if he asks follow-up questions or leans in. If he doesn’t, I tend to pull back further, which reinforces the pattern.\n\nI also redirect into something structured, like work or being on my phone, which creates distance but is also a way of signaling that I’m not fully okay. There’s a subtle expectation that he will pick up on the difference between how I normally show up and how I’m showing up in that moment. At times, I might become slightly short, passive, or less warm, which is another indirect signal that I need more engagement. Underneath it, I’m looking for him to notice, ask deeper questions, and close the gap without me having to explicitly say it. It’s essentially a pattern of signaling, observing, and assessing whether he responds with curiosity or stays at the surface.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv2",
+    "tags": [
+      "passive_communication",
+      "unmet_needs",
+      "emotional_expression"
+    ],
+    "id": "69e52394a1aee99a8001d9f9",
+    "created_date": "2026-04-19T18:48:52.271000",
+    "updated_date": "2026-04-19T18:49:50.585000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you feel disconnected from your partner, what does that look like for you?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "When I feel disconnected from Drew, I become noticeably more internal and less engaged, even if I’m still physically present. I stop initiating conversation, my responses get shorter, and my tone becomes flatter or more neutral. I’m often on my phone or redirecting into work, not just to stay busy, but to create distance and regulate what I’m feeling. There’s usually a moment that triggered it, like sharing something meaningful and sensing his attention drop or not getting any follow-up questions, and I start to shut down from there.\n\nInternally, I’m replaying the interaction and connecting it to a larger pattern, where I feel like this has happened before and I already know how it’s going to end. That creates a sense of disappointment before anything is even addressed. I also become more observant and less expressive, almost like I’m watching to see if he notices the shift and does something to close the gap. If he doesn’t, I withdraw further and start to feel less motivated to engage or share at all. That disconnection also impacts my warmth and affection, I’m less likely to be physically close or emotionally open because I don’t feel connected. On the surface, it can look like I’m just quiet or distracted, but underneath, I’m feeling unseen, disappointed, and slowly pulling away to protect myself.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv3",
+    "tags": [
+      "disconnection",
+      "attachment",
+      "emotional_awareness"
+    ],
+    "id": "69e524816e51b067050da474",
+    "created_date": "2026-04-19T18:52:49.528000",
+    "updated_date": "2026-04-19T18:52:49.528000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How important is it to you to feel like a priority in your partner's life?",
+    "mode": "individual",
+    "selected_options": [
+      "5"
+    ],
+    "answer": "5",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv4",
+    "tags": [
+      "need_for_validation",
+      "attachment",
+      "priority_need"
+    ],
+    "id": "69e527fd83a5700e6651bde0",
+    "created_date": "2026-04-19T19:07:41.633000",
+    "updated_date": "2026-04-19T19:07:41.633000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What does being truly supported look like to you?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Being truly supported to me looks like active, engaged understanding, not just passive listening. It means Drew is asking thoughtful follow-up questions that show he’s trying to understand the full context of what I’m going through, including why it matters to me and how it’s affecting me. It looks like him staying present in the conversation without drifting, rushing, or defaulting to surface-level responses. I feel supported when he reflects back what he’s hearing in a way that shows he actually gets it, not just repeating my words, but connecting to the meaning behind them.\n\nIt also looks like consistency, not just showing up this way once, but making it a pattern so I can trust that when I open up, I won’t be met with the same cycle of disengagement. Tone matters a lot, so being calm, grounded, and non-defensive helps me stay open. Support also means he’s willing to sit in the discomfort with me instead of trying to move past it quickly. I feel it when he is curious about my experiences, even if they’re different from his, and makes the effort to understand instead of defaulting to “I can’t relate.” There’s also an element of emotional investment, where I can feel that he wants to understand me, not because he has to, but because I matter to him. When all of that is there, I naturally feel more connected, open, and able to be myself.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv5",
+    "tags": [
+      "support_style",
+      "needs_in_conflict",
+      "love_language"
+    ],
+    "id": "69e5256dd7c71a284fdae223",
+    "created_date": "2026-04-19T18:56:45.092000",
+    "updated_date": "2026-04-19T18:56:45.092000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What's something you've wanted to say for a while but haven't found the right moment?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Something I’ve wanted to say for a while but haven’t found the right moment is that I don’t feel truly known by you in the way I want to be. Not because you don’t care, but because you don’t always go deep enough to understand me beyond the surface. When I share something meaningful and the conversation doesn’t go further, it leaves me feeling like my inner world isn’t landing with you. I’ve wanted to say that it hurts more than I let on, and that I often expect it to happen before it even does, which makes me hold back.\n\nI also haven’t said clearly that when you show so much curiosity and engagement around the things you care about, but not toward my life or what I’m going through, it makes me feel like I’m not as interesting or worth the same energy. I know that may not be your intent, but that’s how it lands for me. There’s a part of me that wants to ask you to show up for me with that same level of curiosity and presence, not just support me in general, but really try to understand me. I haven’t said it this directly because I worry it will sound like criticism or won’t come across the way I mean it. But underneath it, what I really want is to feel deeply known, not just loved in a general sense.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv6",
+    "tags": [
+      "unspoken_needs",
+      "vulnerability",
+      "communication_gap"
+    ],
+    "id": "69e52598a7cffe18744abf4c",
+    "created_date": "2026-04-19T18:57:28.174000",
+    "updated_date": "2026-04-19T18:57:28.174000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How comfortable are you receiving love, compliments, or care from your partner?",
+    "mode": "individual",
+    "selected_options": [
+      "4"
+    ],
+    "answer": "4",
+    "weight": "medium",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv7",
+    "tags": [
+      "vulnerability_comfort",
+      "love_language",
+      "self_worth"
+    ],
+    "id": "69e52848c34da3582024a72e",
+    "created_date": "2026-04-19T19:08:56.060000",
+    "updated_date": "2026-04-19T19:08:56.060000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What makes you feel closest to your partner?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "What makes me feel closest to Drew is when he is fully engaged with me in a way that feels intentional and curious. I feel it most when I’m sharing something personal and he asks thoughtful follow-up questions that show he’s trying to understand not just what happened, but why it matters to me. There’s a moment where I can tell he’s mentally present, tracking what I’m saying, and staying with me instead of drifting or defaulting to surface-level responses. That depth of engagement creates a sense of being seen, not just heard.\n\nI also feel close when we’re in a light, connected space together, laughing at things like funny videos, talking about ideas, or imagining things like future homes and what we’d want in them. That is why I love it when we go camping in Big Sur or Yosemite. There’s no cell phone reception, no devices, just the two of us spending quality time together. We end up talking about everything, from surface-level and funny things to deeper topics, and it happens naturally. We laugh, joke, and connect without it feeling forced. Those moments show me what we’re capable of when there are no distractions, but it also makes me realize that it shouldn’t require being six hours away camping to have that kind of quality time and conversation.\n\nPhysical closeness and affection also come more naturally to me when I already feel emotionally connected, so when that foundation is there, everything else follows. I feel closest when there’s a balance of emotional depth and ease, where I don’t have to question if he’s engaged or interested. Underneath all of it, closeness for me comes from feeling like he genuinely wants to know me and is willing to put in the energy to do that consistently.\n",
+    "weight": "medium",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv8",
+    "tags": [
+      "love_language",
+      "connection",
+      "relationship_satisfaction"
+    ],
+    "id": "69e5268cf250da70a94f8b46",
+    "created_date": "2026-04-19T19:01:32.019000",
+    "updated_date": "2026-04-19T19:01:32.019000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you're stressed or overwhelmed, what do you need most from your partner?",
+    "mode": "individual",
+    "selected_options": [
+      "To be understood emotionally",
+      "Help solving the problem"
+    ],
+    "answer": "To be understood emotionally, Help solving the problem",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv9",
+    "tags": [
+      "needs_in_stress",
+      "support_style",
+      "love_language"
+    ],
+    "id": "69e5289378b3accd358cc3eb",
+    "created_date": "2026-04-19T19:10:11.526000",
+    "updated_date": "2026-04-19T19:10:30.895000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you think your partner experiences you during conflict?",
+    "mode": "individual",
+    "selected_options": [
+      "Too critical",
+      "Hard to read",
+      "Too distant",
+      "Too intense",
+      "Reasonable but slow to engage"
+    ],
+    "answer": "Too critical, Hard to read, Too distant, Too intense, Reasonable but slow to engage",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "partner_perception",
+    "question_id": "p1",
+    "tags": [
+      "self_awareness",
+      "perceived_impact",
+      "partner_perception"
+    ],
+    "id": "69e470b8490d159767b1f03b",
+    "created_date": "2026-04-19T06:05:44.800000",
+    "updated_date": "2026-04-19T06:05:54.815000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you think frustrates your partner most about how you communicate?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I think what frustrates Drew most is that I don’t always communicate in the moment when something is bothering me. I tend to go quiet, pull inward, and process things internally instead of saying them out loud. From his perspective, that can feel like I’m shutting him out or creating distance without explanation. I also think my tendency to redirect into work or something structured can come across like I’m avoiding the issue or prioritizing something else over the relationship. When I do speak up, it’s often after I’ve already processed everything, which can make it feel delayed or one-sided. I think he also gets frustrated because I sometimes expect him to read between the lines, and at times I feel like he could if he put in the effort. Other times, I unfairly expect him to already know things that feel obvious to me, which can come across as condescending. There are also moments where I can be passive aggressive or dismissive without realizing it in real time. At times, I may lean too much into logic and problem-solving instead of staying emotionally present with him. Overall, it can feel inconsistent to him, like he’s not always sure where I stand or when I’m going to open up.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "partner_perception",
+    "question_id": "p2",
+    "tags": [
+      "partner_perception",
+      "blind_spots",
+      "communication_gap"
+    ],
+    "id": "69e471d40efb9ca3fa40d323",
+    "created_date": "2026-04-19T06:10:28.613000",
+    "updated_date": "2026-04-19T06:10:28.613000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "Where do you think you are most misunderstood by your partner?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I think I feel most misunderstood by Drew when it comes to my need to step away and process before engaging. From my perspective, that space is about regulating and making sure I come back in a thoughtful, grounded way. From his side, it can look like I’m withdrawing, avoiding, or disconnecting. I also feel misunderstood in how I communicate emotionally, especially when I’m trying to be open but don’t feel fully heard or engaged with beyond surface-level listening. The lack of questions, or staying at surface-level check-ins like “you ok” or “what’s wrong,” can easily come across as a lack of interest. Drew has said he doesn’t need to understand all the details and will support me regardless, but for me, that’s not enough. I don’t just want to hear “I support you,” I want to share the details and be asked questions so I know he understands why he’s supporting me. When that curiosity isn’t there, it feels like the depth of what I’m sharing isn’t landing. Not going below the surface can feel lazy to me, even if that’s not his intent. There’s also a gap when I expect him to read between the lines and he doesn’t, which leaves me feeling unseen. Overall, it shows up in moments where my intent and his interpretation don’t align.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "partner_perception",
+    "question_id": "p3",
+    "tags": [
+      "misunderstanding_gap",
+      "partner_perception",
+      "self_awareness"
+    ],
+    "id": "69e473ef93393527272772b9",
+    "created_date": "2026-04-19T06:19:27.329000",
+    "updated_date": "2026-04-19T06:19:27.329000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you think your partner needs from you that you don't give enough of?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I think Drew needs more real-time communication from me than I consistently give. When something is bothering me, he likely needs me to say it in the moment instead of going quiet and processing it on my own first. He also needs reassurance and emotional presence, especially during tension, instead of me pulling inward or redirecting into work. I think he wants clarity about where I stand, rather than having to guess or read between the lines. Consistency is probably another need, knowing how I’m feeling without sudden shifts in energy or engagement. He may also need more patience from me, especially when he’s trying to engage but doesn’t always do it in the way I expect. I don’t always give him enough space to show up in his own way without judging it as surface-level or insufficient. He also wants more affection from me, both verbally and physically, to feel connected and reassured. Overall, he needs me to stay present, communicative, and emotionally available, even when it’s uncomfortable, instead of retreating.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "partner_perception",
+    "question_id": "p4",
+    "tags": [
+      "blind_spots",
+      "unmet_needs",
+      "partner_perception"
+    ],
+    "id": "69e4744e7dc74740e70fdef7",
+    "created_date": "2026-04-19T06:21:02.950000",
+    "updated_date": "2026-04-19T06:21:02.950000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you think your partner loves most about who you are?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I think Drew loves that I’m thoughtful, self-aware, and intentional about how I show up in the relationship. He sees that I care deeply and that I’m always trying to understand, grow, and do better. I think he appreciates how grounded and logical I can be, especially when things feel overwhelming, and how I can help bring structure and clarity to situations. At the same time, he values that I feel things deeply and that my emotional depth comes from a real place of care and investment. I’m also very loyal and will put in the extra effort to build real relationships with the people who matter to him, including his immediate family. I was very close with his mom before she passed, which meant a lot to both of us. He likely values that I take the relationship seriously and show up with consistency and commitment. There’s also a part of me that is driven and passionate, especially with what I’m building, and I think he respects that ambition. Overall, I think he loves that I’m both a thinker and a feeler, and that I genuinely want us to have something strong and lasting.\n",
+    "weight": "medium",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "partner_perception",
+    "question_id": "p5",
+    "tags": [
+      "strengths",
+      "self_worth",
+      "partner_perception"
+    ],
+    "id": "69e474be4e7ee3d00ee7332f",
+    "created_date": "2026-04-19T06:22:54.858000",
+    "updated_date": "2026-04-19T06:22:54.858000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How accurately do you think your partner reads your emotions?",
+    "mode": "individual",
+    "selected_options": [
+      "3"
+    ],
+    "answer": "3",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "partner_perception",
+    "question_id": "p6",
+    "tags": [
+      "emotional_attunement",
+      "partner_perception",
+      "communication_gap"
+    ],
+    "id": "69e47240b99610fa21277d49",
+    "created_date": "2026-04-19T06:12:16.377000",
+    "updated_date": "2026-04-19T06:12:16.377000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "Is there something your partner does that you've never fully acknowledged is hard for you? Describe it.",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Something Drew does that I haven’t always fully acknowledged as hard for me is his tendency to stay at a surface level when I’m trying to go deeper. When he says things like “I’m listening” or “I support you” without asking follow-up questions, it leaves me feeling like the depth of what I’m sharing isn’t landing. I’ve focused on the frustration, but underneath that, it’s actually hard for me because it creates a sense of disconnection in moments where I’m trying to feel close. It can make me question whether he truly understands me or is just trying to move past the moment. I also think it’s hard when he doesn’t pick up on things I feel are obvious, because I expect a level of intuition that may not be realistic. Instead of seeing it as a difference in communication styles, I sometimes interpret it as lack of effort or interest. In order for me to provide the affection he needs, I need to feel connected to him first. When I don’t feel understood and things stay surface-level, it’s difficult for me to feel close, which directly impacts how much affection I naturally show and express. That gap between what I need and how he shows up can feel more personal than it actually is. Acknowledging that it’s genuinely hard for me, not just frustrating, shifts how I understand my reaction to it.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "partner_perception",
+    "question_id": "p7",
+    "tags": [
+      "unspoken_needs",
+      "blind_spots",
+      "vulnerability"
+    ],
+    "id": "69e475a68ab28d47e389f064",
+    "created_date": "2026-04-19T06:26:46.929000",
+    "updated_date": "2026-04-19T06:26:46.929000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When conflict happens, what do you think your partner needs most from you?",
+    "mode": "individual",
+    "selected_options": [
+      "Listening",
+      "Accountability"
+    ],
+    "answer": "Listening, Accountability",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "partner_perception",
+    "question_id": "p8",
+    "tags": [
+      "partner_needs",
+      "empathy",
+      "partner_perception"
+    ],
+    "id": "69e471e66cc5414ec9ef05fe",
+    "created_date": "2026-04-19T06:10:46.589000",
+    "updated_date": "2026-04-19T06:11:16.547000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you usually react when plans change last minute?",
+    "mode": "individual",
+    "selected_options": [
+      "Go with the flow"
+    ],
+    "answer": "Go with the flow",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "surface",
+    "question_id": "s1",
+    "id": "69e17024718b6801f3139993",
+    "created_date": "2026-04-16T23:26:28.128000",
+    "updated_date": "2026-04-16T23:26:28.128000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What does a perfect evening together look like for you right now?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "A perfect evening for me is structured but not rigid. It starts at home in a clean, comfortable space where everything feels settled, with good lighting, no noise, and the dogs nearby. Drew and I are doing something together that actually feels engaging and fun, not forced. That usually means sitting next to each other going down a rabbit hole of Instagram reels, laughing at funny dog videos, or getting pulled into cool home designs and talking through how we would bring those ideas into our next place. It is light, funny, and easy, and it naturally creates connection without pressure. There is no tension, no miscommunication, and nothing lingering in the background pulling at either of us. I feel clear, present, and calm, like I can actually enjoy the moment. The night ends feeling complete, like we connected, recharged, and did not carry anything unnecessary into tomorrow.\n",
+    "weight": "medium",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "surface",
+    "question_id": "s2",
+    "tags": [
+      "recharge_style",
+      "quality_time",
+      "love_language"
+    ],
+    "id": "69e460c00761aa1cb058da30",
+    "created_date": "2026-04-19T04:57:36.749000",
+    "updated_date": "2026-04-19T04:57:36.749000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you're stressed, what helps you decompress the most?",
+    "mode": "individual",
+    "selected_options": [
+      "Being alone"
+    ],
+    "answer": "Being alone",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "surface",
+    "question_id": "s3",
+    "id": "69e1704958e29b8f10d3e21c",
+    "created_date": "2026-04-16T23:27:05.102000",
+    "updated_date": "2026-04-16T23:27:05.102000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How important is routine and structure to your daily life?",
+    "mode": "individual",
+    "selected_options": [
+      "2"
+    ],
+    "answer": "2",
+    "weight": "medium",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "surface",
+    "question_id": "s4",
+    "tags": [
+      "structure_need",
+      "flexibility",
+      "control_preference"
+    ],
+    "id": "69e452fe741153aa6f40e35d",
+    "created_date": "2026-04-19T03:58:54.257000",
+    "updated_date": "2026-04-19T03:58:54.257000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you're in a good mood, how do you usually show it?",
+    "mode": "individual",
+    "selected_options": [
+      "I talk more"
+    ],
+    "answer": "I talk more",
+    "weight": "low",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "surface",
+    "question_id": "s5",
+    "tags": [
+      "emotional_expression",
+      "love_language"
+    ],
+    "id": "69e453074fec7a98a4fbc23b",
+    "created_date": "2026-04-19T03:59:03.325000",
+    "updated_date": "2026-04-19T04:57:58.427000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you tend to handle a bad day before you've said a word about it?",
+    "mode": "individual",
+    "selected_options": [
+      "Go quiet"
+    ],
+    "answer": "Go quiet",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "surface",
+    "question_id": "s6",
+    "tags": [
+      "stress_response",
+      "emotional_expression",
+      "partner_perception"
+    ],
+    "id": "69e460fdd14d09462c207e64",
+    "created_date": "2026-04-19T04:58:37.854000",
+    "updated_date": "2026-04-20T04:30:21.704000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How much alone time do you need on a typical week?",
+    "mode": "individual",
+    "selected_options": [
+      "2"
+    ],
+    "answer": "2",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "surface",
+    "question_id": "s7",
+    "tags": [
+      "social_energy",
+      "need_for_space",
+      "recharge_style"
+    ],
+    "id": "69e4610cc69c0bdfe87e0fb5",
+    "created_date": "2026-04-19T04:58:52.926000",
+    "updated_date": "2026-04-19T04:58:52.926000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you feel about spontaneous plans or surprises?",
+    "mode": "individual",
+    "selected_options": [
+      "Usually fine if low-pressure"
+    ],
+    "answer": "Usually fine if low-pressure",
+    "weight": "medium",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "surface",
+    "question_id": "s8",
+    "tags": [
+      "control_preference",
+      "flexibility",
+      "stress_trigger"
+    ],
+    "id": "69e461175749de6b44d9ec60",
+    "created_date": "2026-04-19T04:59:03.398000",
+    "updated_date": "2026-04-19T04:59:03.398000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How did you handle conflict at the beginning of this relationship compared to now?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "At the beginning of the relationship, I handled conflict more by holding things in and trying to keep the peace. I was less likely to bring things up directly and more willing to let things go, even if they bothered me, because I didn’t want to create tension or risk disconnection. I was more patient on the surface, but also less honest about what I actually needed. I gave more benefit of the doubt and didn’t fully recognize patterns yet, so I wasn’t as triggered by them.\n\nNow, I’m more aware of what bothers me and why, but I still don’t always address it in the moment. Instead of ignoring it, I notice it quickly, internalize it, and start connecting it to a larger pattern. That makes my reactions more emotionally loaded, even if I’m still outwardly quiet at first. I’m more likely now to feel disappointed faster because I’ve seen the cycle repeat. When I do bring things up, it tends to come after I’ve already processed everything, which can make it feel heavier or more built up. So the shift is from avoiding conflict early on to recognizing it clearly now, but still struggling with expressing it in real time before it compounds.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "then_vs_now",
+    "question_id": "t1",
+    "tags": [
+      "conflict_growth",
+      "then_vs_now",
+      "self_awareness"
+    ],
+    "id": "69e52a131ba568f82731d195",
+    "created_date": "2026-04-19T19:16:35.543000",
+    "updated_date": "2026-04-19T19:16:35.543000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What's one thing you've genuinely changed about yourself in this relationship?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "One thing I’ve genuinely changed about myself in this relationship is my level of self-awareness and willingness to reflect on my own patterns. I’m much more conscious now of how I shut down, withdraw, or become passive aggressive when I feel misunderstood. Earlier on, I might not have recognized those behaviors in real time or understood where they were coming from. Now, even if I don’t always catch it in the moment, I can see it clearly afterward and take ownership of it.\n\nI’ve also become more intentional about wanting to communicate and do things differently than what I experienced growing up. Instead of just internalizing everything and moving on, I’m actively trying to understand my reactions and improve how I show up. There’s a stronger effort to break patterns rather than repeat them. I also have a deeper understanding now that Drew and I come from completely different upbringings, levels of family support, and cultural backgrounds. Because of that, I don’t truly expect him to fully understand experiences like lack of affection, limited emotional support, or not being accepted for being gay in the way I lived through it. That awareness helps me separate intent from impact at times, even if the frustration still shows up. Overall, the shift from unconscious reaction to conscious awareness is real, even if the execution is still a work in progress.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "then_vs_now",
+    "question_id": "t2",
+    "tags": [
+      "growth",
+      "self_awareness",
+      "then_vs_now"
+    ],
+    "id": "69e52b4893485dda712b8612",
+    "created_date": "2026-04-19T19:21:44.065000",
+    "updated_date": "2026-04-19T19:21:44.065000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What pattern do you know you haven't fully resolved — even after 13 years?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "The pattern I know I haven’t fully resolved, even after 13 years, is my tendency to internalize first and communicate later, or sometimes not at all in the moment. When something bothers me, I still default to going quiet, processing it on my own, and trying to make sense of it before bringing it up. During that time, I’m not just thinking about the situation, I’m connecting it to past moments, anticipating how it will play out, and often feeling the disappointment before anything is actually addressed. That creates a buildup where by the time I do say something, it carries more weight than the original moment.\n\nI also haven’t fully resolved my expectation that Drew should read between the lines or naturally show the level of curiosity and depth I’m looking for. Even though I know we communicate differently, there’s still a part of me that feels like I shouldn’t have to ask for that explicitly. When it doesn’t happen, I can slip into withdrawal, passive behavior, or reduced affection instead of clearly expressing what I need in real time. That cycle of feeling, internalizing, anticipating, and then reacting is the pattern that continues to repeat.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "then_vs_now",
+    "question_id": "t3",
+    "tags": [
+      "unresolved_patterns",
+      "growth_area",
+      "self_awareness"
+    ],
+    "id": "69e52b71e1c17487ee1055ea",
+    "created_date": "2026-04-19T19:22:25.434000",
+    "updated_date": "2026-04-19T19:22:25.434000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How have your needs changed over the course of this relationship?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Over the course of this relationship, my needs have shifted from being more implicit and flexible to being more defined, intentional, and non-negotiable. Early on, I didn’t fully recognize or express what I needed, and I was more willing to adapt, keep the peace, and accept surface-level connection as “good enough.” I focused more on maintaining harmony than on being fully understood. As time went on, I became more aware of the patterns that left me feeling disconnected, especially around not feeling deeply understood or engaged with.\n\nNow, I have a much clearer need for depth, curiosity, and emotional presence. I don’t just want to be listened to, I want to be understood through thoughtful questions and sustained engagement. My tolerance for surface-level responses has decreased because I’ve seen how that pattern impacts my sense of connection over time. I also place more importance on consistency and follow-through, not just isolated moments of effort. At the same time, I’ve become more aware of how my own patterns, like withdrawing or expecting him to read between the lines, contribute to the dynamic. So my needs haven’t just increased, they’ve become more specific, more conscious, and more tied to feeling genuinely seen and valued in the relationship.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "then_vs_now",
+    "question_id": "t4",
+    "tags": [
+      "needs_evolution",
+      "then_vs_now",
+      "emotional_growth"
+    ],
+    "id": "69e52bbab68ae8da7ebd5dde",
+    "created_date": "2026-04-19T19:23:38.676000",
+    "updated_date": "2026-04-19T19:23:38.676000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you miss about earlier in this relationship?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "What I miss about earlier in this relationship is the ease and lack of overanalysis. I wasn’t as focused on patterns or anticipating how things would play out, so I could stay more present in the moment without mentally tracking everything. There was more lightness and less emotional weight attached to interactions, especially during conversations. I also miss giving more benefit of the doubt and not feeling triggered as quickly by moments that now feel familiar. Back then, I wasn’t as aware of the gaps in depth or engagement, so they didn’t carry the same meaning or impact.\n\nI also miss the feeling of things being more organic and less effortful, where connection didn’t feel like something I had to monitor or evaluate. There was more patience and less urgency around needing to be fully understood all the time. When we were younger, we also had less responsibility, less stress, and fewer family obligations, which gave us more freedom. Because of that, we laughed more, were more spontaneous, more light-hearted, and more naturally intimate. Things felt easier and more fun without the weight of everything we carry now.\n\nAt the same time, I recognize that part of that came from not fully knowing or expressing my needs yet. Now that I do, it’s harder to ignore when those needs aren’t met. So what I miss is less about the relationship being better and more about how I experienced it, with more ease, less expectation, and less emotional buildup.\n",
+    "weight": "medium",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "then_vs_now",
+    "question_id": "t5",
+    "tags": [
+      "relationship_evolution",
+      "then_vs_now",
+      "nostalgia"
+    ],
+    "id": "69e52c595bc8175a267b72d5",
+    "created_date": "2026-04-19T19:26:17.960000",
+    "updated_date": "2026-04-19T19:26:17.960000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "What parts of yourself got quieter as life got busier — and do you miss them?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "The parts of myself that got quieter as life got busier are the more spontaneous, playful, and emotionally light sides of me. I used to be quicker to laugh, joke, and stay in the moment without analyzing everything underneath it. I was more open to just enjoying time together without tracking patterns or anticipating where things might go. That version of me didn’t carry the same emotional weight into interactions and didn’t feel the need to protect myself as much.\n\nAs responsibilities increased and stress became more constant, I became more internal, more reflective, and more guarded. I started prioritizing control, structure, and understanding over lightness and spontaneity. Even in moments that could be fun or easy, there’s often a layer of awareness running in the background now. I also think I express affection and warmth less freely when I don’t feel fully connected, whereas before it came more naturally.\n\nI do miss those parts of myself. I miss how easy it felt to just be present, to laugh without thinking, and to connect without needing everything to go deeper or mean something. At the same time, I understand why those parts got quieter. They were replaced by awareness, pattern recognition, and a stronger need for emotional safety. What I miss isn’t just the behavior, it’s how it felt to move through the relationship with less weight and more ease.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "then_vs_now",
+    "question_id": "t6",
+    "tags": [
+      "self_evolution",
+      "then_vs_now",
+      "authenticity"
+    ],
+    "id": "69e52c8caf21ebbd5ca86a0d",
+    "created_date": "2026-04-19T19:27:08.158000",
+    "updated_date": "2026-04-19T19:27:08.158000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "If the version of you from 10 years ago saw you now, what would surprise them most?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "What would surprise the version of me from 10 years ago the most is how much I’ve evolved from avoiding conflict to actively analyzing it and trying to understand it at a deeper level. Back then, I was more focused on keeping the peace and staying in the moment, even if it meant not fully expressing what I needed. Now, I’m much more aware of patterns, emotional dynamics, and what actually creates or breaks connection. The level of self-awareness and reflection I have now would probably feel intense compared to how I used to operate.\n\nIt would also be surprising how much I’ve prioritized depth and emotional understanding in the relationship. I don’t just accept surface-level connection anymore, I expect more, and I notice quickly when it’s missing. At the same time, they might be surprised by how much I’ve become more internal and guarded, especially in moments of tension. I think they would notice that I carry more emotional weight and that I don’t move through things as lightly as I used to.\n\nThey would also be surprised by how driven and focused I’ve become, especially with diving into AI and building something meaningful. That level of passion and intensity might not have been as pronounced before. And on a more personal level, I think they would be surprised by how much I’ve learned to understand my upbringing and how it still affects me today, especially in how I relate to love, connection, and being understood. Overall, they would see someone more self-aware, more intentional, but also more complex and more impacted by the weight of those realizations.\n",
+    "weight": "medium",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "then_vs_now",
+    "question_id": "t7",
+    "tags": [
+      "self_reflection",
+      "growth",
+      "then_vs_now"
+    ],
+    "id": "69e52dd0f570a82a0865693c",
+    "created_date": "2026-04-19T19:32:32.158000",
+    "updated_date": "2026-04-19T19:32:32.158000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  },
+  {
+    "question_text": "How has your stubbornness — or certainty in yourself — evolved over the years?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "My stubbornness has evolved over time, but it didn’t start out that way. When I was younger, I was actually more flexible, more easygoing, and more willing to let things go to keep the peace. I didn’t hold as tightly to my perspective because I hadn’t fully defined my needs or boundaries yet. Over the years, as Drew has become more stubborn in his own way, I think I’ve adapted to that dynamic and become more stubborn as a byproduct. Being together for 13 years, there’s a natural push and pull where I’ve had to hold my ground more, which has strengthened that part of me.\n\nAt the same time, it’s not just stubbornness, it’s also me becoming more grounded and more certain in who I am and what I need. I’ve experienced more in life, especially with my upbringing and everything I’ve processed, so I have more clarity and conviction now. The challenge is that it can be a fine line between being grounded in my truth and becoming rigid in how I see things. There are moments where my certainty helps me stay anchored and not dismiss my needs, but there are also times where I can lock into a perspective and have a harder time staying open or flexible in the moment.\n\nSo the evolution is really from being more passive and adaptable to being more defined and firm, influenced both by my own growth and the dynamic with Drew. I’m more grounded, but that grounding can sometimes come across as stubbornness, especially when I feel strongly about something.\n",
+    "weight": "high",
+    "person_name": "Tony",
+    "ranking": [],
+    "category": "then_vs_now",
+    "question_id": "t8",
+    "tags": [
+      "stubbornness",
+      "self_awareness",
+      "emotional_growth"
+    ],
+    "id": "69e52e839239e944d0948955",
+    "created_date": "2026-04-19T19:35:31.470000",
+    "updated_date": "2026-04-19T19:35:31.470000",
+    "created_by_id": "69e1621136331f829e92af28",
+    "is_sample": false
+  }
+]
