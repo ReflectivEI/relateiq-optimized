@@ -1,0 +1,472 @@
+/**
+ * Coach.jsx — AI Coach: "Start a Conversation" Experience
+ * Context-aware guidance with smart suggestions, multi-output modes, and predictive layer.
+ * Routes through pipelineEngine → deterministic pattern analysis → AI Coach
+ */
+import React, { useState, useEffect, useRef } from "react";
+import { api } from "@/api/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { pipelineEngine } from "@/lib/pipelineEngine";
+import { handleError, validateInput, ERROR_TYPES } from "@/lib/errorBoundary";
+import { globalState } from "@/lib/globalState";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Sparkles, MessageCircle, Copy } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { motion, AnimatePresence } from "framer-motion";
+import { buildCoachPrompt } from "@/lib/prompts";
+import { safeInvokeLLM, buildFallbackCoachResponse, validateCoachOutput, CreditLimitError } from "@/lib/aiSafe";
+import AILoadingState from "@/components/ui/AILoadingState";
+import { serializeTriggers } from "@/lib/triggerService";
+import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
+import DataSourceBadge from "@/components/ui/DataSourceBadge";
+import PrivacyBanner from "@/components/ui/PrivacyBanner";
+import { toast } from "sonner";
+import CoachSuggestionPills from "@/components/coach/CoachSuggestionPills";
+import CoachOutputModes from "@/components/coach/CoachOutputModes";
+import PredictiveOutcomeBlock from "@/components/coach/PredictiveOutcomeBlock";
+import { computePatternProfile } from "@/lib/patternEngine";
+import TracePanel from "@/components/trace/TracePanel";
+import ErrorFallback from "@/components/errors/ErrorFallback";
+import ResponseExportBar from "@/components/export/ResponseExportBar";
+import NotesPanel from "@/components/notes/NotesPanel";
+import { enforceCoachStructure, deriveCoachModes } from "@/lib/coachStructureEnforcer";
+
+const SUGGESTION_PILLS = [
+  { id: "handling_conflict", label: "Handling Conflict", icon: "⚡" },
+  { id: "repair_after_tension", label: "Repair After Tension", icon: "💞" },
+  { id: "feel_misunderstood", label: "I Feel Misunderstood", icon: "😕" },
+  { id: "they_feel_distant", label: "They Feel Distant", icon: "📍" },
+  { id: "something_felt_off", label: "Something Felt Off", icon: "🤔" },
+  { id: "say_this_better", label: "I Want to Say This Better", icon: "💬" },
+  { id: "overwhelmed_triggered", label: "I'm Overwhelmed / Triggered", icon: "🌊" },
+  { id: "repeating_pattern", label: "We Keep Repeating This Pattern", icon: "🔄" },
+];
+
+export default function Coach() {
+  const [speaker, setSpeaker] = useState("Tony");
+  const [speakingTo, setSpeakingTo] = useState("Drew");
+  const [situation, setSituation] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [response, setResponse] = useState(null);
+  const [outputMode, setOutputMode] = useState("full");
+  const [baseResponse, setBaseResponse] = useState(null);
+  const [creditError, setCreditError] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
+  const [predictiveOutput, setPredictiveOutput] = useState(null);
+  const [selectedPill, setSelectedPill] = useState(null);
+  const [pipelineTrace, setPipelineTrace] = useState(null);
+  const [error, setError] = useState(null);
+  const responseRef = useRef(null);
+  const queryClient = useQueryClient();
+
+  const { data: triggers = [] } = useQuery({
+    queryKey: ["triggers-coach"],
+    queryFn: () => api.entities.TriggerEntry.list(),
+  });
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles-coach"],
+    queryFn: () => api.entities.UserProfile.list(),
+  });
+
+  const { data: pastSessions = [] } = useQuery({
+    queryKey: ["coach-sessions"],
+    queryFn: () => api.entities.CoachSession.list("-created_date", 20),
+  });
+
+  const { data: tonyResponses = [] } = useQuery({
+    queryKey: ["responses-coach-tony"],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Tony" }),
+  });
+
+  const { data: drewResponses = [] } = useQuery({
+    queryKey: ["responses-coach-drew"],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Drew" }),
+  });
+
+  // Sync data to global state
+  useEffect(() => {
+    globalState.setState({
+      tony: profiles.find((p) => p.person_name === "Tony"),
+      drew: profiles.find((p) => p.person_name === "Drew"),
+      tonyResponses,
+      drewResponses,
+      triggers,
+      coachSessions: pastSessions,
+    });
+  }, [profiles, tonyResponses, drewResponses, triggers, pastSessions]);
+
+  const speakerProfile = profiles.find((p) => p.person_name === speaker);
+  const targetProfile = profiles.find((p) => p.person_name === speakingTo);
+  const speakerResponses = speaker === "Tony" ? tonyResponses : drewResponses;
+  const targetResponses = speakingTo === "Tony" ? tonyResponses : drewResponses;
+
+  const runCoachCall = async (situationText) => {
+    setError(null);
+    setPipelineTrace(null);
+
+    try {
+      // Validate input
+      validateInput({ speaker, speakingTo, situation: situationText });
+
+      if (!speaker || !speakingTo || !situationText.trim()) return;
+
+      setLoading(true);
+      setResponse(null);
+      setBaseResponse(null);
+      setPredictiveOutput(null);
+      setCreditError(false);
+
+      // Run deterministic pipeline
+      const pipelineResult = await pipelineEngine.executePipeline({
+        speaker,
+        speakingTo,
+        situation: situationText,
+      });
+
+      if (pipelineResult.error) {
+        throw new Error(pipelineResult.error);
+      }
+
+      setPipelineTrace(pipelineResult.trace);
+    } catch (err) {
+      const fallback = handleError(err, ERROR_TYPES.INVALID_INPUT);
+      setError(fallback);
+      setLoading(false);
+      return;
+    }
+
+    const triggerCtx = [
+      serializeTriggers(triggers, speaker),
+      serializeTriggers(triggers, speakingTo),
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    const prompt = buildCoachPrompt({
+      speaker,
+      speakingTo,
+      situation: situationText,
+      speakerProfile,
+      targetProfile,
+      speakerResponses,
+      targetResponses,
+      pastSessions: pastSessions
+        .filter((s) => s.speaker === speaker || s.speaking_to === speaker)
+        .slice(0, 10),
+    }) + (triggerCtx ? `\n\nTRIGGER MEMORY:\n${triggerCtx}` : "");
+
+    let result;
+    try {
+      result = await safeInvokeLLM(
+        {
+          prompt,
+          model: "claude_sonnet_4_6",
+          partnerLanguage: { personName: speaker, partnerName: speakingTo },
+        },
+        35000,
+        null,
+        validateCoachOutput
+      );
+    } catch (err) {
+      if (err instanceof CreditLimitError) {
+        setCreditError(true);
+        setLoading(false);
+        return;
+      }
+      throw err;
+    }
+
+    if (!result) {
+      result = buildFallbackCoachResponse(speaker, speakingTo, situationText);
+    }
+
+    // ENFORCE STRUCTURE
+    const structuredOutput = enforceCoachStructure(result);
+    const modes = deriveCoachModes(structuredOutput);
+
+    // Save session with structured output
+    const session = await api.entities.CoachSession.create({
+      speaker,
+      speaking_to: speakingTo,
+      situation: situationText,
+      ai_response: modes.full, // Store full mode by default
+      tool_type: "coach",
+    });
+    setSessionId(session?.id || null);
+
+    setBaseResponse(modes.full);
+    setResponse(modes.full);
+    setOutputMode("full");
+    setLoading(false);
+    queryClient.invalidateQueries({ queryKey: ["coach-sessions"] });
+  };
+
+  const handleSuggestionPill = (pillId) => {
+    setSelectedPill(pillId);
+    
+    // Convert pill to situation text
+    const situationMap = {
+      handling_conflict: `We're having or heading into a conflict. I need help navigating this conversation and knowing how to approach it.`,
+      repair_after_tension: `We had tension/conflict and now I need to repair. Help me know what to say and how to reconnect.`,
+      feel_misunderstood: `I feel like ${speakingTo} isn't really understanding me. I feel misheard or dismissed.`,
+      they_feel_distant: `${speakingTo} seems distant or withdrawn. I'm concerned and don't know how to reconnect.`,
+      something_felt_off: `Something felt off in our interaction but I can't quite place what. Help me understand what might have happened.`,
+      say_this_better: `I want to say something but I'm worried it will come out wrong. Help me phrase it in a way that won't trigger them.`,
+      overwhelmed_triggered: `I'm feeling overwhelmed or triggered right now. Help me understand what's happening and how to navigate this state.`,
+      repeating_pattern: `We keep repeating the same conflict or miscommunication. Help me understand the pattern and how to break it.`,
+    };
+
+    const text = situationMap[pillId];
+    setSituation(text);
+    setTimeout(() => runCoachCall(text), 100);
+  };
+
+  const handleModeSwitch = (mode) => {
+    setOutputMode(mode);
+    // Transform base response based on mode (deterministic, no AI call)
+    if (baseResponse) {
+      setResponse(transformResponse(baseResponse, mode));
+    }
+  };
+
+  const handleCopyResponse = () => {
+    if (!response) return;
+    navigator.clipboard.writeText(response);
+    toast.success("Response copied to clipboard");
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Hero Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-center space-y-3 pt-4"
+      >
+        <h1 className="font-display text-4xl sm:text-5xl font-bold tracking-tight text-foreground">
+          Start a Conversation
+        </h1>
+        <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+          Get context-aware guidance based on your relationship patterns, emotional dynamics, and real situations.
+        </p>
+      </motion.div>
+
+      <PrivacyBanner />
+
+      {creditError && <CreditLimitBanner />}
+
+      {error && (
+        <ErrorFallback error={error} onRetry={() => setError(null)} />
+      )}
+
+      {/* Input Section */}
+      <Card className="border border-border/60 bg-card/80">
+        <CardContent className="p-6 space-y-4">
+          {/* Directional Mode */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              This is me → I'm speaking to
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              {["Tony", "Drew"].map((person) => (
+                <Button
+                  key={person}
+                  variant={speaker === person ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setSpeaker(person);
+                    if (person === speakingTo) setSpeakingTo("");
+                  }}
+                  className="text-xs"
+                >
+                  {person}
+                </Button>
+              ))}
+              {speaker && (
+                <>
+                  <span className="text-xs text-muted-foreground px-2">→</span>
+                  {["Tony", "Drew"].map((person) => {
+                    if (person === speaker) return null;
+                    return (
+                      <Button
+                        key={person}
+                        variant={speakingTo === person ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSpeakingTo(person)}
+                        className="text-xs"
+                      >
+                        {person}
+                      </Button>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Input */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">What do you need help with right now?</label>
+            <Textarea
+              placeholder="Describe the situation, feeling, or conversation you need guidance on..."
+              value={situation}
+              onChange={(e) => setSituation(e.target.value)}
+              className="min-h-[90px] resize-none bg-background/50 text-sm"
+            />
+          </div>
+
+          {/* Suggestion Pills */}
+          {speaker && speakingTo && situation.length < 10 && (
+            <CoachSuggestionPills pills={SUGGESTION_PILLS} onSelect={handleSuggestionPill} loading={loading} />
+          )}
+
+          {/* Submit Button */}
+          <Button
+            onClick={() => runCoachCall(situation)}
+            disabled={loading || !speaker || !speakingTo || !situation.trim()}
+            className="w-full sm:w-auto gap-2"
+            size="lg"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            {loading ? "Analyzing..." : "Get Guidance"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <AILoadingState active={loading} mode="coach" />
+
+      {/* Response Section */}
+      <AnimatePresence>
+        {response && (
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            {/* Output Mode Selector */}
+            <CoachOutputModes mode={outputMode} onModeChange={handleModeSwitch} />
+
+            {/* Main Response */}
+            <Card className="bg-card border border-primary/15" ref={responseRef}>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  Guidance for {speaker} → {speakingTo}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary">
+                  <ReactMarkdown>{response}</ReactMarkdown>
+                </div>
+
+                {/* Data Source Badge */}
+                <div className="pt-3 border-t border-border/40 space-y-3">
+                  <DataSourceBadge
+                    sources={[
+                      { label: "profile fields", count: speakerProfile ? 8 : 0 },
+                      { label: "questionnaire answers", count: speakerResponses.length + targetResponses.length },
+                      { label: "past sessions", count: pastSessions.filter((s) => s.tool_type === "coach").length },
+                    ]}
+                  />
+                  <div className="flex gap-2 flex-wrap">
+                    <Button size="sm" variant="ghost" onClick={handleCopyResponse} className="gap-1.5">
+                      <Copy className="w-3.5 h-3.5" />
+                      Copy Response
+                    </Button>
+                    <ResponseExportBar
+                      contentRef={responseRef}
+                      filename={`coach-guidance-${speaker}-${speakingTo}.pdf`}
+                      title={`Guidance: ${speaker} → ${speakingTo}`}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Notes Panel */}
+            <NotesPanel
+              section="coach"
+              relatedItemId={sessionId}
+              personName={speaker}
+            />
+
+            {/* Predictive Outcomes */}
+            {baseResponse && (
+              <PredictiveOutcomeBlock
+                speaker={speaker}
+                speakingTo={speakingTo}
+                situation={situation}
+                speakerProfile={speakerProfile}
+                targetProfile={targetProfile}
+              />
+            )}
+
+            {/* Trace Panel */}
+            {pipelineTrace && (
+              <TracePanel
+                trace={pipelineTrace}
+                metadata={{
+                  perspective: `${speaker}→${speakingTo}`,
+                  patterns: speakerProfile?.trait_weights || {},
+                  frameworks: ["EFT", "GOTTMAN", "CBT"],
+                }}
+              />
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Recent Sessions */}
+      {pastSessions.filter((s) => s.tool_type === "coach").length > 0 && (
+        <div className="space-y-4">
+          <h2 className="font-display text-xl font-semibold">Recent Conversations</h2>
+          <div className="space-y-3">
+            {pastSessions
+              .filter((s) => s.tool_type === "coach")
+              .slice(0, 8)
+              .map((session) => (
+                <Card key={session.id} className="cursor-pointer hover:shadow-sm transition-shadow" onClick={() => { setSpeaker(session.speaker); setSpeakingTo(session.speaking_to); setSituation(session.situation); setBaseResponse(session.ai_response); setResponse(session.ai_response); }}>
+                  <CardContent className="p-4 flex items-start gap-3">
+                    <MessageCircle className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground">
+                        {session.speaker} → {session.speaking_to}
+                      </p>
+                      <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">{session.situation}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Transform response based on mode (deterministic, no AI calls)
+function transformResponse(baseResponse, mode) {
+  if (mode === "full") return baseResponse;
+
+  if (mode === "explain") {
+    return baseResponse.replace(/\*\*/g, "").split("\n\n").slice(0, 2).join("\n\n");
+  }
+
+  if (mode === "60second") {
+    const lines = baseResponse.split("\n");
+    return lines.slice(0, 6).join("\n");
+  }
+
+  if (mode === "action") {
+    const lines = baseResponse.split("\n");
+    const actionLines = lines.filter((l) => l.includes("do") || l.includes("say") || l.includes("step"));
+    return actionLines.slice(0, 5).join("\n");
+  }
+
+  if (mode === "script") {
+    const lines = baseResponse.split("\n");
+    return lines.filter((l) => l.includes('"') || l.includes("say") || l.includes("respond")).slice(0, 5).join("\n");
+  }
+
+  return baseResponse;
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="RelateIQ">
+  <rect width="64" height="64" rx="18" fill="#f4eee4" />
+  <path
+    d="M32 51c-1.4 0-2.7-.5-3.7-1.5L16.6 37.8a11.7 11.7 0 0 1 0-16.6 11.8 11.8 0 0 1 16.5 0l.9.9.9-.9a11.8 11.8 0 0 1 16.5 0 11.7 11.7 0 0 1 0 16.6L35.7 49.5A5.3 5.3 0 0 1 32 51Z"
+    fill="#5c8d68"
+  />
+</svg>

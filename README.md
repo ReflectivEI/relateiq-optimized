@@ -1,6 +1,6 @@
 # RelateIQ
 
-RelateIQ is a Base44-free rebuild of the live relationship-intelligence app, migrated to a GitHub-managed codebase with a Cloudflare worker backend.
+RelateIQ is a GitHub-managed relationship-intelligence app with a Cloudflare worker backend and Cloudflare-hosted questionnaire storage.
 
 ## Stack
 
@@ -23,4 +23,4 @@ The frontend expects the worker at `http://127.0.0.1:8787` during local developm
 - Worker: `npm run worker:relateiq:deploy`
 - Frontend: build with `VITE_WORKER_URL=<worker-url> npm run build`
 
-See [docs/relateiq-migration.md](/Users/anthonyabdelmalak/dev/relateiq-growth/docs/relateiq-migration.md) for migration notes and questionnaire file expectations.
+See [docs/relateiq-migration.md](/Users/anthonyabdelmalak/dev/relateiq-growth/docs/relateiq-migration.md) for architecture notes and questionnaire file expectations.

@@ -69,7 +69,7 @@ export type UploadedQuestionnaire = {
 
 export const RELATEIQ_STATE: AppState = {
   productName: "RelateIQ",
-  migrationState: "Rebuilt outside Base44 for GitHub + Cloudflare deployment",
+  migrationState: "Running on a GitHub-managed frontend with a Cloudflare backend",
   questionnaireImported: false,
   profiles: [
     {
@@ -174,9 +174,9 @@ export const RELATEIQ_STATE: AppState = {
   insights: [
     {
       id: "insight-1",
-      title: "RelateIQ is now decoupled from Base44 assumptions",
+      title: "RelateIQ now runs on a direct GitHub and Cloudflare architecture",
       body:
-        "The new architecture treats GitHub as the source of truth and Cloudflare as the runtime. No Base44 SDK, auth, or hosted data model is required.",
+        "GitHub is the source of truth and Cloudflare is the runtime. The app uses its own worker endpoints and Cloudflare KV questionnaire storage.",
       scope: "Tony_Drew",
       theme: "questionnaire",
     },

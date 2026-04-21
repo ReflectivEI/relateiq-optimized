@@ -1,0 +1,1013 @@
+import React, { useState, useEffect, useRef } from "react";
+import { api } from "@/api/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Loader2, RefreshCw, ArrowLeftRight, TrendingUp, AlertTriangle,
+  Heart, Zap, ChevronDown, ChevronUp, Lightbulb, ShieldCheck,
+  BookOpen, MessageCircle, CalendarCheck, HelpCircle, Sparkles
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  buildInsightsPrompt,
+  buildDynamicUpdatePrompt,
+  buildContextInsightsPrompt,
+} from "@/lib/prompts";
+import { buildContextObject } from "@/lib/aiCoachService";
+import AskCoachDrawer from "@/components/ai/AskCoachDrawer";
+import ExportBar from "@/components/ai/ExportBar";
+import AIProgressLog from "@/components/insights/AIProgressLog";
+import AskAIFollowUp from "@/components/insights/AskAIFollowUp";
+import InsightTierBanner from "@/components/profile/InsightTierBanner";
+import { safeInvokeLLM, buildFallbackContextInsights, validateContextInsightsOutput, validateDeepInsightsOutput, normalizeContextInsights, normalizeDeepInsights, CreditLimitError } from "@/lib/aiSafe";
+import DataSourceBadge from "@/components/ui/DataSourceBadge";
+import AILoadingState from "@/components/ui/AILoadingState";
+import FallbackBadge from "@/components/ui/FallbackBadge";
+import PrivacyBanner from "@/components/ui/PrivacyBanner";
+import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
+import ResponseExportBar from "@/components/export/ResponseExportBar";
+import NotesPanel from "@/components/notes/NotesPanel";
+import { synthesizeRelationshipIntelligence, getStateTrend } from "@/lib/relationshipIntelligenceEngine";
+import RelationshipStateCard from "@/components/insights/RelationshipStateCard";
+import PatternDriftTracker from "@/components/insights/PatternDriftTracker";
+import InsightTimeline from "@/components/insights/InsightTimeline";
+import { computePatternProfile } from "@/lib/patternEngine";
+
+const CONFIDENCE_CONFIG = {
+  early_signal: { label: "Early Signal", color: "bg-orange-100 text-orange-700 border-orange-200" },
+  moderate: { label: "Moderate Confidence", color: "bg-blue-100 text-blue-700 border-blue-200" },
+  high: { label: "High Confidence", color: "bg-green-100 text-green-700 border-green-200" },
+};
+
+// ─── SOURCE DATA PANEL ────────────────────────────────────────────────────────
+
+const SOURCE_ITEMS = [
+  { key: "coach", icon: MessageCircle, label: "AI Coach sessions" },
+  { key: "tools", icon: Zap, label: "Smart Tools entries" },
+  { key: "checkins", icon: CalendarCheck, label: "Weekly Check-Ins" },
+  { key: "questionnaire", icon: HelpCircle, label: "Questionnaire answers" },
+];
+
+function DataAvailableBar({ tonyResponses, drewResponses, sessions, checkIns }) {
+  const coachCount = sessions.filter((s) => s.tool_type === "coach").length;
+  const toolsCount = sessions.filter((s) => s.tool_type !== "coach").length;
+  const totalQ = tonyResponses.length + drewResponses.length;
+  const total = coachCount + toolsCount + checkIns.length + totalQ;
+
+  const items = [
+    { key: "coach", count: coachCount },
+    { key: "tools", count: toolsCount },
+    { key: "checkins", count: checkIns.length },
+    { key: "questionnaire", count: totalQ },
+  ];
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+      <span className="font-medium uppercase tracking-wide text-[10px]">Data available:</span>
+      {total === 0 ? (
+        <span className="text-muted-foreground/60 italic">No data yet — start with AI Coach or a Check-In</span>
+      ) : (
+        items.filter((i) => i.count > 0).map((item) => {
+          const def = SOURCE_ITEMS.find((s) => s.key === item.key);
+          return (
+            <span key={item.key} className="flex items-center gap-1">
+              <def.icon className="w-3 h-3" />
+              {item.count} {def.label.split(" ").slice(-1)[0]}
+            </span>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+function ModeCard({ icon: Icon, title, badge, description, sources, locked, onClick, loading, active }) {
+  return (
+    <Card
+      className={`border transition-all ${locked ? "opacity-60" : "cursor-pointer hover:border-primary/30 hover:shadow-sm"} ${active ? "border-primary/30 shadow-sm" : "border-border/50"}`}
+      onClick={!locked ? onClick : undefined}
+    >
+      <CardContent className="p-5 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${locked ? "bg-muted" : "bg-primary/10"}`}>
+            <Icon className={`w-4 h-4 ${locked ? "text-muted-foreground" : "text-primary"}`} />
+          </div>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="font-semibold text-sm text-foreground">{title}</span>
+            {badge && <Badge variant="outline" className="text-[10px] shrink-0">{badge}</Badge>}
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+        {sources && (
+          <div className="space-y-1.5">
+            {sources.map((s) => (
+              <div key={s.key} className="flex items-center gap-2 text-xs text-muted-foreground">
+                <s.icon className="w-3.5 h-3.5 shrink-0" />
+                {s.label}
+              </div>
+            ))}
+          </div>
+        )}
+        {locked && (
+          <p className="text-xs text-muted-foreground/60 italic">
+            Head to Profiles → generate profiles for both people to unlock this mode.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── CONTEXT INSIGHTS VIEW ────────────────────────────────────────────────────
+
+function ContextInsightsView({ insights, ctx, contentRef, insightId }) {
+  const conf = CONFIDENCE_CONFIG[insights.confidence_level] || CONFIDENCE_CONFIG.early_signal;
+
+  return (
+    <div className="space-y-5" ref={contentRef}>
+      <div className="flex items-center gap-3 flex-wrap">
+        <Badge className={`${conf.color} border font-normal`}>{conf.label}</Badge>
+        {insights.confidence_explanation && (
+          <p className="text-xs text-muted-foreground">{insights.confidence_explanation}</p>
+        )}
+      </div>
+
+      {/* What the system sees */}
+      <Card className="bg-primary/5 border-primary/15">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-primary flex items-center gap-2">
+            <Lightbulb className="w-4 h-4" /> What The System Is Seeing
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-foreground leading-relaxed">{insights.what_system_sees}</p>
+          {insights.what_this_means && (
+            <p className="text-sm text-muted-foreground leading-relaxed pt-2 border-t border-primary/10">{insights.what_this_means}</p>
+          )}
+          {ctx && (
+            <AskAIFollowUp
+              ctx={ctx}
+              sectionTitle="What The System Is Seeing"
+              sectionContent={`${insights.what_system_sees}\n\n${insights.what_this_means || ""}`}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Emerging Patterns */}
+      {insights.emerging_patterns?.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Zap className="w-4 h-4 text-orange-400" /> Emerging Patterns
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-0">
+            {insights.emerging_patterns.map((p, i) => (
+              <div key={i} className="p-3 rounded-lg bg-orange-50 border border-orange-100">
+                <p className="text-sm font-semibold text-foreground">{p.title}</p>
+                <p className="text-sm text-muted-foreground mt-0.5 leading-relaxed">{p.description}</p>
+              </div>
+            ))}
+            {ctx && (
+              <AskAIFollowUp
+                ctx={ctx}
+                sectionTitle="Emerging Patterns"
+                sectionContent={insights.emerging_patterns.map((p) => `${p.title}: ${p.description}`).join("\n")}
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Signals grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Early Signals — Tony</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 pt-0">
+            {(insights.signals_tony || []).map((s, i) => (
+              <div key={i} className="flex items-start gap-2 text-sm">
+                <span className="text-primary mt-0.5 shrink-0">✦</span>
+                <span className="text-foreground">{s}</span>
+              </div>
+            ))}
+            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle="Early Signals — Tony" sectionContent={(insights.signals_tony || []).join("\n")} className="mt-2" />}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Early Signals — Drew</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 pt-0">
+            {(insights.signals_drew || []).map((s, i) => (
+              <div key={i} className="flex items-start gap-2 text-sm">
+                <span className="text-primary mt-0.5 shrink-0">✦</span>
+                <span className="text-foreground">{s}</span>
+              </div>
+            ))}
+            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle="Early Signals — Drew" sectionContent={(insights.signals_drew || []).join("\n")} className="mt-2" />}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Together */}
+      {insights.signals_together?.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Heart className="w-4 h-4 text-primary" /> Tony + Drew Together
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 pt-0">
+            {insights.signals_together.map((s, i) => (
+              <div key={i} className="flex items-start gap-2 text-sm">
+                <span className="text-primary mt-0.5 shrink-0">✦</span>
+                <span className="text-foreground">{s}</span>
+              </div>
+            ))}
+            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle="Tony + Drew Together" sectionContent={insights.signals_together.join("\n")} className="mt-2" />}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* What seems to help / Friction */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {insights.what_seems_to_help?.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-green-500" /> What Seems to Help
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 pt-0">
+              {insights.what_seems_to_help.map((s, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm">
+                  <span className="text-green-500 mt-0.5 shrink-0">✓</span>
+                  <span className="text-foreground">{s}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+        {insights.friction_sources?.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-orange-500" /> What May Be Causing Friction
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 pt-0">
+              {insights.friction_sources.map((s, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm">
+                  <span className="text-orange-500 mt-0.5 shrink-0">△</span>
+                  <span className="text-foreground">{s}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* What to try next */}
+      {insights.what_to_try_next?.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" /> What to Try Next
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 pt-0">
+            {insights.what_to_try_next.map((r, i) => (
+              <div key={i} className="flex items-start gap-2.5 text-sm">
+                <span className="bg-primary text-primary-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 font-medium">{i + 1}</span>
+                <span className="text-foreground">{r}</span>
+              </div>
+            ))}
+            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle="What to Try Next" sectionContent={insights.what_to_try_next.join("\n")} className="mt-2" />}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* How to strengthen */}
+      {insights.how_to_strengthen?.length > 0 && (
+        <Card className="border-dashed border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">How to Make These Insights Stronger</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5 pt-0">
+            {insights.how_to_strengthen.map((s, i) => (
+              <p key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                <span className="text-muted-foreground/40 mt-0.5 shrink-0">→</span>{s}
+              </p>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {ctx && (
+        <DataSourceBadge sources={[
+          { label: "questionnaire answers", count: (ctx.tonyResponseCount || 0) + (ctx.drewResponseCount || 0) },
+          { label: "coach sessions", count: ctx.sessionCount || 0 },
+          { label: "check-ins", count: ctx.checkInCount || 0 },
+        ]} />
+      )}
+
+      {ctx && (
+        <>
+          <ResponseExportBar
+            contentRef={contentRef}
+            filename="context-insights.pdf"
+            title="Context Insights"
+          />
+          <ExportBar ctx={ctx} content={[
+            insights.what_system_sees,
+            insights.what_this_means,
+            `\nEarly Signals — Tony:\n${(insights.signals_tony || []).map(s => `• ${s}`).join("\n")}`,
+            `\nEarly Signals — Drew:\n${(insights.signals_drew || []).map(s => `• ${s}`).join("\n")}`,
+            `\nWhat to Try Next:\n${(insights.what_to_try_next || []).map((r, i) => `${i + 1}. ${r}`).join("\n")}`,
+          ].join("\n\n")} />
+        </>
+      )}
+
+      <NotesPanel section="insights" relatedItemId={insightId} personName="Tony" />
+    </div>
+  );
+}
+
+// ─── DEEP INSIGHTS VIEW ───────────────────────────────────────────────────────
+
+function DeepInsightsView({ insights, ctx, contentRef, insightId }) {
+  return (
+    <div className="space-y-6" ref={contentRef}>
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+        <Card className="bg-primary/5 border-primary/15">
+          <CardContent className="p-8 text-center space-y-3">
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary/10 border-2 border-primary/20">
+              <span className="font-display text-3xl font-bold text-primary">{insights.compatibility_score}</span>
+            </div>
+            <p className="font-display text-lg font-semibold text-foreground">{insights.compatibility_label}</p>
+            <p className="text-sm text-muted-foreground max-w-lg mx-auto leading-relaxed">{insights.growth_summary}</p>
+            {ctx && (
+              <div className="pt-2">
+                <AskAIFollowUp
+                  ctx={ctx}
+                  sectionTitle="Compatibility Score"
+                  sectionContent={`Score: ${insights.compatibility_score} — ${insights.compatibility_label}\n${insights.growth_summary}`}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {ctx && (
+        <>
+          <ResponseExportBar
+            contentRef={contentRef}
+            filename="deep-insights.pdf"
+            title="Deep Relationship Analysis"
+          />
+          <ExportBar ctx={ctx} content={`Compatibility Score: ${insights.compatibility_score}/100 — ${insights.compatibility_label}\n\n${insights.growth_summary}\n\nStrengths:\n${insights.strengths?.map(s => `• ${s}`).join("\n")}\n\nRisk Areas:\n${insights.risk_areas?.map(r => `• ${r}`).join("\n")}\n\nRecommendations:\n${insights.recommendations?.map((r, i) => `${i + 1}. ${r}`).join("\n")}`} />
+        </>
+      )}
+
+      <NotesPanel section="insights" relatedItemId={insightId} personName="Tony" />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Heart className="w-4 h-4 text-primary" /> Relationship Strengths
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 pt-0">
+            {insights.strengths?.map((s, i) => (
+              <div key={i} className="flex items-start gap-2.5 text-sm">
+                <span className="text-primary mt-0.5">✦</span>
+                <span className="text-foreground">{s}</span>
+              </div>
+            ))}
+            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle="Relationship Strengths" sectionContent={(insights.strengths || []).join("\n")} className="mt-2" />}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-orange-500" /> Conflict Risk Areas
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 pt-0">
+            {insights.risk_areas?.map((r, i) => (
+              <div key={i} className="flex items-start gap-2.5 text-sm">
+                <span className="text-orange-500 mt-0.5">△</span>
+                <span className="text-foreground">{r}</span>
+              </div>
+            ))}
+            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle="Conflict Risk Areas" sectionContent={(insights.risk_areas || []).join("\n")} className="mt-2" />}
+          </CardContent>
+        </Card>
+      </div>
+
+      {insights.conflict_loops?.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Zap className="w-4 h-4 text-orange-400" /> Recurring Conflict Loops
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 pt-0">
+            {insights.conflict_loops.map((loop, i) => (
+              <div key={i} className="px-3 py-2 rounded-lg bg-orange-50 border border-orange-100 text-sm text-foreground">{loop}</div>
+            ))}
+            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle="Recurring Conflict Loops" sectionContent={insights.conflict_loops.join("\n")} className="mt-2" />}
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <ArrowLeftRight className="w-4 h-4" /> Tony vs Drew Comparison
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2.5 px-3 font-medium text-muted-foreground">Category</th>
+                  <th className="text-left py-2.5 px-3 font-medium text-primary">Tony</th>
+                  <th className="text-left py-2.5 px-3 font-medium text-accent-foreground">Drew</th>
+                  <th className="text-left py-2.5 px-3 font-medium text-muted-foreground">Insight</th>
+                </tr>
+              </thead>
+              <tbody>
+                {insights.comparison_table?.map((row, i) => (
+                  <tr key={i} className="border-b border-border/50">
+                    <td className="py-2.5 px-3 font-medium text-foreground">{row.category}</td>
+                    <td className="py-2.5 px-3 text-muted-foreground">{row.tony}</td>
+                    <td className="py-2.5 px-3 text-muted-foreground">{row.drew}</td>
+                    <td className="py-2.5 px-3"><Badge variant="outline" className="text-xs font-normal">{row.insight}</Badge></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {ctx && <AskAIFollowUp ctx={ctx} sectionTitle="Partner Comparison" sectionContent={JSON.stringify(insights.comparison_table)} className="mt-4" />}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" /> Predictive Dynamics
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 pt-0">
+          {insights.predictions?.map((p, i) => (
+            <div key={i} className="p-3 rounded-lg bg-muted/40 border border-border/40 text-sm text-foreground leading-relaxed">{p}</div>
+          ))}
+          {ctx && <AskAIFollowUp ctx={ctx} sectionTitle="Predictive Dynamics" sectionContent={(insights.predictions || []).join("\n")} className="mt-1" />}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Recommendations</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 pt-0">
+          {insights.recommendations?.map((r, i) => (
+            <div key={i} className="flex items-start gap-2.5 text-sm">
+              <span className="bg-primary text-primary-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 font-medium">{i + 1}</span>
+              <span className="text-foreground">{r}</span>
+            </div>
+          ))}
+          {ctx && <AskAIFollowUp ctx={ctx} sectionTitle="Recommendations" sectionContent={(insights.recommendations || []).join("\n")} className="mt-2" />}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── MAIN PAGE ────────────────────────────────────────────────────────────────
+
+export default function Insights() {
+  const [contextInsights, setContextInsights] = useState(null);
+  const [deepInsights, setDeepInsights] = useState(null);
+  const [insightsCtx, setInsightsCtx] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingMode, setLoadingMode] = useState(null); // "context" | "deep"
+  const [activeTab, setActiveTab] = useState("context");
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [creditError, setCreditError] = useState(false);
+  const contentRef = useRef(null);
+  const queryClient = useQueryClient();
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profiles-insights"],
+    queryFn: () => api.entities.UserProfile.list(),
+  });
+
+  const { data: tonyResponses = [] } = useQuery({
+    queryKey: ["responses-insights-tony"],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Tony" }),
+  });
+
+  const { data: drewResponses = [] } = useQuery({
+    queryKey: ["responses-insights-drew"],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Drew" }),
+  });
+
+  const { data: relationshipDynamics = [] } = useQuery({
+    queryKey: ["relationship-dynamic"],
+    queryFn: () => api.entities.RelationshipDynamic.list("-created_date", 1),
+  });
+
+  const { data: recentSessions = [] } = useQuery({
+    queryKey: ["sessions-insights"],
+    queryFn: () => api.entities.CoachSession.list("-created_date", 50),
+  });
+
+  const { data: recentCheckIns = [] } = useQuery({
+    queryKey: ["checkins-insights"],
+    queryFn: () => api.entities.CheckIn.list("-created_date", 50),
+  });
+
+  const { data: repairEntries = [] } = useQuery({
+    queryKey: ["repairs-insights"],
+    queryFn: () => api.entities.RepairEntry.list("-created_date", 20),
+  });
+
+  const { data: triggers = [] } = useQuery({
+    queryKey: ["triggers-insights"],
+    queryFn: () => api.entities.TriggerEntry.list(),
+  });
+
+  const { data: insightEntries = [] } = useQuery({
+    queryKey: ["insight-entries"],
+    queryFn: () => api.entities.InsightEntry.list("-created_date", 10),
+  });
+
+  const tonyProfile = profiles.find((p) => p.person_name === "Tony");
+  const drewProfile = profiles.find((p) => p.person_name === "Drew");
+  const existingDynamic = relationshipDynamics[0] || null;
+  const bothReady = tonyProfile && drewProfile;
+
+  // Compute relationship intelligence
+  const patternScores = {
+    tony: computePatternProfile("Tony", tonyResponses),
+    drew: computePatternProfile("Drew", drewResponses),
+  };
+
+  const relationshipIntelligence = synthesizeRelationshipIntelligence({
+    profiles,
+    patternScores,
+    recentCoachSessions: recentSessions,
+    recentCheckIns,
+    repairEntries,
+    triggers,
+  });
+
+  const trend = getStateTrend(relationshipIntelligence, null);
+
+  // Total data available — used to decide whether to auto-generate
+  const totalData = tonyResponses.length + drewResponses.length + recentSessions.length + recentCheckIns.length;
+  // All queries must have settled before we decide to restore or generate
+  const dataLoaded =
+    profiles !== undefined &&
+    tonyResponses !== undefined &&
+    drewResponses !== undefined &&
+    recentSessions !== undefined &&
+    recentCheckIns !== undefined &&
+    relationshipDynamics !== undefined;
+
+  const makeCtx = (sectionTitle, output) => ({
+    ...buildContextObject({
+      page: "Insights",
+      sectionTitle,
+      scope: "Tony+Drew",
+      sourceInputs: { sessions: recentSessions.length, checkIns: recentCheckIns.length },
+      originalOutput: output,
+      profiles,
+      tonyResponses,
+      drewResponses,
+      sessions: recentSessions,
+      checkIns: recentCheckIns,
+      relationshipDynamic: existingDynamic,
+    }),
+    tonyResponseCount: tonyResponses.length,
+    drewResponseCount: drewResponses.length,
+    sessionCount: recentSessions.length,
+    checkInCount: recentCheckIns.length,
+  });
+
+  const generateContextInsights = async () => {
+    setLoading(true);
+    setLoadingMode("context");
+    setCreditError(false);
+
+    let result;
+    try {
+      result = await safeInvokeLLM({
+      prompt: buildContextInsightsPrompt({
+        tonyProfile, drewProfile, tonyResponses, drewResponses,
+        sessions: recentSessions, checkIns: recentCheckIns,
+        relationshipDynamic: existingDynamic,
+      }),
+      model: "claude_sonnet_4_6",
+      partnerLanguage: { personName: "Tony", partnerName: "Drew", replacePronouns: false },
+      response_json_schema: {
+        type: "object",
+        properties: {
+          what_system_sees: { type: "string" },
+          what_this_means: { type: "string" },
+          signals_tony: { type: "array", items: { type: "string" } },
+          signals_drew: { type: "array", items: { type: "string" } },
+          signals_together: { type: "array", items: { type: "string" } },
+          what_seems_to_help: { type: "array", items: { type: "string" } },
+          friction_sources: { type: "array", items: { type: "string" } },
+          what_to_try_next: { type: "array", items: { type: "string" } },
+          emerging_patterns: {
+            type: "array",
+            items: { type: "object", properties: { title: { type: "string" }, description: { type: "string" } } },
+          },
+          confidence_level: { type: "string" },
+          confidence_explanation: { type: "string" },
+          how_to_strengthen: { type: "array", items: { type: "string" } },
+        },
+      },
+      }, 35000, null, validateContextInsightsOutput);
+    } catch (err) {
+      if (err instanceof CreditLimitError) { setCreditError(true); setLoading(false); setLoadingMode(null); return; }
+      throw err;
+    }
+
+    // Fallback if timed out
+    if (!result) {
+      result = buildFallbackContextInsights(tonyResponses, drewResponses, recentSessions, recentCheckIns);
+    }
+
+    // Always normalize — guarantees all fields are renderable
+    result = normalizeContextInsights(result);
+
+    // Persist context insights to RelationshipDynamic so they survive refresh
+    const contextPayload = {
+      ai_dynamic_summary: result.what_system_sees,
+      compatibility_patterns: result.signals_together || [],
+      shared_strengths: result.what_seems_to_help || [],
+      risk_areas: result.friction_sources || [],
+      improvements_over_time: result.what_to_try_next || [],
+      last_analyzed: new Date().toISOString(),
+      // Store full context JSON so it can be restored on reload
+      context_insights_json: JSON.stringify(result),
+    };
+    if (existingDynamic) {
+      await api.entities.RelationshipDynamic.update(existingDynamic.id, contextPayload);
+    } else {
+      await api.entities.RelationshipDynamic.create(contextPayload);
+    }
+    queryClient.invalidateQueries({ queryKey: ["relationship-dynamic"] });
+
+    setContextInsights(result);
+    setInsightsCtx(makeCtx("Context-Based Insights", result.what_system_sees));
+    setActiveTab("context");
+    setLastUpdated(new Date());
+    setLoading(false);
+    setLoadingMode(null);
+  };
+
+  // On page load: restore from DB or generate once — deterministic, no ref guards needed.
+  // Runs only when ALL queries have settled and we have no insights yet and are not loading.
+  useEffect(() => {
+    if (!dataLoaded || loading || contextInsights || deepInsights) return;
+
+    if (existingDynamic?.context_insights_json) {
+      try {
+        const cached = normalizeContextInsights(JSON.parse(existingDynamic.context_insights_json));
+        setContextInsights(cached);
+        setInsightsCtx(makeCtx("Context-Based Insights", cached.what_system_sees));
+        setActiveTab("context");
+      } catch (_) {
+        // corrupt cache — don't auto-generate (let user click manually)
+      }
+      if (existingDynamic?.deep_insights_json) {
+        try {
+          setDeepInsights(normalizeDeepInsights(JSON.parse(existingDynamic.deep_insights_json)));
+        } catch (_) { /* corrupt cache — ignore */ }
+      }
+      return;
+    }
+
+    // Don't auto-generate on load — let user click to trigger (avoids burning credits silently)
+  }, [dataLoaded]); // eslint-disable-line
+
+  const generateDeepInsights = async () => {
+    setLoading(true);
+    setLoadingMode("deep");
+    setCreditError(false);
+
+    const deepFallback = {
+      compatibility_score: 72,
+      compatibility_label: "Strong Foundation with Active Growth Edges",
+      strengths: ["Mutual commitment to self-awareness and growth", "13-year shared history and deep knowledge of each other"],
+      risk_areas: ["Processing tempo mismatch — Tony withdraws, Drew pursues"],
+      conflict_loops: ["Pursuer-distancer cycle triggered by silence"],
+      shared_strengths: ["Investment in relationship tools", "Willingness to reflect"],
+      comparison_table: [],
+      predictions: ["When Tony needs processing time and doesn't communicate it, Drew's anxiety will escalate — creating a cycle."],
+      recommendations: ["Agree on a time-limited processing signal Tony can use in the moment"],
+      growth_summary: "Tony and Drew are two self-aware people with a long history and a shared commitment to growth. The deepest work right now is around tempo — learning to negotiate processing needs before tension escalates.",
+    };
+    const dynamicFallback = {
+      compatibility_patterns: [], mismatch_patterns: [], conflict_loops: [],
+      shared_strengths: [], risk_areas: [], improvements_over_time: [],
+      ai_dynamic_summary: "",
+    };
+
+    let insightResult, dynamicResult;
+    try {
+      [insightResult, dynamicResult] = await Promise.all([
+      safeInvokeLLM({
+        prompt: buildInsightsPrompt({ tonyProfile, drewProfile, tonyResponses, drewResponses, relationshipDynamic: existingDynamic }),
+        model: "claude_sonnet_4_6",
+        partnerLanguage: { personName: "Tony", partnerName: "Drew", replacePronouns: false },
+        response_json_schema: {
+          type: "object",
+          properties: {
+            compatibility_score: { type: "number" },
+            compatibility_label: { type: "string" },
+            strengths: { type: "array", items: { type: "string" } },
+            risk_areas: { type: "array", items: { type: "string" } },
+            conflict_loops: { type: "array", items: { type: "string" } },
+            shared_strengths: { type: "array", items: { type: "string" } },
+            comparison_table: { type: "array", items: { type: "object", properties: { category: { type: "string" }, tony: { type: "string" }, drew: { type: "string" }, insight: { type: "string" } } } },
+            predictions: { type: "array", items: { type: "string" } },
+            recommendations: { type: "array", items: { type: "string" } },
+            growth_summary: { type: "string" },
+          },
+        },
+      }, 40000, deepFallback, validateDeepInsightsOutput),
+      safeInvokeLLM({
+        prompt: buildDynamicUpdatePrompt({ tonyProfile, drewProfile, recentSessions, recentCheckIns }),
+        model: "gpt_5_mini",
+        partnerLanguage: { personName: "Tony", partnerName: "Drew", replacePronouns: false },
+        response_json_schema: {
+          type: "object",
+          properties: {
+            compatibility_patterns: { type: "array", items: { type: "string" } },
+            mismatch_patterns: { type: "array", items: { type: "string" } },
+            conflict_loops: { type: "array", items: { type: "string" } },
+            shared_strengths: { type: "array", items: { type: "string" } },
+            risk_areas: { type: "array", items: { type: "string" } },
+            improvements_over_time: { type: "array", items: { type: "string" } },
+            ai_dynamic_summary: { type: "string" },
+          },
+        },
+      }, 20000, dynamicFallback),
+    ]);
+    } catch (err) {
+      if (err instanceof CreditLimitError) { setCreditError(true); setLoading(false); setLoadingMode(null); return; }
+      throw err;
+    }
+
+    const dynamicPayload = {
+      ...dynamicResult,
+      last_analyzed: new Date().toISOString(),
+      deep_insights_json: JSON.stringify(insightResult),
+    };
+    if (existingDynamic) {
+      await api.entities.RelationshipDynamic.update(existingDynamic.id, dynamicPayload);
+    } else {
+      await api.entities.RelationshipDynamic.create(dynamicPayload);
+    }
+
+    setDeepInsights(normalizeDeepInsights(insightResult));
+    setInsightsCtx(makeCtx("Deep Couple Analysis", JSON.stringify(insightResult, null, 2)));
+    setActiveTab("deep");
+    setLoading(false);
+    setLoadingMode(null);
+    queryClient.invalidateQueries({ queryKey: ["relationship-dynamic"] });
+  };
+
+  const defaultCtx = makeCtx("Couple Analysis", null);
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="font-display text-3xl font-bold tracking-tight">Insights</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Relationship intelligence generated from everything the system knows — sessions, check-ins, questionnaire answers, and lived situations.
+        </p>
+        {lastUpdated && (
+          <p className="text-xs text-muted-foreground/60 mt-1">
+            Last updated: {lastUpdated.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}, {lastUpdated.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          </p>
+        )}
+        {existingDynamic?.last_analyzed && !lastUpdated && (
+          <p className="text-xs text-muted-foreground/60 mt-1">
+            Last updated: {new Date(existingDynamic.last_analyzed).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          </p>
+        )}
+      </div>
+
+      <PrivacyBanner />
+
+      {creditError && <CreditLimitBanner />}
+
+      {/* Intelligence tier */}
+      <InsightTierBanner
+        tonyProfile={tonyProfile}
+        drewProfile={drewProfile}
+        tonyResponses={tonyResponses}
+        drewResponses={drewResponses}
+      />
+
+      {/* Data available bar */}
+      <DataAvailableBar
+        tonyResponses={tonyResponses}
+        drewResponses={drewResponses}
+        sessions={recentSessions}
+        checkIns={recentCheckIns}
+      />
+
+      {/* Mode Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <ModeCard
+          icon={Zap}
+          title="Context Insights"
+          description="Generates from all available data — AI Coach sessions, Smart Tools, Check-Ins, partial questionnaire answers, and any stored profile information. Available any time."
+          sources={SOURCE_ITEMS}
+          active={activeTab === "context"}
+          loading={loadingMode === "context"}
+          onClick={generateContextInsights}
+        />
+        <ModeCard
+          icon={BookOpen}
+          title="Full Deep Insights"
+          badge={bothReady ? undefined : "Early Access"}
+          description={bothReady
+            ? "A deeper layer incorporating full questionnaire data, complete pattern maps, and detailed partner comparisons."
+            : "Full relationship intelligence. Available now with partial data — improves significantly when both profiles are complete."}
+          locked={false}
+          active={activeTab === "deep"}
+          onClick={generateDeepInsights}
+        />
+      </div>
+
+      {/* Waiting for partner notice — shown when only one person has questionnaire data */}
+      {(tonyResponses.length === 0 || drewResponses.length === 0) && !loading && (
+        <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-muted/40 border border-border/40">
+          <Heart className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+          <p className="text-sm text-muted-foreground">
+            <strong className="text-foreground">Waiting for partner data:</strong>{" "}
+            {tonyResponses.length === 0 ? "Tony" : "Drew"} hasn't completed any questionnaire answers yet.
+            Combined insights will deepen significantly once both partners have contributed data.
+          </p>
+        </div>
+      )}
+
+      {/* Relationship Intelligence Summary (always show) */}
+      {dataLoaded && (
+        <div className="space-y-4">
+          <RelationshipStateCard intelligence={relationshipIntelligence} trend={trend} />
+          
+          {/* Top risks and strengths */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {relationshipIntelligence.top_3_risks.length > 0 && (
+              <Card className="border-2 border-red-200 bg-red-50/30">
+                <CardContent className="p-4 space-y-2">
+                  <p className="text-xs font-semibold text-red-700 uppercase tracking-wide">Top Risks</p>
+                  {relationshipIntelligence.top_3_risks.map((risk, i) => (
+                    <p key={i} className="text-sm text-red-800">• {risk}</p>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+            {relationshipIntelligence.top_3_strengths.length > 0 && (
+              <Card className="border-2 border-green-200 bg-green-50/30">
+                <CardContent className="p-4 space-y-2">
+                  <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">Top Strengths</p>
+                  {relationshipIntelligence.top_3_strengths.map((strength, i) => (
+                    <p key={i} className="text-sm text-green-800">• {strength}</p>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Pattern drift */}
+          <PatternDriftTracker recentSessions={recentSessions} patternScores={patternScores} />
+
+          {/* Timeline */}
+          <InsightTimeline sessions={recentSessions} repairs={repairEntries} insights={insightEntries} />
+        </div>
+      )}
+
+      {/* Empty hero state */}
+      {!contextInsights && !deepInsights && !loading && (
+        <Card className="border border-border/50">
+          <CardContent className="p-8 text-center space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-primary/8 border border-primary/15 flex items-center justify-center mx-auto">
+              <Sparkles className="w-7 h-7 text-primary" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="font-display text-xl font-semibold text-foreground">Relationship Intelligence, Available Now</h2>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                RelateIQ can generate meaningful insights at any time — from AI Coach conversations, Smart Tool sessions, Weekly Check-Ins, and any questionnaire answers already provided.
+              </p>
+              <p className="text-xs text-muted-foreground/70">
+                Complete questionnaire data deepens and sharpens insights over time, but it is not required to begin.
+              </p>
+            </div>
+            <Button onClick={generateContextInsights} className="gap-2">
+              <Zap className="w-4 h-4" /> Generate Context Insights
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Loading state */}
+      <AILoadingState active={loading} mode="insights" />
+      <AIProgressLog active={loading} mode={loadingMode || "context"} />
+
+      {/* Previous dynamic summary (only shown when no fresh results) */}
+      {existingDynamic?.ai_dynamic_summary && !contextInsights && !deepInsights && !loading && (
+        <Card className="border-primary/10 bg-primary/3">
+          <CardContent className="p-5">
+            <p className="text-xs text-primary font-medium mb-1.5 uppercase tracking-wide">Last Analysis</p>
+            <p className="text-sm text-foreground leading-relaxed">{existingDynamic.ai_dynamic_summary}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Profiles notice - softer messaging */}
+      {!bothReady && (contextInsights || !loading) && (
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/40 border border-border/40">
+          <Lightbulb className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+          <p className="text-sm text-muted-foreground">
+            <strong className="text-foreground">Deeper relationship intelligence</strong> becomes available as both profiles are completed. Both Context and Deep Insights are available now — they'll improve with more data.
+          </p>
+        </div>
+      )}
+
+      {/* Results */}
+      {(contextInsights || deepInsights) && !loading && (
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="context" disabled={!contextInsights}>
+              Context Insights
+              {contextInsights && (
+                <Badge className={`ml-2 text-[10px] border ${(CONFIDENCE_CONFIG[contextInsights.confidence_level] || CONFIDENCE_CONFIG.early_signal).color}`}>
+                  {(CONFIDENCE_CONFIG[contextInsights.confidence_level] || CONFIDENCE_CONFIG.early_signal).label}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="deep" disabled={!deepInsights}>Deep Analysis</TabsTrigger>
+          </TabsList>
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 h-8 text-xs"
+              onClick={generateContextInsights}
+              disabled={loading}
+            >
+              {loadingMode === "context" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Refresh Context Insights
+            </Button>
+            <Button
+              size="sm"
+              className="gap-1.5 h-8 text-xs"
+              onClick={generateDeepInsights}
+              disabled={loading}
+            >
+              {loadingMode === "deep" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Refresh Deep Insights
+            </Button>
+          </div>
+
+          <TabsContent value="context" className="mt-6 space-y-4">
+            {contextInsights && (
+              <>
+                {contextInsights.confidence_explanation?.includes("Fallback") && <FallbackBadge />}
+                <ContextInsightsView insights={contextInsights} ctx={insightsCtx} contentRef={contentRef} insightId={existingDynamic?.id} />
+              </>
+            )}
+          </TabsContent>
+          <TabsContent value="deep" className="mt-6">
+            {deepInsights && <DeepInsightsView insights={deepInsights} ctx={insightsCtx} contentRef={contentRef} insightId={existingDynamic?.id} />}
+          </TabsContent>
+        </Tabs>
+      )}
+
+      <AskCoachDrawer ctx={insightsCtx || defaultCtx} />
+    </div>
+  );
+}

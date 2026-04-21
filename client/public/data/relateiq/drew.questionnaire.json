@@ -1,0 +1,1966 @@
+[
+  {
+    "question_text": "When you're frustrated, what do you tend to do first?",
+    "mode": "individual",
+    "selected_options": [
+      "Get irritated or snappy"
+    ],
+    "answer": "Get irritated or snappy",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b1",
+    "id": "69e17daa27f5b49283c548eb",
+    "created_date": "2026-04-17T00:24:10.453000",
+    "updated_date": "2026-04-17T00:31:18.371000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you feel unheard in a conversation, how do you typically respond?",
+    "mode": "individual",
+    "selected_options": [
+      "Repeat myself more forcefully"
+    ],
+    "answer": "Repeat myself more forcefully",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b2",
+    "id": "69e17dc4e45e1d7cc92fab01",
+    "created_date": "2026-04-17T00:24:36.706000",
+    "updated_date": "2026-04-17T00:24:36.706000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What is your go-to coping mechanism when tension builds at home?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Avoid Tony. Play Nintendo. Take Zoe on a walk. Do the things I like to do to take my mind off something.",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b3",
+    "id": "69e17df845004b14c9bf3146",
+    "created_date": "2026-04-17T00:25:28.603000",
+    "updated_date": "2026-04-17T00:25:28.603000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you respond when you feel criticized — even mildly?",
+    "mode": "individual",
+    "selected_options": [
+      "Get defensive immediately"
+    ],
+    "answer": "Get defensive immediately",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b4",
+    "id": "69e17e70a6b1ea5e99620368",
+    "created_date": "2026-04-17T00:27:28.041000",
+    "updated_date": "2026-04-17T00:27:28.041000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When something is wrong but you haven't said anything yet, what does that usually look like from the outside?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "If it’s not a big deal, I’ll just act normal. If it’s something harder to hide internally, I’ll show it on the outside by getting quiet.",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b5",
+    "id": "69e17ea245004b14c9bf31ad",
+    "created_date": "2026-04-17T00:28:18.979000",
+    "updated_date": "2026-04-17T00:28:18.979000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you handle it when you've made a mistake or hurt someone?",
+    "mode": "individual",
+    "selected_options": [
+      "Explain my reasoning first, then apologize"
+    ],
+    "answer": "Explain my reasoning first, then apologize",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b6",
+    "id": "69e17ecda7fd602b27b45087",
+    "created_date": "2026-04-17T00:29:01.822000",
+    "updated_date": "2026-04-17T00:29:01.822000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How often do you replay conversations or arguments after the fact?",
+    "mode": "individual",
+    "selected_options": [
+      "2"
+    ],
+    "answer": "2",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b7",
+    "id": "69e17ed54298f20965ffc24e",
+    "created_date": "2026-04-17T00:29:09.451000",
+    "updated_date": "2026-04-17T00:29:09.451000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you're overwhelmed, what do you do with your obligations?",
+    "mode": "individual",
+    "selected_options": [
+      "Communicate that I'm overwhelmed"
+    ],
+    "answer": "Communicate that I'm overwhelmed",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b8",
+    "id": "69e17f2822837af4a4e3645b",
+    "created_date": "2026-04-17T00:30:32.088000",
+    "updated_date": "2026-04-17T00:30:32.088000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you prefer difficult conversations to start?",
+    "mode": "individual",
+    "selected_options": [
+      "Gently with some context",
+      "Over text first so I can process",
+      "Only when we're both calm",
+      "With a soft check-in first"
+    ],
+    "answer": "Gently with some context, Over text first so I can process, Only when we're both calm, With a soft check-in first",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c1",
+    "id": "69e17f7c05660b8f5c22eb1c",
+    "created_date": "2026-04-17T00:31:56.578000",
+    "updated_date": "2026-04-17T00:31:56.578000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "Which communication approach do you respond best to from your partner?",
+    "mode": "individual",
+    "selected_options": [
+      "Soft and empathetic tone"
+    ],
+    "answer": "Soft and empathetic tone",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c2",
+    "tags": [
+      "communication_preference",
+      "tone_sensitivity",
+      "love_language"
+    ],
+    "id": "69e5bbdfea8ed8dd625e0a36",
+    "created_date": "2026-04-20T05:38:39.259000",
+    "updated_date": "2026-04-20T05:38:41.146000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What makes you feel truly heard by your partner?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "When he shows that he’s being open minded if we disagree on something. When he takes a step back and truly tries to hear someone else’s side. When he’s not stubborn or hard headed.",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c3",
+    "id": "69e1803d909f5e81a3aa18bd",
+    "created_date": "2026-04-17T00:35:09.890000",
+    "updated_date": "2026-04-17T00:35:09.890000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When something is bothering you, what do you usually do?",
+    "mode": "individual",
+    "selected_options": [
+      "Wait for the right moment"
+    ],
+    "answer": "Wait for the right moment",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c4",
+    "id": "69e1804c87324d2340f20eb6",
+    "created_date": "2026-04-17T00:35:24.128000",
+    "updated_date": "2026-04-17T00:42:28.377000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you feel when someone raises an issue with you unexpectedly?",
+    "mode": "individual",
+    "selected_options": [
+      "Slightly defensive"
+    ],
+    "answer": "Slightly defensive",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c5",
+    "id": "69e18101426de5bdc9489add",
+    "created_date": "2026-04-17T00:38:25.342000",
+    "updated_date": "2026-04-17T00:42:31.887000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How comfortable are you expressing disagreement with your partner?",
+    "mode": "individual",
+    "selected_options": [
+      "5"
+    ],
+    "answer": "5",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c6",
+    "id": "69e181099a8a9adc48b4d3bf",
+    "created_date": "2026-04-17T00:38:33.251000",
+    "updated_date": "2026-04-17T00:42:33.786000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you need something emotionally, how do you usually ask for it?",
+    "mode": "individual",
+    "selected_options": [
+      "Drop hints and hope they notice"
+    ],
+    "answer": "Drop hints and hope they notice",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c7",
+    "id": "69e1812193100ee5dd0d6852",
+    "created_date": "2026-04-17T00:38:57.597000",
+    "updated_date": "2026-04-17T00:42:38.145000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you feel about silence during a tense moment?",
+    "mode": "individual",
+    "selected_options": [
+      "It makes me anxious"
+    ],
+    "answer": "It makes me anxious",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c8",
+    "id": "69e181e3fd4f6c50bbb3487c",
+    "created_date": "2026-04-17T00:42:11.958000",
+    "updated_date": "2026-04-17T00:42:40.627000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How much of what you're actually feeling do you usually communicate out loud?",
+    "mode": "individual",
+    "selected_options": [
+      "3"
+    ],
+    "answer": "3",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c9",
+    "id": "69e181ef5ed7def60d9d77b0",
+    "created_date": "2026-04-17T00:42:23.360000",
+    "updated_date": "2026-04-17T00:42:42.312000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "During conflict, you tend to:",
+    "mode": "individual",
+    "selected_options": [
+      "Address it immediately regardless"
+    ],
+    "answer": "Address it immediately regardless",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf1",
+    "tags": [
+      "conflict_style",
+      "escalation_pattern",
+      "withdrawal_pattern"
+    ],
+    "id": "69e5b6621b2693f9f5d007fa",
+    "created_date": "2026-04-20T05:15:14.726000",
+    "updated_date": "2026-04-20T05:15:16.821000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "After conflict, how quickly do you prefer to reconnect?",
+    "mode": "individual",
+    "selected_options": [
+      "Later that day"
+    ],
+    "answer": "Later that day",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf10",
+    "tags": [
+      "repair_timeline",
+      "post_conflict_pattern",
+      "processing_style"
+    ],
+    "id": "69e5b6ed198556c0a153b34b",
+    "created_date": "2026-04-20T05:17:33.740000",
+    "updated_date": "2026-04-20T05:17:41.483000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you realize you were wrong, what do you usually do next?",
+    "mode": "individual",
+    "selected_options": [
+      "Apologize",
+      "Explain my perspective"
+    ],
+    "answer": "Apologize, Explain my perspective",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf11",
+    "tags": [
+      "accountability",
+      "repair_style",
+      "conflict_style"
+    ],
+    "id": "69e5b6fb9dc5d5a6f74276c1",
+    "created_date": "2026-04-20T05:17:47.542000",
+    "updated_date": "2026-04-20T05:17:48.499000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you need MOST during a conflict?",
+    "mode": "individual",
+    "selected_options": [
+      "To be heard without being interrupted",
+      "Reassurance that we're okay",
+      "Resolution quickly",
+      "A calm and measured tone",
+      "To feel like I'm not being attacked"
+    ],
+    "answer": "To be heard without being interrupted, Reassurance that we're okay, Resolution quickly, A calm and measured tone, To feel like I'm not being attacked",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf2",
+    "tags": [
+      "needs_in_conflict",
+      "conflict_style"
+    ],
+    "id": "69e5b671de80b2d2fa6bece1",
+    "created_date": "2026-04-20T05:15:29.814000",
+    "updated_date": "2026-04-20T05:15:42.977000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "After an argument, how do you usually feel?",
+    "mode": "individual",
+    "selected_options": [
+      "Unresolved until it's talked through again"
+    ],
+    "answer": "Unresolved until it's talked through again",
+    "weight": "medium",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf3",
+    "tags": [
+      "post_conflict_pattern",
+      "rumination",
+      "emotional_recovery"
+    ],
+    "id": "69e5b68821529accf8c3c65a",
+    "created_date": "2026-04-20T05:15:52.529000",
+    "updated_date": "2026-04-20T05:16:01.934000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you feel when a conflict doesn't get resolved cleanly?",
+    "mode": "individual",
+    "selected_options": [
+      "It lingers and affects my mood"
+    ],
+    "answer": "It lingers and affects my mood",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf4",
+    "tags": [
+      "unresolved_conflict",
+      "post_conflict_pattern",
+      "trust"
+    ],
+    "id": "69e5b69c3cd932f9cd76c063",
+    "created_date": "2026-04-20T05:16:12.187000",
+    "updated_date": "2026-04-20T05:16:13.742000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When conflict happens, who do you think typically initiates resolution?",
+    "mode": "individual",
+    "selected_options": [
+      "Usually me"
+    ],
+    "answer": "Usually me",
+    "weight": "medium",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf5",
+    "tags": [
+      "conflict_resolution",
+      "relationship_dynamic",
+      "partner_perception"
+    ],
+    "id": "69e5b6a8d3ac839e7c7511ac",
+    "created_date": "2026-04-20T05:16:24.216000",
+    "updated_date": "2026-04-20T05:16:24.216000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How comfortable are you with confrontation in general?",
+    "mode": "individual",
+    "selected_options": [
+      "4"
+    ],
+    "answer": "4",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf6",
+    "tags": [
+      "conflict_comfort",
+      "directness",
+      "conflict_avoidance"
+    ],
+    "id": "69e5b6b3ee2fde3af3297af3",
+    "created_date": "2026-04-20T05:16:35.933000",
+    "updated_date": "2026-04-20T05:16:35.933000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you're in the middle of a heated moment, what helps you de-escalate?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "When Tony can see things from my perspective. It takes the load off and helps move things along ",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf7",
+    "tags": [
+      "de_escalation",
+      "self_regulation",
+      "conflict_style"
+    ],
+    "id": "69e5b6cb371968b59fade77f",
+    "created_date": "2026-04-20T05:16:59.050000",
+    "updated_date": "2026-04-20T05:16:59.050000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How quickly do you typically cool down after a flare-up?",
+    "mode": "individual",
+    "selected_options": [
+      "4"
+    ],
+    "answer": "4",
+    "weight": "medium",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf8",
+    "tags": [
+      "emotional_recovery",
+      "processing_style",
+      "post_conflict_pattern"
+    ],
+    "id": "69e5b6d16664aaf19f58dcd3",
+    "created_date": "2026-04-20T05:17:05.387000",
+    "updated_date": "2026-04-20T05:17:05.387000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "After a disagreement, what helps you feel most \"repaired\" or reconnected?",
+    "mode": "individual",
+    "selected_options": [
+      "A genuine apology",
+      "Being understood emotionally"
+    ],
+    "answer": "A genuine apology, Being understood emotionally",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf9",
+    "tags": [
+      "repair_style",
+      "post_conflict_pattern",
+      "reconnection"
+    ],
+    "id": "69e5b6d905e0a5d5e8488a5c",
+    "created_date": "2026-04-20T05:17:13.189000",
+    "updated_date": "2026-04-20T05:17:27.591000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What patterns from your upbringing still show up in your relationships today?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I don’t know",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d1",
+    "tags": [
+      "childhood_patterns",
+      "emotional_blueprint",
+      "unresolved_patterns"
+    ],
+    "id": "69e5b7ee14ebe9b5694f67ce",
+    "created_date": "2026-04-20T05:21:50.703000",
+    "updated_date": "2026-04-20T05:21:50.703000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When something hurts you, what happens internally first?",
+    "mode": "individual",
+    "selected_options": [
+      "I feel it deeply but don't show it",
+      "I get frustrated or reactive"
+    ],
+    "answer": "I feel it deeply but don't show it, I get frustrated or reactive",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d10",
+    "tags": [
+      "hurt_response",
+      "emotional_processing",
+      "vulnerability"
+    ],
+    "id": "69e5b8bf8b95bf3b905f71fc",
+    "created_date": "2026-04-20T05:25:19.473000",
+    "updated_date": "2026-04-20T05:25:25.511000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you need emotionally but find hard to ask for?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Understanding and empathy. ",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d2",
+    "tags": [
+      "unmet_needs",
+      "vulnerability",
+      "emotional_needs"
+    ],
+    "id": "69e5b80e59d6850bd2a3c637",
+    "created_date": "2026-04-20T05:22:22.455000",
+    "updated_date": "2026-04-20T05:22:26.596000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What is the hardest thing for you to express to your partner?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Vulnerability and general feelings about how I feel because I know I won’t be met with the empathy I’m looking for ",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d3",
+    "tags": [
+      "vulnerability",
+      "communication_gap",
+      "emotional_expression"
+    ],
+    "id": "69e5b8252919f4e28e06491d",
+    "created_date": "2026-04-20T05:22:45.034000",
+    "updated_date": "2026-04-20T05:23:15.984000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you feel hurt, what do you usually do?",
+    "mode": "individual",
+    "selected_options": [
+      "Act differently but don't explain"
+    ],
+    "answer": "Act differently but don't explain",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d4",
+    "tags": [
+      "hurt_response",
+      "emotional_expression",
+      "vulnerability"
+    ],
+    "id": "69e5b84fff2e1c0b63efff4a",
+    "created_date": "2026-04-20T05:23:27.101000",
+    "updated_date": "2026-04-20T05:23:27.101000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you wish your partner understood about you that you've never fully said out loud?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Understanding and empathy. ",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d5",
+    "tags": [
+      "unspoken_needs",
+      "partner_perception",
+      "vulnerability"
+    ],
+    "id": "69e5b86c5f27e32f069839e3",
+    "created_date": "2026-04-20T05:23:56.614000",
+    "updated_date": "2026-04-20T05:23:56.614000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What fear do you carry into this relationship — even unconsciously?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "That Tony will just move on from me",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d6",
+    "tags": [
+      "attachment_fear",
+      "vulnerability",
+      "emotional_blueprint"
+    ],
+    "id": "69e5b879db73cad27192308d",
+    "created_date": "2026-04-20T05:24:09.705000",
+    "updated_date": "2026-04-20T05:24:09.705000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How much do you believe you deserve to be fully loved as you are right now?",
+    "mode": "individual",
+    "selected_options": [
+      "5"
+    ],
+    "answer": "5",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d7",
+    "tags": [
+      "self_worth",
+      "vulnerability",
+      "emotional_health"
+    ],
+    "id": "69e5b87d0b617f1cb0cc7fa0",
+    "created_date": "2026-04-20T05:24:13.498000",
+    "updated_date": "2026-04-20T05:24:13.498000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What version of yourself do you hide from your partner most?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "How I feel when he disappoints me or upsets me. I tend to just deal with it because he will never apologize. I have been doing this for several years ",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d8",
+    "tags": [
+      "authenticity",
+      "vulnerability",
+      "self_perception"
+    ],
+    "id": "69e5b8927409f6c6d0c28699",
+    "created_date": "2026-04-20T05:24:34.384000",
+    "updated_date": "2026-04-20T05:24:55.754000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When your partner does something that upsets you, what does it usually mean to you?",
+    "mode": "individual",
+    "selected_options": [
+      "They don't understand me",
+      "I'm not being heard"
+    ],
+    "answer": "They don't understand me, I'm not being heard",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d9",
+    "tags": [
+      "emotional_meaning",
+      "misunderstood_trigger",
+      "attachment_pattern"
+    ],
+    "id": "69e5b8ad210b2c1757e39280",
+    "created_date": "2026-04-20T05:25:01.601000",
+    "updated_date": "2026-04-20T05:25:07.324000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What makes you feel most misunderstood?",
+    "mode": "individual",
+    "selected_options": [
+      "Being interrupted",
+      "Assumptions about my feelings",
+      "Dismissive tone",
+      "Not being asked how I feel",
+      "Being told to calm down",
+      "Having my experience minimized"
+    ],
+    "answer": "Being interrupted, Assumptions about my feelings, Dismissive tone, Not being asked how I feel, Being told to calm down, Having my experience minimized",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e1",
+    "tags": [
+      "misunderstood_trigger",
+      "validation_need",
+      "sensitivity_to_tone"
+    ],
+    "id": "69e5b56b6244416ef03f5784",
+    "created_date": "2026-04-20T05:11:07.424000",
+    "updated_date": "2026-04-20T05:11:18.721000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What tone of voice instantly puts you on the defensive?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Rude, dismissive, short, blunt, direct tone",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e2",
+    "tags": [
+      "tone_sensitivity",
+      "defensiveness",
+      "trigger_tone"
+    ],
+    "id": "69e5b595c30c053b09382506",
+    "created_date": "2026-04-20T05:11:49.605000",
+    "updated_date": "2026-04-20T05:12:21.218000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "Which situations are most likely to frustrate you in the relationship?",
+    "mode": "individual",
+    "selected_options": [
+      "Repeating myself",
+      "Feeling ignored or dismissed",
+      "Feeling like I'm the only one trying",
+      "Unspoken expectations"
+    ],
+    "answer": "Repeating myself, Feeling ignored or dismissed, Feeling like I'm the only one trying, Unspoken expectations",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e3",
+    "tags": [
+      "frustration_trigger",
+      "conflict_trigger",
+      "unmet_needs"
+    ],
+    "id": "69e5b5bc5f27e32f06983724",
+    "created_date": "2026-04-20T05:12:28.049000",
+    "updated_date": "2026-04-20T05:12:38.981000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What tone affects you most negatively?",
+    "mode": "individual",
+    "selected_options": [
+      "Dismissive or bored"
+    ],
+    "answer": "Dismissive or bored",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e4",
+    "tags": [
+      "tone_sensitivity",
+      "emotional_trigger"
+    ],
+    "id": "69e5b5ccb2a5aedaa60b5328",
+    "created_date": "2026-04-20T05:12:44.338000",
+    "updated_date": "2026-04-20T05:12:49.907000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What situation in the relationship makes you feel most vulnerable?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "When I’m being attacked, spoken down to, belittled ",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e5",
+    "tags": [
+      "vulnerability",
+      "emotional_trigger",
+      "safety_need"
+    ],
+    "id": "69e5b5dc966bea3ac17afb8e",
+    "created_date": "2026-04-20T05:13:00.726000",
+    "updated_date": "2026-04-20T05:13:11.672000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How sensitive are you to your partner's tone and body language?",
+    "mode": "individual",
+    "selected_options": [
+      "4"
+    ],
+    "answer": "4",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e6",
+    "tags": [
+      "sensitivity_to_tone",
+      "emotional_attunement",
+      "trigger_tone"
+    ],
+    "id": "69e5b61a79b542dea5d0a704",
+    "created_date": "2026-04-20T05:14:02.755000",
+    "updated_date": "2026-04-20T05:14:02.755000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When your partner is stressed, how does it affect you?",
+    "mode": "individual",
+    "selected_options": [
+      "I give them space instinctively"
+    ],
+    "answer": "I give them space instinctively",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e7",
+    "tags": [
+      "emotional_absorption",
+      "empathy",
+      "stress_response"
+    ],
+    "id": "69e5b622d8ebcfbffae9876c",
+    "created_date": "2026-04-20T05:14:10.154000",
+    "updated_date": "2026-04-20T05:14:15.649000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "Is there a specific phrase or word that reliably sets you off? Describe it.",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Being asked a question as a response to a question I ask. I absolutely hate it.",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e8",
+    "tags": [
+      "trigger_phrase",
+      "emotional_trigger",
+      "sensitivity"
+    ],
+    "id": "69e5b642da74f5163c4ed442",
+    "created_date": "2026-04-20T05:14:42.813000",
+    "updated_date": "2026-04-20T05:14:42.813000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "Being around people generally makes you feel:",
+    "mode": "individual",
+    "selected_options": [
+      "Neutral — depends on the people"
+    ],
+    "answer": "Neutral — depends on the people",
+    "weight": "medium",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "energy_social",
+    "question_id": "en1",
+    "tags": [
+      "social_energy",
+      "introversion_extroversion"
+    ],
+    "id": "69e5b714c222c1e5f719d4e7",
+    "created_date": "2026-04-20T05:18:12.777000",
+    "updated_date": "2026-04-20T05:18:16.330000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "After a long or difficult day, what do you most want from your partner?",
+    "mode": "individual",
+    "selected_options": [
+      "Distraction — something light and fun"
+    ],
+    "answer": "Distraction — something light and fun",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "energy_social",
+    "question_id": "en2",
+    "tags": [
+      "recharge_style",
+      "love_language",
+      "needs_in_stress"
+    ],
+    "id": "69e5b728baa507a4a4820ecd",
+    "created_date": "2026-04-20T05:18:32.026000",
+    "updated_date": "2026-04-20T05:18:41.519000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How much does your energy level affect your ability to communicate well?",
+    "mode": "individual",
+    "selected_options": [
+      "4"
+    ],
+    "answer": "4",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "energy_social",
+    "question_id": "en3",
+    "tags": [
+      "energy_communication",
+      "stress_response",
+      "self_awareness"
+    ],
+    "id": "69e5b73baf21ebbd5ca8f366",
+    "created_date": "2026-04-20T05:18:51.434000",
+    "updated_date": "2026-04-20T05:18:53.140000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What drains you most in a day?",
+    "mode": "individual",
+    "selected_options": [
+      "Emotional labor",
+      "Feeling unseen or unappreciated"
+    ],
+    "answer": "Emotional labor, Feeling unseen or unappreciated",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "energy_social",
+    "question_id": "en4",
+    "tags": [
+      "energy_drain",
+      "stress_trigger",
+      "needs"
+    ],
+    "id": "69e5b7418b09434ce68e0a69",
+    "created_date": "2026-04-20T05:18:57.871000",
+    "updated_date": "2026-04-20T05:19:26.613000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What recharges you fastest?",
+    "mode": "individual",
+    "selected_options": [
+      "Time alone in quiet",
+      "Time together doing something simple",
+      "Exercise or movement",
+      "Laughter and lightness",
+      "Sleep or rest"
+    ],
+    "answer": "Time alone in quiet, Time together doing something simple, Exercise or movement, Laughter and lightness, Sleep or rest",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "energy_social",
+    "question_id": "en5",
+    "tags": [
+      "recharge_style",
+      "social_energy",
+      "self_care"
+    ],
+    "id": "69e5b763432657420f9c6af2",
+    "created_date": "2026-04-20T05:19:31.573000",
+    "updated_date": "2026-04-20T05:19:40.828000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you're drained, how does it affect how you show up in the relationship?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Depends. I sometimes show up regardless because I know things need to get done. Other ones I just let myself go and figure it out later.",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "energy_social",
+    "question_id": "en6",
+    "tags": [
+      "energy_communication",
+      "partner_perception",
+      "self_awareness"
+    ],
+    "id": "69e5b78f20228a11dcba941f",
+    "created_date": "2026-04-20T05:20:15.218000",
+    "updated_date": "2026-04-20T05:20:15.218000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How much quality time with your partner do you feel you currently get in a typical week?",
+    "mode": "individual",
+    "selected_options": [
+      "2"
+    ],
+    "answer": "2",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "energy_social",
+    "question_id": "en7",
+    "tags": [
+      "quality_time",
+      "relationship_satisfaction",
+      "unmet_needs"
+    ],
+    "id": "69e5b7adfc86945b869fa0db",
+    "created_date": "2026-04-20T05:20:45.074000",
+    "updated_date": "2026-04-20T05:20:45.074000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How was conflict handled in your household growing up?",
+    "mode": "individual",
+    "selected_options": [
+      "Loudly and explosively"
+    ],
+    "answer": "Loudly and explosively",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "family_upbringing",
+    "question_id": "f1",
+    "tags": [
+      "childhood_patterns",
+      "conflict_style",
+      "emotional_blueprint"
+    ],
+    "id": "69e5b8d508b059845f8fbf10",
+    "created_date": "2026-04-20T05:25:41.645000",
+    "updated_date": "2026-04-20T05:25:41.645000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How emotionally expressive was your family when you were growing up?",
+    "mode": "individual",
+    "selected_options": [
+      "3"
+    ],
+    "answer": "3",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "family_upbringing",
+    "question_id": "f2",
+    "tags": [
+      "emotional_expressiveness",
+      "childhood_patterns",
+      "emotional_blueprint"
+    ],
+    "id": "69e5b8e39e2382fe57a986ad",
+    "created_date": "2026-04-20T05:25:55.202000",
+    "updated_date": "2026-04-20T05:25:55.202000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What did love look like in your family growing up?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "When I was a child it was affection and kisses",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "family_upbringing",
+    "question_id": "f3",
+    "tags": [
+      "love_language",
+      "attachment_style",
+      "emotional_blueprint"
+    ],
+    "id": "69e5b8f2bb233c43f73a71c2",
+    "created_date": "2026-04-20T05:26:10.430000",
+    "updated_date": "2026-04-20T05:26:10.430000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What did you have to do to feel loved or approved of as a child?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Nothing",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "family_upbringing",
+    "question_id": "f4",
+    "tags": [
+      "attachment_pattern",
+      "conditional_love",
+      "emotional_blueprint"
+    ],
+    "id": "69e5b8fc2919f4e28e064a02",
+    "created_date": "2026-04-20T05:26:20.716000",
+    "updated_date": "2026-04-20T05:26:20.716000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What did you vow — consciously or not — to do differently than your parents in relationships?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Not yell across the house",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "family_upbringing",
+    "question_id": "f5",
+    "tags": [
+      "childhood_patterns",
+      "growth_intention",
+      "emotional_blueprint"
+    ],
+    "id": "69e5b90b7065ae8dfde0adfb",
+    "created_date": "2026-04-20T05:26:35.867000",
+    "updated_date": "2026-04-20T05:26:35.867000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What did you learn from your upbringing that has actually helped your relationship?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I don’t know",
+    "weight": "medium",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "family_upbringing",
+    "question_id": "f6",
+    "tags": [
+      "childhood_patterns",
+      "strengths",
+      "relationship_resources"
+    ],
+    "id": "69e5b912828aaac753e64729",
+    "created_date": "2026-04-20T05:26:42.926000",
+    "updated_date": "2026-04-20T05:26:42.926000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "Which parent or caregiver do you think you're most like in how you handle relationships?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "My mom",
+    "weight": "medium",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "family_upbringing",
+    "question_id": "f7",
+    "tags": [
+      "childhood_patterns",
+      "attachment_style",
+      "emotional_blueprint"
+    ],
+    "id": "69e5b91cbb233c43f73a72de",
+    "created_date": "2026-04-20T05:26:52.400000",
+    "updated_date": "2026-04-20T05:26:52.400000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you need to feel safe enough to be fully honest?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Empathy and patience ",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv1",
+    "tags": [
+      "emotional_safety",
+      "vulnerability",
+      "communication_need"
+    ],
+    "id": "69e5b9f1cc1ecab4066c2536",
+    "created_date": "2026-04-20T05:30:25.465000",
+    "updated_date": "2026-04-20T05:30:25.465000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What tends to make you feel most alone in the relationship?",
+    "mode": "individual",
+    "selected_options": [
+      "Lack of affection",
+      "Conflict not being resolved"
+    ],
+    "answer": "Lack of affection, Conflict not being resolved",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv10",
+    "tags": [
+      "loneliness_trigger",
+      "disconnection",
+      "unmet_needs"
+    ],
+    "id": "69e5baa3c2f8362139f01968",
+    "created_date": "2026-04-20T05:33:23.715000",
+    "updated_date": "2026-04-20T05:33:29.296000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you let your partner know you need more support without saying it directly?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I say it directly ",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv2",
+    "tags": [
+      "passive_communication",
+      "unmet_needs",
+      "emotional_expression"
+    ],
+    "id": "69e5b9fb470a29a5f3d9100f",
+    "created_date": "2026-04-20T05:30:35.886000",
+    "updated_date": "2026-04-20T05:30:42.338000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you feel disconnected from your partner, what does that look like for you?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Silence ",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv3",
+    "tags": [
+      "disconnection",
+      "attachment",
+      "emotional_awareness"
+    ],
+    "id": "69e5ba096068f0bf68e74116",
+    "created_date": "2026-04-20T05:30:49.834000",
+    "updated_date": "2026-04-20T05:30:49.834000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How important is it to you to feel like a priority in your partner's life?",
+    "mode": "individual",
+    "selected_options": [
+      "5"
+    ],
+    "answer": "5",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv4",
+    "tags": [
+      "need_for_validation",
+      "attachment",
+      "priority_need"
+    ],
+    "id": "69e5ba100b617f1cb0cc830a",
+    "created_date": "2026-04-20T05:30:56.416000",
+    "updated_date": "2026-04-20T05:30:56.416000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What does being truly supported look like to you?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Understanding. Empathy. Accountability. Connection.",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv5",
+    "tags": [
+      "support_style",
+      "needs_in_conflict",
+      "love_language"
+    ],
+    "id": "69e5ba1dd88264415d2decb4",
+    "created_date": "2026-04-20T05:31:09.030000",
+    "updated_date": "2026-04-20T05:31:30.620000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What's something you've wanted to say for a while but haven't found the right moment?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I don’t know",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv6",
+    "tags": [
+      "unspoken_needs",
+      "vulnerability",
+      "communication_gap"
+    ],
+    "id": "69e5ba415d95f76837bba365",
+    "created_date": "2026-04-20T05:31:45.985000",
+    "updated_date": "2026-04-20T05:31:45.985000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How comfortable are you receiving love, compliments, or care from your partner?",
+    "mode": "individual",
+    "selected_options": [
+      "5"
+    ],
+    "answer": "5",
+    "weight": "medium",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv7",
+    "tags": [
+      "vulnerability_comfort",
+      "love_language",
+      "self_worth"
+    ],
+    "id": "69e5ba432cac4cff97905234",
+    "created_date": "2026-04-20T05:31:47.513000",
+    "updated_date": "2026-04-20T05:31:47.513000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What makes you feel closest to your partner?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "When we both are on the same page and there are no distractions. When we actually make each other a priority. No phones. No laptops. We can laugh. Be silly.",
+    "weight": "medium",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv8",
+    "tags": [
+      "love_language",
+      "connection",
+      "relationship_satisfaction"
+    ],
+    "id": "69e5ba55c7f08222fa3b0552",
+    "created_date": "2026-04-20T05:32:05.570000",
+    "updated_date": "2026-04-20T05:33:03.096000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you're stressed or overwhelmed, what do you need most from your partner?",
+    "mode": "individual",
+    "selected_options": [
+      "To be listened to without interruption",
+      "Reassurance"
+    ],
+    "answer": "To be listened to without interruption, Reassurance",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "needs_vulnerability",
+    "question_id": "nv9",
+    "tags": [
+      "needs_in_stress",
+      "support_style",
+      "love_language"
+    ],
+    "id": "69e5ba943c399ac82b5ff96a",
+    "created_date": "2026-04-20T05:33:08.150000",
+    "updated_date": "2026-04-20T05:33:13.812000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you think your partner experiences you during conflict?",
+    "mode": "individual",
+    "selected_options": [
+      "Too intense"
+    ],
+    "answer": "Too intense",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "partner_perception",
+    "question_id": "p1",
+    "tags": [
+      "self_awareness",
+      "perceived_impact",
+      "partner_perception"
+    ],
+    "id": "69e5b935e6a90e2cc1cde32b",
+    "created_date": "2026-04-20T05:27:17.428000",
+    "updated_date": "2026-04-20T05:27:17.428000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you think frustrates your partner most about how you communicate?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "That I don’t. And also that I don’t remember things I did or said.",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "partner_perception",
+    "question_id": "p2",
+    "tags": [
+      "partner_perception",
+      "blind_spots",
+      "communication_gap"
+    ],
+    "id": "69e5b942d88264415d2dec70",
+    "created_date": "2026-04-20T05:27:30.909000",
+    "updated_date": "2026-04-20T05:27:45.125000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "Where do you think you are most misunderstood by your partner?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "When we have any type of disagreement where we don’t see eye to eye. Either I don’t explain it well enough or he generally doesn’t have the capability to understand",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "partner_perception",
+    "question_id": "p3",
+    "tags": [
+      "misunderstanding_gap",
+      "partner_perception",
+      "self_awareness"
+    ],
+    "id": "69e5b97b4f7860cdb23ee9ca",
+    "created_date": "2026-04-20T05:28:27.688000",
+    "updated_date": "2026-04-20T05:28:41.701000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you think your partner needs from you that you don't give enough of?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Listening and behavioral change",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "partner_perception",
+    "question_id": "p4",
+    "tags": [
+      "blind_spots",
+      "unmet_needs",
+      "partner_perception"
+    ],
+    "id": "69e5b996f5bd967f1bd246a8",
+    "created_date": "2026-04-20T05:28:54.204000",
+    "updated_date": "2026-04-20T05:28:54.204000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you think your partner loves most about who you are?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I don’t know",
+    "weight": "medium",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "partner_perception",
+    "question_id": "p5",
+    "tags": [
+      "strengths",
+      "self_worth",
+      "partner_perception"
+    ],
+    "id": "69e5b99e2cac4cff979051ac",
+    "created_date": "2026-04-20T05:29:02.299000",
+    "updated_date": "2026-04-20T05:29:02.299000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How accurately do you think your partner reads your emotions?",
+    "mode": "individual",
+    "selected_options": [
+      "4"
+    ],
+    "answer": "4",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "partner_perception",
+    "question_id": "p6",
+    "tags": [
+      "emotional_attunement",
+      "partner_perception",
+      "communication_gap"
+    ],
+    "id": "69e5b9a3870ae244191e948a",
+    "created_date": "2026-04-20T05:29:07.165000",
+    "updated_date": "2026-04-20T05:29:07.165000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "Is there something your partner does that you've never fully acknowledged is hard for you? Describe it.",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I don’t understand this question",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "partner_perception",
+    "question_id": "p7",
+    "tags": [
+      "unspoken_needs",
+      "blind_spots",
+      "vulnerability"
+    ],
+    "id": "69e5b9d3bb233c43f73a736b",
+    "created_date": "2026-04-20T05:29:55.225000",
+    "updated_date": "2026-04-20T05:29:55.225000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When conflict happens, what do you think your partner needs most from you?",
+    "mode": "individual",
+    "selected_options": [
+      "Listening",
+      "Problem-solving"
+    ],
+    "answer": "Listening, Problem-solving",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "partner_perception",
+    "question_id": "p8",
+    "tags": [
+      "partner_needs",
+      "empathy",
+      "partner_perception"
+    ],
+    "id": "69e5b9d814bc007e4ae5ac8e",
+    "created_date": "2026-04-20T05:30:00.179000",
+    "updated_date": "2026-04-20T05:30:03.761000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you usually react when plans change unexpectedly?",
+    "mode": "individual",
+    "selected_options": [
+      "Get frustrated"
+    ],
+    "answer": "Get frustrated",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "surface",
+    "question_id": "s1",
+    "id": "69e17c217d8c50fc7b201e5a",
+    "created_date": "2026-04-17T00:17:37.442000",
+    "updated_date": "2026-04-17T00:17:37.442000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What does a perfect evening together look like for you right now?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Tony not working the entire time I’m home from work. Actually spending time together. Going on walks with Zoe together. Eating dinner at the table together would be a nice way to connect with each other. Watching tv or a movie together.",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "surface",
+    "question_id": "s2",
+    "id": "69e17c5a7eb68a96604003bf",
+    "created_date": "2026-04-17T00:18:34.826000",
+    "updated_date": "2026-04-17T00:18:34.826000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you're stressed, what helps you decompress the most?",
+    "mode": "individual",
+    "selected_options": [
+      "Being alone"
+    ],
+    "answer": "Being alone",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "surface",
+    "question_id": "s3",
+    "id": "69e17c6c438ff4ff92b0b005",
+    "created_date": "2026-04-17T00:18:52.474000",
+    "updated_date": "2026-04-17T00:18:52.474000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How important is routine and structure to your daily life?",
+    "mode": "individual",
+    "selected_options": [
+      "5"
+    ],
+    "answer": "5",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "surface",
+    "question_id": "s4",
+    "id": "69e17c714206a18ce8d19999",
+    "created_date": "2026-04-17T00:18:57.985000",
+    "updated_date": "2026-04-17T00:18:57.985000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you're in a good mood, how do you usually show it?",
+    "mode": "individual",
+    "selected_options": [
+      "I suggest doing something together"
+    ],
+    "answer": "I suggest doing something together",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "surface",
+    "question_id": "s5",
+    "id": "69e17c7e96c58772d137f8a5",
+    "created_date": "2026-04-17T00:19:10.068000",
+    "updated_date": "2026-04-17T00:19:10.068000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you tend to handle a bad day before you've said a word about it?",
+    "mode": "individual",
+    "selected_options": [
+      "Go quiet"
+    ],
+    "answer": "Go quiet",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "surface",
+    "question_id": "s6",
+    "id": "69e17d008ccef38c80a6097d",
+    "created_date": "2026-04-17T00:21:20.926000",
+    "updated_date": "2026-04-17T00:21:20.926000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How much alone time do you need on a typical week?",
+    "mode": "individual",
+    "selected_options": [
+      "2"
+    ],
+    "answer": "2",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "surface",
+    "question_id": "s7",
+    "id": "69e17d29e421a3f06895a5c9",
+    "created_date": "2026-04-17T00:22:01.409000",
+    "updated_date": "2026-04-17T00:22:01.409000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you feel about spontaneous plans or surprises?",
+    "mode": "individual",
+    "selected_options": [
+      "Usually fine if low-pressure"
+    ],
+    "answer": "Usually fine if low-pressure",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "surface",
+    "question_id": "s8",
+    "id": "69e17d5ed2a31acbd3c61b1e",
+    "created_date": "2026-04-17T00:22:54.929000",
+    "updated_date": "2026-04-17T00:22:54.929000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How did you handle conflict at the beginning of this relationship compared to now?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I can’t remember",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "then_vs_now",
+    "question_id": "t1",
+    "tags": [
+      "conflict_growth",
+      "then_vs_now",
+      "self_awareness"
+    ],
+    "id": "69e5bab956be6f20352d943d",
+    "created_date": "2026-04-20T05:33:45.379000",
+    "updated_date": "2026-04-20T05:33:45.379000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What's one thing you've genuinely changed about yourself in this relationship?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Everything",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "then_vs_now",
+    "question_id": "t2",
+    "tags": [
+      "growth",
+      "self_awareness",
+      "then_vs_now"
+    ],
+    "id": "69e5babf02932980eb05128b",
+    "created_date": "2026-04-20T05:33:51.952000",
+    "updated_date": "2026-04-20T05:33:51.952000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What pattern do you know you haven't fully resolved — even after 13 years?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Behavioral ch",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "then_vs_now",
+    "question_id": "t3",
+    "tags": [
+      "unresolved_patterns",
+      "growth_area",
+      "self_awareness"
+    ],
+    "id": "69e5bad012f58e96d51b7e18",
+    "created_date": "2026-04-20T05:34:08.678000",
+    "updated_date": "2026-04-20T05:34:12.480000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How have your needs changed over the course of this relationship?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I want more physical connection and more accountability. As the years go by, there’s less of that happening.",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "then_vs_now",
+    "question_id": "t4",
+    "tags": [
+      "needs_evolution",
+      "then_vs_now",
+      "emotional_growth"
+    ],
+    "id": "69e5bae82763aa74b4c1039e",
+    "created_date": "2026-04-20T05:34:32.862000",
+    "updated_date": "2026-04-20T05:36:21.325000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you miss about earlier in this relationship?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Going on date nights and spending quality time with each other. It doesn’t happen ever anymore and I desperately want them back",
+    "weight": "medium",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "then_vs_now",
+    "question_id": "t5",
+    "tags": [
+      "relationship_evolution",
+      "then_vs_now",
+      "nostalgia"
+    ],
+    "id": "69e5bb399e2382fe57a988a2",
+    "created_date": "2026-04-20T05:35:53.045000",
+    "updated_date": "2026-04-20T05:35:53.045000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "What parts of yourself got quieter as life got busier — and do you miss them?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "The fact I’m not as social anymore bothers me. I used to hang out with my friends more but now I’d rather just be home.",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "then_vs_now",
+    "question_id": "t6",
+    "tags": [
+      "self_evolution",
+      "then_vs_now",
+      "authenticity"
+    ],
+    "id": "69e5bafd9257b0b654b8a29d",
+    "created_date": "2026-04-20T05:34:53.079000",
+    "updated_date": "2026-04-20T05:37:13.057000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "If the version of you from 10 years ago saw you now, what would surprise them most?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "That’s I’ve calmed down. ",
+    "weight": "medium",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "then_vs_now",
+    "question_id": "t7",
+    "tags": [
+      "self_reflection",
+      "growth",
+      "then_vs_now"
+    ],
+    "id": "69e5bb98fa77657e7294dac8",
+    "created_date": "2026-04-20T05:37:28.071000",
+    "updated_date": "2026-04-20T05:37:28.071000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  },
+  {
+    "question_text": "How has your stubbornness — or certainty in yourself — evolved over the years?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I’ve gotten more stubborn. I know what I want and I don’t budge as much as I used to. Sometimes I do though. But of the time I don’t.",
+    "weight": "high",
+    "person_name": "Drew",
+    "ranking": [],
+    "category": "then_vs_now",
+    "question_id": "t8",
+    "tags": [
+      "stubbornness",
+      "self_awareness",
+      "emotional_growth"
+    ],
+    "id": "69e5bbc1d19bbddce4173b88",
+    "created_date": "2026-04-20T05:38:09.301000",
+    "updated_date": "2026-04-20T05:38:16.771000",
+    "created_by_id": "anonymous",
+    "is_sample": false
+  }
+]

@@ -2,10 +2,10 @@
 
 ## What changed
 
-- Reverse-engineered the live Base44 app shell and route structure.
+- Reverse-engineered the live app shell and route structure.
 - Replaced the old product framing with a RelateIQ relationship-support workspace.
 - Standardized the backend around `relate-iq-growth-worker`.
-- Removed runtime assumptions tied to Base44 and removed Replit-only Vite plugins from the frontend.
+- Removed runtime assumptions tied to the previous hosted builder and removed legacy Vite plugins from the frontend.
 
 ## New architecture
 
