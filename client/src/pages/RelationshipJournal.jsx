@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
-import { BookText, Clock3, NotebookPen, Save, FileText, UserRound, Trash2 } from "lucide-react";
+import { BookText, Clock3, NotebookPen, Save, FileText, UserRound, Trash2, Pencil, X } from "lucide-react";
 
 function JournalPreview({ personName, title, content, timestamp }) {
   return (
@@ -44,10 +44,12 @@ function JournalPreview({ personName, title, content, timestamp }) {
 export default function RelationshipJournal() {
   const queryClient = useQueryClient();
   const previewRef = useRef(null);
+  const editorRef = useRef(null);
   const [personName, setPersonName] = useState("Tony");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState(null);
 
   const timestamp = useMemo(() => new Date(), [title, content, personName]);
 
@@ -61,6 +63,22 @@ export default function RelationshipJournal() {
     [entries, personName],
   );
 
+  const resetEditor = () => {
+    setEditingEntryId(null);
+    setTitle("");
+    setContent("");
+  };
+
+  const loadEntryIntoEditor = (entry) => {
+    setEditingEntryId(entry.id);
+    setPersonName(entry.person_name || "Tony");
+    setTitle(entry.title || "");
+    setContent(entry.content || "");
+    window.requestAnimationFrame(() => {
+      editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   const handleSave = async () => {
     if (!content.trim()) {
       toast.error("Write something before saving.");
@@ -69,18 +87,25 @@ export default function RelationshipJournal() {
 
     setSaving(true);
     try {
-      await api.entities.JournalEntry.create({
+      const payload = {
         person_name: personName,
         title: title.trim() || `${personName}'s Journal Entry`,
         content: content.trim(),
         entry_timestamp: timestamp.toISOString(),
-      });
-      toast.success("Journal entry saved.");
-      setTitle("");
-      setContent("");
+      };
+
+      if (editingEntryId) {
+        await api.entities.JournalEntry.update(editingEntryId, payload);
+        toast.success("Journal entry updated.");
+      } else {
+        await api.entities.JournalEntry.create(payload);
+        toast.success("Journal entry saved.");
+      }
+
+      resetEditor();
       queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
     } catch (error) {
-      toast.error("Could not save the journal entry.");
+      toast.error(`Could not ${editingEntryId ? "update" : "save"} the journal entry.`);
     } finally {
       setSaving(false);
     }
@@ -89,6 +114,9 @@ export default function RelationshipJournal() {
   const handleDelete = async (entryId) => {
     try {
       await api.entities.JournalEntry.delete(entryId);
+      if (editingEntryId === entryId) {
+        resetEditor();
+      }
       toast.success("Journal entry deleted.");
       queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
     } catch (error) {
@@ -121,14 +149,16 @@ export default function RelationshipJournal() {
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(360px,0.9fr)]">
         <div className="space-y-6">
-          <Card className="enterprise-panel border-2">
+          <Card ref={editorRef} className="enterprise-panel border-2">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-2xl">
                 <NotebookPen className="h-5 w-5 text-primary" />
-                New Journal Entry
+                {editingEntryId ? "Edit Journal Entry" : "New Journal Entry"}
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Choose who is writing, add a title if you want one, then write freely.
+                {editingEntryId
+                  ? "Update the saved entry, then save your changes."
+                  : "Choose who is writing, add a title if you want one, then write freely."}
               </p>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -176,12 +206,25 @@ export default function RelationshipJournal() {
 
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-2">
                 <div className="text-sm text-muted-foreground">
-                  Entries are private to the person who writes them and saved with a timestamp.
+                  {editingEntryId
+                    ? "You are editing an existing private journal entry."
+                    : "Entries are private to the person who writes them and saved with a timestamp."}
                 </div>
                 <div className="flex flex-wrap gap-3">
+                  {editingEntryId ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={resetEditor}
+                      className="gap-2 rounded-full"
+                    >
+                      <X className="h-4 w-4" />
+                      Cancel Edit
+                    </Button>
+                  ) : null}
                   <Button onClick={handleSave} disabled={saving || !content.trim()} className="gap-2">
                     <Save className="h-4 w-4" />
-                    {saving ? "Saving..." : "Save Entry"}
+                    {saving ? "Saving..." : editingEntryId ? "Save Changes" : "Save Entry"}
                   </Button>
                   <ResponseExportBar
                     contentRef={previewRef}
@@ -194,7 +237,7 @@ export default function RelationshipJournal() {
             </CardContent>
           </Card>
 
-          <div ref={previewRef}>
+          <div ref={previewRef} className="fixed -left-[9999px] top-0" aria-hidden="true">
             <JournalPreview personName={personName} title={title} content={content} timestamp={timestamp} />
           </div>
         </div>
@@ -223,7 +266,19 @@ export default function RelationshipJournal() {
                 </div>
               ) : (
                 filteredEntries.map((entry) => (
-                  <div key={entry.id} className="enterprise-grid-card space-y-3">
+                  <div
+                    key={entry.id}
+                    onClick={() => loadEntryIntoEditor(entry)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        loadEntryIntoEditor(entry);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    className="enterprise-grid-card w-full cursor-pointer space-y-3 text-left transition-all hover:border-primary/40 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="enterprise-section-label">Journal Entry</p>
@@ -237,15 +292,32 @@ export default function RelationshipJournal() {
                           {entry.person_name}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(entry.id)}
-                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/15 bg-white text-muted-foreground transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                        title="Delete journal entry"
-                        aria-label={`Delete ${entry.title || `${entry.person_name}'s journal entry`}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            loadEntryIntoEditor(entry);
+                          }}
+                          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/15 bg-white text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                          title="Edit journal entry"
+                          aria-label={`Edit ${entry.title || `${entry.person_name}'s journal entry`}`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDelete(entry.id);
+                          }}
+                          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/15 bg-white text-muted-foreground transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                          title="Delete journal entry"
+                          aria-label={`Delete ${entry.title || `${entry.person_name}'s journal entry`}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(entry.entry_timestamp || entry.created_date), "MMMM d, yyyy • h:mm a")}
