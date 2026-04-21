@@ -7,7 +7,7 @@ import { api } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Stars, Filter } from "lucide-react";
+import { Plus, Filter } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import PinCard from "@/components/vision/PinCard";
@@ -91,12 +91,8 @@ export default function VisionBoard() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center space-y-3 pt-2"
+        className="space-y-3 pt-0 text-center"
       >
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/15 border border-purple-400/30 text-purple-300 text-xs font-semibold uppercase tracking-wide">
-          <Stars className="w-4 h-4" />
-          Shared Vision
-        </div>
         <h1 className="font-display text-4xl sm:text-5xl font-bold text-foreground">
           Vision Board
         </h1>

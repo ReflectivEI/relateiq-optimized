@@ -293,14 +293,18 @@ export default function Profiles() {
                         )}
                       </div>
                     </div>
-                    <div className="space-y-3 rounded-[1.25rem] border border-border bg-muted/20 p-5">
+                    <div className="space-y-4 rounded-[1.25rem] border border-border bg-muted/20 p-5">
                       <p className="enterprise-section-label">Tools</p>
-                      <DataSourceBadge sources={[
+                      <DataSourceBadge className="shadow-sm" sources={[
                         { label: "questionnaire answers", count: responses.length },
                         { label: "behavioral tags", count: (profile.personality_traits || []).length },
                       ]} />
-                      <ExplainElaborateBar ctx={ctx} />
-                      <ExportBar ctx={ctx} content={[
+                      <div className="space-y-3 rounded-2xl border border-border/50 bg-[#f8fbfd] p-4">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Explore this profile</p>
+                        <ExplainElaborateBar ctx={ctx} />
+                      </div>
+                      <div className="space-y-3 rounded-2xl border border-border/50 bg-[#f8fbfd] p-4">
+                        <ExportBar ctx={ctx} content={[
                       profile.ai_behavioral_summary,
                       `Communication Style: ${profile.communication_style}`,
                       `Conflict Tendencies: ${profile.conflict_tendencies}`,
@@ -308,11 +312,15 @@ export default function Profiles() {
                       `Emotional Triggers:\n${(profile.emotional_triggers || []).map(t => `• ${t}`).join("\n")}`,
                       `Growth Areas:\n${(profile.growth_areas || []).map(g => `• ${g}`).join("\n")}`,
                       ].join("\n\n")} />
-                      <AskAIButton
-                        context={askAIContext}
-                        modalTitle={`${activePerson}'s Profile`}
-                        showText={true}
-                      />
+                      </div>
+                      <div className="pt-1">
+                        <AskAIButton
+                          context={askAIContext}
+                          modalTitle={`${activePerson}'s Profile`}
+                          showText={true}
+                          className="h-10 rounded-full border-2 border-primary/35 bg-white px-4 text-sm font-medium text-primary hover:bg-primary/5"
+                        />
+                      </div>
                     </div>
                   </div>
                 </CardContent>

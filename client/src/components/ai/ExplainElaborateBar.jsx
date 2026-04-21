@@ -59,10 +59,10 @@ export default function ExplainElaborateBar({ ctx, className }) {
           onClick={() => handleAction("explain")}
           disabled={loading}
           className={cn(
-            "group flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-200",
+            "group flex h-10 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-all duration-200",
             mode === "explain" && result
               ? "border-primary bg-primary/10 text-primary"
-              : "border-border/50 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5"
+              : "border-border/50 bg-white text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
           )}
         >
           <Sparkles
@@ -84,10 +84,10 @@ export default function ExplainElaborateBar({ ctx, className }) {
           onClick={() => handleAction("elaborate")}
           disabled={loading}
           className={cn(
-            "group flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-200",
+            "group flex h-10 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-all duration-200",
             mode === "elaborate" && result
               ? "border-primary bg-primary/10 text-primary"
-              : "border-border/50 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5"
+              : "border-border/50 bg-white text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
           )}
         >
           <Sparkles
