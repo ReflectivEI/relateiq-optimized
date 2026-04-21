@@ -23,6 +23,7 @@ import RepairSuggestionAlert from "@/components/repair/RepairSuggestionAlert";
 import { generateRepairSuggestion, detectFriction } from "@/lib/repairSuggestionEngine";
 import EarlyWarningCard from "@/components/dashboard/EarlyWarningCard";
 import { getRiskSummary } from "@/lib/earlyWarningEngine";
+import { buildFallbackProfile, normalizeProfileOutput } from "@/lib/aiSafe";
 
 const quickActions = [
   {
@@ -37,14 +38,14 @@ const quickActions = [
     description: "Get guidance for sensitive conversations",
     icon: Sparkles,
     path: "/coach",
-    color: "bg-accent text-accent-foreground",
+    color: "bg-primary/10 text-primary",
   },
   {
     title: "View Insights",
     description: "See patterns, compatibility, and growth areas",
     icon: BarChart3,
     path: "/insights",
-    color: "bg-secondary text-secondary-foreground",
+    color: "bg-primary/10 text-primary",
   },
   {
     title: "Weekly Check-In",
@@ -58,7 +59,7 @@ const quickActions = [
     description: "Get a script to repair tension or reconnect after conflict",
     icon: HeartHandshake,
     path: "/repair",
-    color: "bg-rose-100 text-rose-600",
+    color: "bg-primary/10 text-primary",
   },
 ];
 
@@ -105,6 +106,12 @@ export default function Home() {
 
   const tonyProfile = profiles.find((p) => p.person_name === "Tony");
   const drewProfile = profiles.find((p) => p.person_name === "Drew");
+  const fallbackTony = !tonyProfile && tonyResponses.length > 0
+    ? normalizeProfileOutput(buildFallbackProfile("Tony", tonyResponses), "Tony")
+    : null;
+  const fallbackDrew = !drewProfile && drewResponses.length > 0
+    ? normalizeProfileOutput(buildFallbackProfile("Drew", drewResponses), "Drew")
+    : null;
 
   // Run early warning system when check-ins load
   useEffect(() => {
@@ -165,7 +172,7 @@ export default function Home() {
           <Heart className="w-3.5 h-3.5" fill="currentColor" />
           Tony & Drew
         </div>
-        <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
+        <p className="mx-auto text-sm text-muted-foreground sm:text-base lg:text-lg lg:whitespace-nowrap">
           Your relationship command center for reflection, coaching, insight generation, and practical growth tools.
         </p>
       </motion.div>
@@ -196,7 +203,8 @@ export default function Home() {
       {/* Profile Status Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {["Tony", "Drew"].map((name) => {
-          const profile = name === "Tony" ? tonyProfile : drewProfile;
+          const profile = name === "Tony" ? (tonyProfile || fallbackTony) : (drewProfile || fallbackDrew);
+          const hasProfileData = Boolean(profile);
           return (
             <motion.div
               key={name}
@@ -204,8 +212,8 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: name === "Tony" ? 0.1 : 0.2 }}
             >
-              <Card className="border border-border/60 bg-card/80 backdrop-blur-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-5">
+              <Card className="border border-border/60 bg-card/80 backdrop-blur-sm hover:shadow-md transition-shadow h-full">
+                <CardContent className="p-5 h-full flex flex-col">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -216,27 +224,55 @@ export default function Home() {
                       <div>
                         <h3 className="font-semibold text-foreground">{name}</h3>
                         <p className="text-xs text-muted-foreground">
-                          {profile?.communication_style || "Profile not yet built"}
+                          {profile?.communication_style || `${name}'s profile preview`}
                         </p>
                       </div>
                     </div>
-                    {profile ? (
+                    {hasProfileData ? (
                       <Star className="w-4 h-4 text-primary" />
                     ) : (
                       <Zap className="w-4 h-4 text-muted-foreground/40" />
                     )}
                   </div>
                   {profile?.ai_behavioral_summary ? (
-                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                      {profile.ai_behavioral_summary}
-                    </p>
+                    <div className="flex-1 space-y-4">
+                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4 min-h-[96px]">
+                        {profile.ai_behavioral_summary}
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <div className="rounded-2xl border border-primary/15 bg-primary/5 px-3 py-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Needs</p>
+                          <p className="mt-1 line-clamp-2 text-xs text-foreground">
+                            {profile.needs_during_conflict || "Clear reassurance and steadier communication."}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-primary/15 bg-primary/5 px-3 py-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Watch For</p>
+                          <p className="mt-1 line-clamp-2 text-xs text-foreground">
+                            {Array.isArray(profile.emotional_triggers)
+                              ? profile.emotional_triggers.slice(0, 2).join(", ")
+                              : profile.emotional_triggers || "Moments of distance, mismatch, or unspoken tension."}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
-                    <Link
-                      to="/questionnaire"
-                      className="text-sm text-primary hover:underline inline-flex items-center gap-1"
-                    >
-                      Start building profile <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                    <div className="mt-auto">
+                      <p className="min-h-[96px] text-sm text-muted-foreground leading-relaxed">
+                        Start building {name}'s section so the dashboard can surface patterns, needs, and practical next steps with more precision.
+                      </p>
+                      <Link
+                        to="/questionnaire"
+                        className="mt-4 text-sm text-primary hover:underline inline-flex items-center gap-1"
+                      >
+                        Start building profile <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  )}
+                  {!profile?.ai_behavioral_summary && hasProfileData && (
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {name}'s data is available and ready for a fuller profile view.
+                    </p>
                   )}
                 </CardContent>
               </Card>
