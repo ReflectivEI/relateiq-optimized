@@ -24,6 +24,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  BookMarked,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -67,6 +68,7 @@ const navGroups = [
       { path: "/triggers", label: "Triggers", icon: ShieldAlert },
       { path: "/repair", label: "Proactive Repair", icon: ShieldAlert },
       { path: "/chat", label: "Relationship Chat", icon: MessagesSquare },
+      { path: "/appendix", label: "Appendix", icon: BookMarked },
     ],
   },
 ];
@@ -79,6 +81,11 @@ export default function AppLayout() {
     core: true,
     intelligence: true,
     support: true,
+  });
+  const [mobileGroupOpen, setMobileGroupOpen] = useState({
+    core: true,
+    intelligence: true,
+    support: false,
   });
 
   const toggleGroup = (groupId) => {
@@ -212,33 +219,51 @@ export default function AppLayout() {
           </div>
         </div>
         {mobileOpen && (
-          <nav className="px-4 pb-4 space-y-1 bg-card border-b border-border">
-            {navGroups.map((group) => (
-              <div key={group.id} className="space-y-1.5">
-                <p className="px-3 pt-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                  {group.label}
-                </p>
-                {group.items.map((item) => {
-                  const active = location.pathname === item.path;
-                  return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      onClick={() => setMobileOpen(false)}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-                        active
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                      )}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            ))}
+          <nav className="space-y-3 border-b border-border bg-card px-4 pb-4">
+            {navGroups.map((group) => {
+              const groupHasActiveItem = group.items.some((item) => location.pathname === item.path);
+              return (
+                <div key={group.id} className="rounded-2xl border border-border/60 bg-muted/20">
+                  <button
+                    type="button"
+                    onClick={() => toggleMobileGroup(group.id)}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-2xl px-3 py-3 text-left transition-colors",
+                      groupHasActiveItem ? "bg-primary/8 text-primary" : "text-foreground hover:bg-muted/40"
+                    )}
+                  >
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.22em]">
+                      {group.label}
+                    </span>
+                    <ChevronDown className={cn("h-4 w-4 transition-transform", mobileGroupOpen[group.id] ? "rotate-0" : "-rotate-90")} />
+                  </button>
+
+                  {mobileGroupOpen[group.id] && (
+                    <div className="space-y-1 px-2 pb-2">
+                      {group.items.map((item) => {
+                        const active = location.pathname === item.path;
+                        return (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            onClick={() => setMobileOpen(false)}
+                            className={cn(
+                              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+                              active
+                                ? "bg-primary/10 text-primary"
+                                : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                            )}
+                          >
+                            <item.icon className="h-4 w-4" />
+                            {item.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </nav>
         )}
       </div>
@@ -257,3 +282,9 @@ export default function AppLayout() {
     </div>
   );
 }
+  const toggleMobileGroup = (groupId) => {
+    setMobileGroupOpen((current) => ({
+      ...current,
+      [groupId]: !current[groupId],
+    }));
+  };

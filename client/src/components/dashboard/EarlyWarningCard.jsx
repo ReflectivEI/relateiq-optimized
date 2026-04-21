@@ -17,9 +17,11 @@ import {
   Lightbulb,
   CheckCircle2,
   Clock,
-  Info,
+  ArrowUpRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import MetricExplainer from "@/components/ui/MetricExplainer";
+import ReferencePill from "@/components/ui/ReferencePill";
 
 const STATUS_CONFIG = {
   healthy: {
@@ -66,7 +68,7 @@ function MicroRepairCollapsible({ repair, index }) {
   const Icon = CATEGORY_ICONS[repair.category] || Lightbulb;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-primary/15 bg-white">
+    <div className="overflow-hidden rounded-2xl border border-[#0e6f72]/35 bg-white shadow-[0_1px_0_rgba(14,111,114,0.04)]">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between px-4 py-3 bg-[#eef4fb] hover:bg-[#e8f0fa] transition-colors text-left"
@@ -104,9 +106,7 @@ function MicroRepairCollapsible({ repair, index }) {
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Frameworks</p>
               <div className="flex flex-wrap gap-1.5">
                 {repair.frameworks.map((fw) => (
-                  <Badge key={fw} variant="outline" className="text-[10px] border-primary/20 bg-primary/5 text-primary">
-                    {fw}
-                  </Badge>
+                  <ReferencePill key={fw} referenceId={fw} />
                 ))}
               </div>
             </div>
@@ -118,8 +118,6 @@ function MicroRepairCollapsible({ repair, index }) {
 }
 
 export default function EarlyWarningCard({ riskSummary }) {
-  const [showScoreDetails, setShowScoreDetails] = useState(false);
-
   if (!riskSummary) {
     return null;
   }
@@ -141,8 +139,8 @@ export default function EarlyWarningCard({ riskSummary }) {
     .filter(Boolean);
 
   return (
-    <Card className={cn("border-2", config.border, config.bg)}>
-      <CardHeader className="pb-3">
+    <Card className={cn("border-2", config.border, "bg-[#deeff0] shadow-sm")}>
+      <CardHeader className="pb-4">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex items-start gap-3 flex-1">
             <Icon className={cn("w-5 h-5 mt-0.5 shrink-0", config.color)} />
@@ -150,7 +148,7 @@ export default function EarlyWarningCard({ riskSummary }) {
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 Early Warning System
               </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">{riskSummary.message}</p>
+              <p className="mt-2 text-base text-muted-foreground">{riskSummary.message}</p>
               {riskSummary.days_ahead > 0 && (
                 <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
                   <Clock className="w-3.5 h-3.5" />
@@ -160,97 +158,30 @@ export default function EarlyWarningCard({ riskSummary }) {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowScoreDetails((value) => !value)}
-            className="flex shrink-0 flex-col items-center justify-center rounded-2xl border border-primary/15 bg-white/70 px-4 py-3 text-center transition-colors hover:border-primary/30 hover:bg-white"
+          <MetricExplainer
+            label={`${riskPercent}% risk score`}
+            title="Relationship risk score"
+            summary={`${riskPercent}% is a short-horizon early warning score. Higher numbers mean the system is seeing more active tension signals across recent check-ins, sessions, and repair patterns.`}
+            calculation={`${riskSummary.breakdown?.scoring_method} The score combines ${riskSummary.breakdown?.signal_count || 0} detected signal${(riskSummary.breakdown?.signal_count || 0) === 1 ? "" : "s"} and weights them by severity, recency, and pattern overlap.`}
+            source={strongestSignal ? `The strongest current driver is ${strongestSignal.label}. The current reading covers the next ${riskSummary.timeline}.` : `This score is based on recent check-ins, sessions, and repair behavior within the ${riskSummary.timeline} window.`}
+            coachingTips={coachingTips}
           >
-            <div className="text-3xl font-bold text-foreground">{riskPercent}%</div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Risk Score</p>
-            <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-primary">
-              <Info className="h-3 w-3" />
-              {showScoreDetails ? "Hide details" : "What this means"}
-            </span>
-          </button>
+            <button
+              type="button"
+              className="flex shrink-0 flex-col items-center justify-center rounded-2xl border border-[#0e6f72]/35 bg-white px-5 py-4 text-center transition-all hover:bg-[#e8f7f6] hover:shadow-sm"
+            >
+              <div className="text-4xl font-bold text-foreground">{riskPercent}%</div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Risk Score</p>
+              <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary">
+                <ArrowUpRight className="h-3.5 w-3.5" />
+                What this means
+              </span>
+            </button>
+          </MetricExplainer>
         </div>
       </CardHeader>
 
       <CardContent className="pt-0 space-y-4">
-        {showScoreDetails && (
-          <div className="rounded-[1.2rem] border border-primary/20 bg-white/90 p-4 space-y-4">
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                What This Score Means
-              </p>
-              <p className="text-sm leading-7 text-foreground">
-                {scoreGuidance} Because this is a risk score, improving it means bringing the percentage down over time.
-              </p>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-2xl border border-primary/15 bg-[#eef4fb] p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Strongest Signal
-                </p>
-                <p className="mt-2 text-sm font-semibold text-foreground">
-                  {strongestSignal?.label || "No active signal"}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {strongestSignal ? `${Math.round(strongestSignal.risk_score * 100)}% weight in current score` : "Nothing is materially elevating risk right now."}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-primary/15 bg-[#eef4fb] p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Average Signal Weight
-                </p>
-                <p className="mt-2 text-sm font-semibold text-foreground">{averageSignalPercent}%</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Based on all currently detected early-warning signals.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-primary/15 bg-[#eef4fb] p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Prediction Window
-                </p>
-                <p className="mt-2 text-sm font-semibold text-foreground">{riskSummary.timeline}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  This is a near-term read, not a permanent judgment about the relationship.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Where It Comes From
-              </p>
-              <p className="text-sm leading-7 text-foreground">
-                {riskSummary.breakdown?.scoring_method} Right now the score is being driven by{" "}
-                <span className="font-semibold">
-                  {riskSummary.breakdown?.signal_count || 0} detected signal
-                  {(riskSummary.breakdown?.signal_count || 0) === 1 ? "" : "s"}
-                </span>
-                {strongestSignal ? `, with ${strongestSignal.label.toLowerCase()} as the main driver.` : "."}
-              </p>
-            </div>
-
-            {coachingTips.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Best Ways To Improve It
-                </p>
-                <div className="space-y-2">
-                  {coachingTips.map((tip) => (
-                    <div key={tip} className="flex gap-2 rounded-2xl border border-primary/15 bg-[#e8f7f6] p-3 text-sm leading-6 text-foreground">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                      <span>{tip}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Risk Signals */}
         {riskSummary.signals && riskSummary.signals.length > 0 && (
           <div className="space-y-2">
@@ -260,10 +191,10 @@ export default function EarlyWarningCard({ riskSummary }) {
                 <div
                   key={signal.id}
                   className={cn(
-                    "flex items-start gap-2 p-2.5 rounded-lg border text-xs",
+                    "flex items-start gap-2 rounded-2xl border p-4 text-xs shadow-[0_1px_0_rgba(14,111,114,0.03)]",
                     signal.severity === "high"
-                      ? "bg-white border-red-200 text-red-700"
-                      : "bg-white border-primary/15 text-[#14263f]"
+                      ? "border-red-200 bg-white text-red-700"
+                      : "border-[#0e6f72]/35 bg-white text-[#14263f]"
                   )}
                 >
                   <AlertCircle className={cn("w-3.5 h-3.5 mt-0.5 shrink-0", signal.severity === "high" ? "text-red-600" : "text-[#0e6f72]")} />
@@ -271,17 +202,14 @@ export default function EarlyWarningCard({ riskSummary }) {
                     <p className="font-semibold">{signal.label}</p>
                     <p className="text-[11px] opacity-80">{signal.description}</p>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-[10px] shrink-0",
-                      signal.severity === "high"
-                        ? "border-red-300 bg-red-50 text-red-700"
-                        : "border-primary/20 bg-primary/5 text-primary"
-                    )}
-                  >
-                    {Math.round(signal.risk_score * 100)}%
-                  </Badge>
+                  <MetricExplainer
+                    label={`${Math.round(signal.risk_score * 100)}%`}
+                    title={`${signal.label} score`}
+                    summary={`This percentage reflects how strongly ${signal.label.toLowerCase()} is contributing to the current risk picture.`}
+                    calculation={`The score is derived from recent check-in language, repair history, and pattern overlap. Signals become stronger when they recur, cluster together, or appear close in time.`}
+                    source={signal.description}
+                    coachingTips={(riskSummary.repairs || []).slice(0, 2).map((repair) => repair.actions?.[0]?.action).filter(Boolean)}
+                  />
                 </div>
               ))}
             </div>

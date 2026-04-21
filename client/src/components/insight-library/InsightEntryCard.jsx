@@ -10,7 +10,7 @@ import { ChevronDown, ChevronUp, Pencil, Check } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import MetricExplainer from "@/components/ui/MetricExplainer";
 
 const PERSPECTIVE_COLORS = {
   "Tony":      "bg-blue-100 text-blue-700 border-blue-200",
@@ -50,22 +50,13 @@ export default function InsightEntryCard({ entry, onNoteUpdate }) {
               <Badge variant="outline" className="text-[10px] font-normal">{entry.mode}</Badge>
             )}
             {confPct != null && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button type="button" className="text-[11px] text-muted-foreground rounded-full px-2 py-0.5 hover:bg-muted/40">
-                    {confPct}% conf.
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="start" className="w-72 space-y-2">
-                  <p className="text-sm font-semibold text-foreground">Confidence score</p>
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    This percentage reflects how strongly the saved analysis was supported by the available questionnaire, session, and check-in data at that time.
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Perspective: {entry.perspective} · Mode: {entry.mode || "analysis"} · Recorded: {dateLabel}
-                  </p>
-                </PopoverContent>
-              </Popover>
+              <MetricExplainer
+                label={`${confPct}% conf.`}
+                title="Confidence score"
+                summary="This percentage reflects how strongly the saved analysis was supported by the available questionnaire, session, and check-in data at that time."
+                calculation={`This score combines data volume, clarity of recurring patterns, and how consistent the evidence was when the analysis was saved.`}
+                source={`Perspective: ${entry.perspective} · Mode: ${entry.mode || "analysis"} · Recorded: ${dateLabel}`}
+              />
             )}
           </div>
           <span className="text-[11px] text-muted-foreground shrink-0">{dateLabel}</span>

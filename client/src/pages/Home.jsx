@@ -5,16 +5,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  Heart,
   User,
-  MessageCircleHeart,
   Sparkles,
   BarChart3,
   CalendarCheck,
   ArrowRight,
   Star,
   Zap,
-  HeartHandshake
+  HeartHandshake,
+  Expand,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AskAIButton from "@/components/askAI/AskAIButton";
@@ -24,6 +23,12 @@ import { generateRepairSuggestion, detectFriction } from "@/lib/repairSuggestion
 import EarlyWarningCard from "@/components/dashboard/EarlyWarningCard";
 import { getRiskSummary } from "@/lib/earlyWarningEngine";
 import { buildFallbackProfile, normalizeProfileOutput } from "@/lib/aiSafe";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const quickActions = [
   {
@@ -68,6 +73,7 @@ export default function Home() {
   const [repairLoading, setRepairLoading] = useState(false);
   const [repairDismissed, setRepairDismissed] = useState(false);
   const [riskSummary, setRiskSummary] = useState(null);
+  const [expandedProfile, setExpandedProfile] = useState(null);
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-home"],
@@ -160,19 +166,19 @@ export default function Home() {
   };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-12">
       {/* Hero */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="text-center space-y-4 pt-4"
+        className="space-y-5 pt-4 text-center"
       >
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 border border-primary/15 text-primary text-xs font-medium tracking-wide uppercase">
-          <Heart className="w-3.5 h-3.5" fill="currentColor" />
+          <Sparkles className="h-3.5 w-3.5" />
           Tony & Drew
         </div>
-        <p className="mx-auto text-sm text-muted-foreground sm:text-base lg:text-lg lg:whitespace-nowrap">
+        <p className="mx-auto text-base text-muted-foreground sm:text-lg lg:text-[1.25rem] lg:leading-8 lg:whitespace-nowrap">
           Your relationship command center for reflection, coaching, insight generation, and practical growth tools.
         </p>
       </motion.div>
@@ -201,7 +207,7 @@ export default function Home() {
       </AnimatePresence>
 
       {/* Profile Status Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         {["Tony", "Drew"].map((name) => {
           const profile = name === "Tony" ? (tonyProfile || fallbackTony) : (drewProfile || fallbackDrew);
           const hasProfileData = Boolean(profile);
@@ -212,31 +218,36 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: name === "Tony" ? 0.1 : 0.2 }}
             >
-              <Card className="border border-border/60 bg-card/80 backdrop-blur-sm hover:shadow-md transition-shadow h-full">
-                <CardContent className="p-5 h-full flex flex-col">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="font-display font-semibold text-primary">
-                          {name[0]}
-                        </span>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">{name}</h3>
-                        <p className="text-xs text-muted-foreground">
+              <Card className="h-full border border-border/70 bg-card/90 backdrop-blur-sm hover:shadow-md transition-shadow">
+                <CardContent className="flex h-full flex-col p-6">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-display text-[2rem] font-semibold leading-none text-foreground">{name}</h3>
+                      <p className="mt-2 text-sm text-muted-foreground">
                           {profile?.communication_style || `${name}'s profile preview`}
                         </p>
-                      </div>
                     </div>
-                    {hasProfileData ? (
-                      <Star className="w-4 h-4 text-primary" />
-                    ) : (
-                      <Zap className="w-4 h-4 text-muted-foreground/40" />
-                    )}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 rounded-full border border-primary/20 text-primary hover:bg-primary/5"
+                        onClick={() => setExpandedProfile(name)}
+                        title={`View full ${name} profile preview`}
+                      >
+                        <Expand className="h-4 w-4" />
+                      </Button>
+                      {hasProfileData ? (
+                        <Star className="w-4 h-4 text-primary" />
+                      ) : (
+                        <Zap className="w-4 h-4 text-muted-foreground/40" />
+                      )}
+                    </div>
                   </div>
                   {profile?.ai_behavioral_summary ? (
                     <div className="flex-1 space-y-4">
-                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4 min-h-[96px]">
+                      <p className="min-h-[132px] text-base leading-8 text-muted-foreground">
                         {profile.ai_behavioral_summary}
                       </p>
                       <div className="grid grid-cols-2 gap-2 pt-1">
@@ -283,7 +294,7 @@ export default function Home() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="font-display text-xl font-semibold mb-4">Quick Actions</h2>
+        <h2 className="mb-4 font-display text-2xl font-semibold">Quick Actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {quickActions.map((action, i) => (
             <motion.div
@@ -294,15 +305,15 @@ export default function Home() {
             >
               <Link to={action.path}>
                 <Card className="group border border-border/50 hover:border-primary/20 hover:shadow-md transition-all duration-300 cursor-pointer">
-                  <CardContent className="p-5 flex items-start gap-4">
-                    <div className={`w-10 h-10 rounded-xl ${action.color} flex items-center justify-center flex-shrink-0`}>
-                      <action.icon className="w-5 h-5" />
+                  <CardContent className="flex items-start gap-4 p-6">
+                    <div className={`h-12 w-12 rounded-2xl ${action.color} flex items-center justify-center flex-shrink-0`}>
+                      <action.icon className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
+                      <h3 className="text-lg font-medium text-foreground transition-colors group-hover:text-primary">
                         {action.title}
                       </h3>
-                      <p className="text-sm text-muted-foreground mt-0.5">
+                      <p className="mt-1 text-base text-muted-foreground">
                         {action.description}
                       </p>
                     </div>
@@ -341,6 +352,48 @@ export default function Home() {
           This app provides guidance based on behavioral patterns and communication frameworks. It is not a substitute for licensed therapy.
         </p>
       </div>
+
+      <Dialog open={Boolean(expandedProfile)} onOpenChange={(open) => !open && setExpandedProfile(null)}>
+        <DialogContent className="max-w-3xl rounded-3xl border border-border/70 bg-white p-0 shadow-2xl">
+          {expandedProfile && (
+            <>
+              <DialogHeader className="border-b border-border/60 bg-gradient-to-r from-[#14263f] to-[#0e6f72] px-6 py-5">
+                <DialogTitle className="font-display text-2xl text-white">
+                  {expandedProfile}'s Full Profile Summary
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-5 px-6 py-6">
+                {(() => {
+                  const profile = expandedProfile === "Tony" ? (tonyProfile || fallbackTony) : (drewProfile || fallbackDrew);
+                  return (
+                    <>
+                      <p className="text-base leading-8 text-foreground">
+                        {profile?.ai_behavioral_summary || `${expandedProfile}'s fuller summary will appear here once more profile detail is available.`}
+                      </p>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Needs</p>
+                          <p className="mt-2 text-sm leading-6 text-foreground">
+                            {profile?.needs_during_conflict || "Clear reassurance and steadier communication."}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Watch For</p>
+                          <p className="mt-2 text-sm leading-6 text-foreground">
+                            {Array.isArray(profile?.emotional_triggers)
+                              ? profile.emotional_triggers.join(", ")
+                              : profile?.emotional_triggers || "Moments of distance, mismatch, or unspoken tension."}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

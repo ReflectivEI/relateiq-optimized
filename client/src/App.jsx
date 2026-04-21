@@ -25,6 +25,7 @@ import RelationshipPlaybook from './pages/RelationshipPlaybook.jsx';
 import RelationshipJournal from './pages/RelationshipJournal.jsx';
 import VisionBoard from './pages/VisionBoard.jsx';
 import HealthReport from './pages/HealthReport.jsx';
+import ReferenceAppendix from './pages/ReferenceAppendix.jsx';
 
 const ApplicationRoutes = () => {
   return (
@@ -50,6 +51,7 @@ const ApplicationRoutes = () => {
         <Route path="/journal" element={<RelationshipJournal />} />
         <Route path="/vision" element={<VisionBoard />} />
         <Route path="/health-report" element={<HealthReport />} />
+        <Route path="/appendix" element={<ReferenceAppendix />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
