@@ -16,9 +16,11 @@ import DailyQuestionCard from "@/components/reflection/DailyQuestionCard";
 import ReflectionResponse from "@/components/reflection/ReflectionResponse";
 import PrivacyBanner from "@/components/ui/PrivacyBanner";
 import VoiceRecorder from "@/components/reflection/VoiceRecorder";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 export default function DailyConnections() {
+  const [person, setPerson] = useState("Tony");
   const [answer, setAnswer] = useState("");
   const [mood, setMood] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,12 +29,6 @@ export default function DailyConnections() {
 
   // Get today's question (deterministic)
   const todayQuestion = getTodayQuestion();
-
-  // Fetch user profile to get person name
-  const { data: user } = useQuery({
-    queryKey: ["auth-user-daily"],
-    queryFn: async () => await api.auth.me(),
-  });
 
   // Fetch today's reflections
   const { data: reflections = [] } = useQuery({
@@ -46,8 +42,8 @@ export default function DailyConnections() {
   });
 
   // Get my response and partner's response
-  const myResponse = reflections.find((r) => r.person_name === user?.full_name?.split(" ")[0]);
-  const partnerName = user?.full_name?.split(" ")[0] === "Tony" ? "Drew" : "Tony";
+  const myResponse = reflections.find((r) => r.person_name === person);
+  const partnerName = person === "Tony" ? "Drew" : "Tony";
   const partnerResponse = reflections.find((r) => r.person_name === partnerName);
 
   // Mark partner response as viewed if we haven't already
@@ -65,14 +61,13 @@ export default function DailyConnections() {
   };
 
   const handleSubmit = async () => {
-    if (!answer.trim() || !user) return;
+    if (!answer.trim()) return;
 
     setLoading(true);
-    const personName = user.full_name?.split(" ")[0] || "User";
 
     try {
       await api.entities.DailyReflection.create({
-        person_name: personName,
+        person_name: person,
         question_id: todayQuestion.index.toString(),
         answer: answer.trim(),
         mood: mood || "thoughtful",
@@ -90,12 +85,8 @@ export default function DailyConnections() {
       toast.error("Failed to save reflection");
     } finally {
       setLoading(false);
-    }
+      }
   };
-
-  if (!user) {
-    return <div className="text-center py-12">Loading...</div>;
-  }
 
   return (
     <div className="space-y-8">
@@ -119,6 +110,13 @@ export default function DailyConnections() {
 
       <PrivacyBanner />
 
+      <Tabs value={person} onValueChange={setPerson}>
+        <TabsList>
+          <TabsTrigger value="Tony">Tony</TabsTrigger>
+          <TabsTrigger value="Drew">Drew</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* Today's Question */}
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
@@ -138,8 +136,11 @@ export default function DailyConnections() {
           className="space-y-4"
         >
           <h2 className="font-display text-2xl font-bold text-foreground">
-            Your Reflection
+            {person}'s Reflection
           </h2>
+          <p className="text-sm text-muted-foreground">
+            Switch between Tony and Drew above to write and review each person’s daily reflection.
+          </p>
 
           {myResponse ? (
             <ReflectionResponse response={myResponse} isOwn={true} />
@@ -243,7 +244,7 @@ export default function DailyConnections() {
                   {partnerName} hasn't answered yet
                 </p>
                 <p className="text-sm text-muted-foreground/60">
-                  Their response will appear here once they share it
+                  Their response will appear here once they share it. You can switch tabs above to respond as {partnerName}.
                 </p>
               </CardContent>
             </Card>

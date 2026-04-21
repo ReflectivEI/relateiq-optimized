@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   X,
   Send,
@@ -23,7 +22,6 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { askCoach } from "@/lib/aiCoachService";
-import { buildContextSummary } from "@/lib/contextBuilder";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -147,31 +145,38 @@ export default function AskAIModal({ open, onOpenChange, context, title = "Ask A
     toast.success("Insight saved to library");
   };
 
-  const contextSummary = buildContextSummary(context);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-        <DialogHeader className="pb-3">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
-              <DialogTitle>{title}</DialogTitle>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden border-2 border-[#14263f]/15 bg-white p-0 shadow-2xl">
+        <DialogHeader className="border-b border-border/60 bg-gradient-to-r from-[#14263f] to-[#0e6f72] px-6 py-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-white">
+                <Sparkles className="w-5 h-5 text-[#7be0d5]" />
+                <DialogTitle className="text-xl font-display text-white">{title}</DialogTitle>
+              </div>
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/70">
+                {context.section} · {context.perspective}
+              </p>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="h-7 w-7">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onOpenChange(false)}
+              className="h-9 w-9 rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20"
+            >
               <X className="w-4 h-4" />
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">{context.section} · {context.perspective}</p>
         </DialogHeader>
 
         {/* Context Panel */}
-        <div className="px-4 pb-2">
+        <div className="border-b border-border/50 bg-[#f7fafc] px-6 py-4">
           <button
             onClick={() => setShowContext(!showContext)}
-            className="flex items-center justify-between w-full text-left py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors"
+            className="flex w-full items-center justify-between rounded-xl border border-[#14263f]/10 bg-white px-4 py-3 text-left transition-colors hover:border-[#0e6f72]/30 hover:bg-[#eef7f7]"
           >
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#14263f]">
               What This Is Based On
             </span>
             {showContext ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
@@ -185,54 +190,37 @@ export default function AskAIModal({ open, onOpenChange, context, title = "Ask A
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden"
               >
-                <div className="rounded-lg border border-border/50 bg-muted/20 p-3 space-y-2 text-xs">
-                  {/* Patterns */}
-                  {context.patterns.length > 0 && (
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  {context.patterns?.length > 0 && (
+                    <div className="rounded-xl border border-[#14263f]/10 bg-white p-4 text-xs">
+                      <p className="mb-2 font-semibold uppercase tracking-[0.16em] text-[#14263f]/70">Patterns Detected</p>
+                      <p className="leading-6 text-muted-foreground">
+                        {context.patterns.slice(0, 4).map((p) => typeof p === "string" ? p : p.value || p.trait).join(" · ")}
+                      </p>
+                    </div>
+                  )}
+                  {context.traits?.length > 0 && (
                     <div>
-                      <p className="font-semibold text-muted-foreground mb-1">Patterns Detected:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {context.patterns.slice(0, 4).map((p, i) => (
-                          <Badge key={i} variant="outline" className="text-[10px]">
-                            {typeof p === "string" ? p : p.value || p.trait}
-                          </Badge>
-                        ))}
+                      <div className="rounded-xl border border-[#0e6f72]/10 bg-white p-4 text-xs">
+                        <p className="mb-2 font-semibold uppercase tracking-[0.16em] text-[#0e6f72]/80">Key Traits</p>
+                        <p className="leading-6 text-muted-foreground">
+                          {context.traits.slice(0, 4).map((t) => typeof t === "string" ? t : `${t.label} (${t.score}/10)`).join(" · ")}
+                        </p>
                       </div>
                     </div>
                   )}
-
-                  {/* Traits */}
-                  {context.traits.length > 0 && (
-                    <div>
-                      <p className="font-semibold text-muted-foreground mb-1">Key Traits:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {context.traits.slice(0, 4).map((t, i) => (
-                          <Badge key={i} variant="outline" className="text-[10px]">
-                            {typeof t === "string" ? t : `${t.label} (${t.score}/10)`}
-                          </Badge>
-                        ))}
-                      </div>
+                  {context.active_risks?.length > 0 && (
+                    <div className="rounded-xl border border-orange-200 bg-white p-4 text-xs">
+                      <p className="mb-2 font-semibold uppercase tracking-[0.16em] text-orange-700">Active Risks</p>
+                      <p className="leading-6 text-muted-foreground">
+                        {context.active_risks.slice(0, 3).map((r) => typeof r === "string" ? r : r.value).join(" · ")}
+                      </p>
                     </div>
                   )}
-
-                  {/* Active Risks */}
-                  {context.active_risks.length > 0 && (
-                    <div>
-                      <p className="font-semibold text-muted-foreground mb-1">Active Risks:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {context.active_risks.slice(0, 3).map((r, i) => (
-                          <Badge key={i} variant="outline" className="text-[10px] border-orange-200">
-                            {typeof r === "string" ? r : r.value}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Scenario */}
                   {context.scenario && (
-                    <div>
-                      <p className="font-semibold text-muted-foreground mb-1">Scenario:</p>
-                      <p className="text-muted-foreground italic">{context.scenario}</p>
+                    <div className="rounded-xl border border-border/60 bg-white p-4 text-xs md:col-span-2">
+                      <p className="mb-2 font-semibold uppercase tracking-[0.16em] text-[#14263f]/70">Scenario</p>
+                      <p className="leading-6 text-muted-foreground italic">{context.scenario}</p>
                     </div>
                   )}
                 </div>
@@ -242,12 +230,15 @@ export default function AskAIModal({ open, onOpenChange, context, title = "Ask A
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 min-h-0">
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 min-h-0 bg-white">
           {messages.length === 0 && !loading && (
-            <div className="text-center py-6 space-y-3">
-              <Sparkles className="w-8 h-8 text-primary/30 mx-auto" />
-              <p className="text-sm text-muted-foreground">
-                Choose a preset action or ask your own question. I'll use the context above to give you specific, relevant guidance.
+            <div className="rounded-2xl border border-[#14263f]/10 bg-[#f8fbfd] px-5 py-10 text-center space-y-3">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[#0e6f72]/15 bg-white">
+                <Sparkles className="w-6 h-6 text-[#0e6f72]" />
+              </div>
+              <p className="text-base font-medium text-[#14263f]">Ask for help with this exact moment</p>
+              <p className="mx-auto max-w-xl text-sm leading-6 text-muted-foreground">
+                Choose a quick action or type your own question. The response will stay grounded in the relationship context shown above.
               </p>
             </div>
           )}
@@ -291,10 +282,10 @@ export default function AskAIModal({ open, onOpenChange, context, title = "Ask A
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="px-4 py-3 border-t border-border/50 space-y-2"
+              className="border-t border-border/50 bg-[#f7fafc] px-6 py-4 space-y-3"
             >
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quick Actions</p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#14263f]/70">Quick Actions</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
                 {PRESET_ACTIONS.map((action) => {
                   const Icon = action.icon;
                   return (
@@ -304,11 +295,14 @@ export default function AskAIModal({ open, onOpenChange, context, title = "Ask A
                       size="sm"
                       onClick={() => handlePresetAction(action)}
                       disabled={loading}
-                      className="flex flex-col items-center justify-center h-auto py-2 px-1.5 text-xs"
+                      className="h-auto min-h-[84px] flex-col items-start justify-start rounded-2xl border-2 border-[#0e6f72]/25 bg-white px-4 py-3 text-left text-xs hover:bg-[#eef7f7]"
                       title={action.description}
                     >
-                      <Icon className="w-4 h-4 mb-1" />
-                      <span className="line-clamp-2 text-center">{action.label}</span>
+                      <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full border border-[#0e6f72]/15 bg-[#eef7f7]">
+                        <Icon className="w-4 h-4 text-[#0e6f72]" />
+                      </div>
+                      <span className="line-clamp-2 text-left font-semibold text-[#14263f]">{action.label}</span>
+                      <span className="mt-1 line-clamp-2 text-[11px] leading-5 text-muted-foreground">{action.description}</span>
                     </Button>
                   );
                 })}
@@ -318,7 +312,7 @@ export default function AskAIModal({ open, onOpenChange, context, title = "Ask A
         </AnimatePresence>
 
         {/* Freeform Input */}
-        <div className="px-4 pb-4 border-t border-border/50 space-y-2">
+        <div className="border-t border-border/50 bg-white px-6 pb-5 pt-4 space-y-3">
           <Textarea
             placeholder="Ask your own question or follow up..."
             value={freeformQuestion}
@@ -333,7 +327,7 @@ export default function AskAIModal({ open, onOpenChange, context, title = "Ask A
             disabled={loading}
           />
 
-          <div className="flex gap-2 justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex gap-1">
               {messages.length > 0 && messages[messages.length - 1]?.role === "ai" && (
                 <>
@@ -372,7 +366,7 @@ export default function AskAIModal({ open, onOpenChange, context, title = "Ask A
             </Button>
           </div>
 
-          <p className="text-[10px] text-muted-foreground/50 text-center">
+          <p className="text-[11px] text-muted-foreground/60 text-center">
             Your question is always paired with the context above to ensure specific, relevant guidance.
           </p>
         </div>

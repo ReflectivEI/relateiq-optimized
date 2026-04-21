@@ -265,6 +265,7 @@ function getCorsHeaders(request: Request, env: Env) {
     .map((value) => value.trim())
     .filter(Boolean);
   const previewSuffixes = [".relateiq-growth.pages.dev"];
+  const isLocalPreviewOrigin = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
   const originAllowedByPreviewSuffix = previewSuffixes.some(
     (suffix) =>
       origin.startsWith("https://") &&
@@ -272,7 +273,7 @@ function getCorsHeaders(request: Request, env: Env) {
       origin !== `https://${suffix.replace(/^\./, "")}`,
   );
   const allowOrigin =
-    configured.length === 0 || configured.includes(origin) || originAllowedByPreviewSuffix
+    configured.length === 0 || configured.includes(origin) || originAllowedByPreviewSuffix || isLocalPreviewOrigin
       ? origin
       : configured[0] || "*";
 

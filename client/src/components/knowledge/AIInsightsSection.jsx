@@ -23,7 +23,7 @@ const INSIGHT_TEMPLATES = {
   communication: {
     title: "Today's Communication Focus",
     icon: MessageCircle,
-    color: "border-blue-200 bg-blue-50",
+    color: "border-[#14263f]/25 bg-[#eef4fb]",
     examples: [
       "Ask your partner: 'What's one thing I did this week that made you feel valued?'",
       "Try: 'I noticed you seemed distant yesterday. I want to understand what you're feeling.'",
@@ -33,7 +33,7 @@ const INSIGHT_TEMPLATES = {
   challenge: {
     title: "Pattern to Watch For",
     icon: AlertTriangle,
-    color: "border-orange-200 bg-orange-50",
+    color: "border-[#0e6f72]/25 bg-white",
     examples: [
       "When conflict arises, check: Are we listening to understand, or listening to respond?",
       "Notice: Do we tend to shut down or escalate when stressed? What triggers that?",
@@ -43,7 +43,7 @@ const INSIGHT_TEMPLATES = {
   strength: {
     title: "Your Relationship Strength",
     icon: Star,
-    color: "border-green-200 bg-green-50",
+    color: "border-[#0e6f72]/25 bg-[#e8f7f6]",
     examples: [
       "You both show up emotionally even when conversations are hard.",
       "You have a history of repair — you know how to reconnect after tension.",
@@ -53,7 +53,7 @@ const INSIGHT_TEMPLATES = {
   affirmation: {
     title: "Daily Affirmation",
     icon: Heart,
-    color: "border-rose-200 bg-rose-50",
+    color: "border-[#14263f]/25 bg-white",
     examples: [
       "Our relationship is stronger because we choose understanding over blame.",
       "Love is a daily practice — every conversation is an opportunity to deepen connection.",
@@ -63,7 +63,7 @@ const INSIGHT_TEMPLATES = {
   lgbtqPlus: {
     title: "LGBTQ+ Wisdom for Today",
     icon: Users,
-    color: "border-purple-200 bg-purple-50",
+    color: "border-[#14263f]/25 bg-[#eef4fb]",
     examples: [
       "Male couples often navigate unique expectations — talk about yours instead of assuming.",
       "Vulnerability is not weakness; it's the foundation of intimacy in long-term relationships.",
@@ -73,7 +73,7 @@ const INSIGHT_TEMPLATES = {
   question: {
     title: "Question to Ask Your Partner Today",
     icon: Lightbulb,
-    color: "border-amber-200 bg-amber-50",
+    color: "border-[#0e6f72]/25 bg-[#e8f7f6]",
     examples: [
       "'What's something you wish I understood better about you?'",
       "'When do you feel most seen and appreciated by me?'",

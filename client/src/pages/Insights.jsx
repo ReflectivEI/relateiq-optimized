@@ -128,6 +128,21 @@ function ModeCard({ icon: Icon, title, badge, description, sources, locked, onCl
             Head to Profiles → generate profiles for both people to unlock this mode.
           </p>
         )}
+        {!locked && (
+          <Button
+            type="button"
+            size="sm"
+            className="mt-2 w-full gap-2"
+            onClick={(event) => {
+              event.stopPropagation();
+              onClick?.();
+            }}
+            disabled={loading}
+          >
+            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            {loading ? "Generating…" : `Generate ${title}`}
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
@@ -867,6 +882,7 @@ export default function Insights() {
             : "A deeper couple analysis is still available now. It becomes more precise as both Tony and Drew complete more profile data."}
           locked={false}
           active={activeTab === "deep"}
+          loading={loadingMode === "deep"}
           onClick={generateDeepInsights}
         />
       </div>

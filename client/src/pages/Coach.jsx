@@ -106,6 +106,7 @@ export default function Coach() {
   const [response, setResponse] = useState(null);
   const [outputMode, setOutputMode] = useState("full");
   const [baseResponse, setBaseResponse] = useState(null);
+  const [coachModes, setCoachModes] = useState(null);
   const [creditError, setCreditError] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const [predictiveOutput, setPredictiveOutput] = useState(null);
@@ -238,7 +239,7 @@ export default function Coach() {
     }
 
     // ENFORCE STRUCTURE
-    const structuredOutput = enforceCoachStructure(result);
+    const structuredOutput = enforceCoachStructure(result, situationText);
     const modes = deriveCoachModes(structuredOutput);
 
     // Save session with structured output
@@ -251,7 +252,8 @@ export default function Coach() {
     });
     setSessionId(session?.id || null);
 
-    setBaseResponse(modes.full);
+    setBaseResponse(result);
+    setCoachModes(modes);
     setResponse(modes.full);
     setOutputMode("full");
     setLoading(false);
@@ -280,9 +282,16 @@ export default function Coach() {
 
   const handleModeSwitch = (mode) => {
     setOutputMode(mode);
-    // Transform base response based on mode (deterministic, no AI call)
+    if (coachModes?.[mode]) {
+      setResponse(coachModes[mode]);
+      return;
+    }
+    // Legacy fallback for older stored sessions
     if (baseResponse) {
-      setResponse(transformResponse(baseResponse, mode));
+      const structuredOutput = enforceCoachStructure(baseResponse);
+      const modes = deriveCoachModes(structuredOutput);
+      setCoachModes(modes);
+      setResponse(modes[mode] || modes.full);
     }
   };
 
@@ -484,7 +493,17 @@ export default function Coach() {
                 <Card
                   key={session.id}
                   className="cursor-pointer border-2 border-primary/15 bg-white transition-all hover:border-primary/30 hover:shadow-sm"
-                  onClick={() => { setSpeaker(session.speaker); setSpeakingTo(session.speaking_to); setSituation(cleanSituationText(session.situation)); setBaseResponse(session.ai_response); setResponse(session.ai_response); }}
+                  onClick={() => {
+                    setSpeaker(session.speaker);
+                    setSpeakingTo(session.speaking_to);
+                    setSituation(cleanSituationText(session.situation));
+                    const structured = enforceCoachStructure(session.ai_response, cleanSituationText(session.situation));
+                    const modes = deriveCoachModes(structured);
+                    setBaseResponse(session.ai_response);
+                    setCoachModes(modes);
+                    setOutputMode("full");
+                    setResponse(modes.full);
+                  }}
                 >
                   <CardContent className="p-4 flex items-start gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-[#eef7f8]">
@@ -519,31 +538,4 @@ export default function Coach() {
       )}
     </div>
   );
-}
-
-// Transform response based on mode (deterministic, no AI calls)
-function transformResponse(baseResponse, mode) {
-  if (mode === "full") return baseResponse;
-
-  if (mode === "explain") {
-    return baseResponse.replace(/\*\*/g, "").split("\n\n").slice(0, 2).join("\n\n");
-  }
-
-  if (mode === "60second") {
-    const lines = baseResponse.split("\n");
-    return lines.slice(0, 6).join("\n");
-  }
-
-  if (mode === "action") {
-    const lines = baseResponse.split("\n");
-    const actionLines = lines.filter((l) => l.includes("do") || l.includes("say") || l.includes("step"));
-    return actionLines.slice(0, 5).join("\n");
-  }
-
-  if (mode === "script") {
-    const lines = baseResponse.split("\n");
-    return lines.filter((l) => l.includes('"') || l.includes("say") || l.includes("respond")).slice(0, 5).join("\n");
-  }
-
-  return baseResponse;
 }

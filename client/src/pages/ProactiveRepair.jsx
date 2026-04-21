@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
   Loader2, HeartHandshake, AlertTriangle, ChevronDown, ChevronUp,
-  Copy, CheckCircle2, Clock, Zap, History
+  Copy, CheckCircle2, Clock, Zap, History, Pencil, Trash2
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
@@ -224,6 +224,7 @@ export default function ProactiveRepair() {
   const [loading, setLoading] = useState(false);
   const [repair, setRepair] = useState(null);
   const [repairEntryId, setRepairEntryId] = useState(null);
+  const [editingEntryId, setEditingEntryId] = useState(null);
   const [creditError, setCreditError] = useState(false);
   const queryClient = useQueryClient();
   const repairRef = useRef(null);
@@ -314,7 +315,7 @@ export default function ProactiveRepair() {
     }
 
     // Persist the repair entry
-    const entry = await api.entities.RepairEntry.create({
+    const payload = {
       owner: person === "Tony" ? "Tony" : "Drew",
       situation_type: tags.join(", ") || "unspecified",
       situation_tags: tags,
@@ -326,12 +327,45 @@ export default function ProactiveRepair() {
       ai_repair_output: JSON.stringify(result),
       recommended_repair: result.best_repair_move,
       outcome_logged: false,
-    });
+    };
+    const entry = editingEntryId
+      ? await api.entities.RepairEntry.update(editingEntryId, payload)
+      : await api.entities.RepairEntry.create(payload);
 
     setRepair(result);
     setRepairEntryId(entry.id);
+    setEditingEntryId(entry.id);
     setLoading(false);
     queryClient.invalidateQueries({ queryKey: ["repair-entries"] });
+  };
+
+  const handleEditEntry = (entry) => {
+    setEditingEntryId(entry.id);
+    setPerson(entry.owner === "Drew" ? "Drew" : "Tony");
+    setTags(Array.isArray(entry.situation_tags) ? entry.situation_tags : []);
+    setWhatHappened(entry.what_happened || "");
+    setHowFeeling(entry.how_feeling_now || "");
+    setUnfinished(entry.what_feels_unfinished || "");
+    setDesiredOutcome(entry.desired_outcome || "");
+    setAlreadyTried(entry.already_tried || "");
+    setRepairEntryId(entry.id);
+    try {
+      setRepair(entry.ai_repair_output ? JSON.parse(entry.ai_repair_output) : null);
+    } catch {
+      setRepair(null);
+    }
+    setShowAdvanced(true);
+  };
+
+  const handleDeleteEntry = async (entryId) => {
+    await api.entities.RepairEntry.delete(entryId);
+    if (repairEntryId === entryId || editingEntryId === entryId) {
+      setRepair(null);
+      setRepairEntryId(null);
+      setEditingEntryId(null);
+    }
+    queryClient.invalidateQueries({ queryKey: ["repair-entries"] });
+    toast.success("Repair session deleted");
   };
 
   const canGenerate = whatHappened.trim().length > 5;
@@ -430,7 +464,7 @@ export default function ProactiveRepair() {
 
           <Button onClick={handleGenerate} disabled={loading || !canGenerate} className="w-full sm:w-auto gap-2">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <HeartHandshake className="w-4 h-4" />}
-            {loading ? "Generating repair guidance..." : "Get Repair Guidance"}
+            {loading ? "Generating repair guidance..." : editingEntryId ? "Update Repair Guidance" : "Get Repair Guidance"}
           </Button>
 
           <AILoadingState active={loading} mode="repair" />
@@ -475,6 +509,14 @@ export default function ProactiveRepair() {
                     {entry.outcome_rating && entry.outcome_rating !== "not_tried_yet" && (
                       <Badge variant="outline" className="mt-1.5 text-[10px]">{entry.outcome_rating}</Badge>
                     )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEditEntry(entry)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDeleteEntry(entry.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

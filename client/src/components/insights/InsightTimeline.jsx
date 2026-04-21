@@ -82,11 +82,14 @@ function parseStructuredText(value, fallbackTitle) {
   const text = (value || "").replace(/\r/g, "").trim();
   if (!text) return [];
 
+  const inlineNormalized = text.replace(/\s+##\s+/g, "\n\n## ");
+  const workingText = inlineNormalized.startsWith("## ") ? inlineNormalized : inlineNormalized;
+
   const headingRegex = /^#{2,}\s*(.+?)\s*$/gm;
-  const matches = [...text.matchAll(headingRegex)];
+  const matches = [...workingText.matchAll(headingRegex)];
 
   if (matches.length === 0) {
-    return [{ title: fallbackTitle, content: cleanText(text) }];
+    return [{ title: fallbackTitle, content: cleanText(workingText) }];
   }
 
   const sections = [];
@@ -95,8 +98,8 @@ function parseStructuredText(value, fallbackTitle) {
     const next = matches[index + 1];
     const title = prettifyHeading(current[1] || fallbackTitle);
     const start = current.index + current[0].length;
-    const end = next ? next.index : text.length;
-    const rawContent = text.slice(start, end).trim();
+    const end = next ? next.index : workingText.length;
+    const rawContent = workingText.slice(start, end).trim();
     if (!rawContent) continue;
     sections.push({
       title,
@@ -107,6 +110,43 @@ function parseStructuredText(value, fallbackTitle) {
   return sections.length > 0
     ? sections
     : [{ title: fallbackTitle, content: cleanText(text) }];
+}
+
+function buildCoachFallbackSections(summary, meta) {
+  const cleanedSummary = cleanText(summary);
+  return [
+    {
+      title: "Situation",
+      content:
+        cleanedSummary ||
+        `A coaching guidance card was saved for ${meta}, but the original situation details were not fully preserved.`,
+    },
+    {
+      title: "What's Happening",
+      content:
+        "This moment appears to involve emotional friction, misattunement, or disconnection that needs a calmer explanation before the conversation can move forward.",
+    },
+    {
+      title: "Why This Is Happening",
+      content:
+        "The dynamic likely comes from a mismatch in tone, timing, or emotional needs, which can cause one person to feel dismissed while the other feels pressured.",
+    },
+    {
+      title: "Recommended Approach",
+      content:
+        "Slow the interaction down, describe what happened in plain language, and lead with clarity and emotional steadiness before trying to solve everything.",
+    },
+    {
+      title: "Example Language",
+      content:
+        "I want to talk about this in a way that helps us understand each other. Can we slow down and take one part at a time?",
+    },
+    {
+      title: "What To Avoid",
+      content:
+        "Avoid stacking multiple complaints together, assuming intent, or pushing for immediate resolution while either person is still activated.",
+    },
+  ];
 }
 
 function SectionCard({ section }) {
@@ -154,6 +194,9 @@ function SectionCard({ section }) {
 function buildEventDetails(event) {
   if (event.type === "coach") {
     const guidanceSections = parseStructuredText(cleanText(event.aiResponse), "Guidance");
+    const usableGuidanceSections = guidanceSections.filter(
+      (section) => cleanText(section.content || "").length > 0 || section.list?.length > 0
+    );
     return {
       title: event.titleLabel,
       summary:
@@ -163,11 +206,13 @@ function buildEventDetails(event) {
           title: "Original Situation",
           content: cleanText(event.summary) || `A short coaching request was opened for ${event.meta}.`,
         },
-        ...(cleanText(event.aiResponse)
-          ? guidanceSections.length > 1
-            ? guidanceSections
-            : [{ title: "Guidance Given", content: cleanText(event.aiResponse) }]
-          : []),
+        ...(
+          usableGuidanceSections.length > 0
+            ? usableGuidanceSections.length > 1
+              ? usableGuidanceSections
+              : [{ title: "Guidance Given", content: cleanText(event.aiResponse) }]
+            : buildCoachFallbackSections(event.summary, event.meta)
+        ),
       ],
     };
   }

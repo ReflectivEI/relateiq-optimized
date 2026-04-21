@@ -21,6 +21,14 @@ import { safeInvokeLLM } from "@/lib/aiSafe";
 import PrivacyBanner from "@/components/ui/PrivacyBanner";
 import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
 
+function stripDuplicateReflectionHeading(value = "") {
+  return value
+    .replace(/^##?\s*AI Reflection\s*/i, "")
+    .replace(/^##?\s*Your Reflection\s*/i, "")
+    .replace(/^💬\s*Your Reflection\s*/i, "")
+    .trim();
+}
+
 const moods = [
   { value: "great", label: "Great", icon: "😊" },
   { value: "good", label: "Good", icon: "🙂" },
@@ -63,6 +71,7 @@ export default function CheckIn() {
   });
 
   const profile = profiles.find((p) => p.person_name === person);
+  const visibleCheckIns = checkIns.filter((ci) => ci.id !== checkInId);
 
   const handleSubmit = async () => {
     if (!form.what_worked.trim()) return;
@@ -259,7 +268,7 @@ export default function CheckIn() {
               </CardHeader>
               <CardContent>
                 <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-strong:text-foreground">
-                  <ReactMarkdown>{aiReflection}</ReactMarkdown>
+                  <ReactMarkdown>{stripDuplicateReflectionHeading(aiReflection)}</ReactMarkdown>
                 </div>
                 {checkInCtx && (
                   <div className="mt-4 pt-3 border-t border-primary/10 space-y-2">
@@ -290,11 +299,11 @@ export default function CheckIn() {
         drewResponses: person === "Drew" ? allResponses : [],
       })} />
 
-      {checkIns.length > 0 && (
+      {visibleCheckIns.length > 0 && (
         <div className="space-y-4">
           <h2 className="font-display text-xl font-semibold">Past Check-Ins</h2>
           <div className="space-y-3">
-            {checkIns.map((ci) => (
+            {visibleCheckIns.map((ci) => (
               <Card key={ci.id}>
                 <CardContent className="p-4 space-y-2">
                   <div className="flex items-center justify-between">
@@ -313,7 +322,7 @@ export default function CheckIn() {
                     <div className="mt-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
                       <p className="text-xs text-primary font-medium mb-1">AI Reflection</p>
                       <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground">
-                        <ReactMarkdown>{ci.ai_reflection}</ReactMarkdown>
+                        <ReactMarkdown>{stripDuplicateReflectionHeading(ci.ai_reflection)}</ReactMarkdown>
                       </div>
                     </div>
                   )}

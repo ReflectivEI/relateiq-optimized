@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { BookOpen, Link as LinkIcon, TrendingUp, AlertCircle, Heart } from "lucide-react";
+import { BookOpen, Link as LinkIcon, TrendingUp, AlertCircle, Heart, Library, ShieldAlert, Target } from "lucide-react";
 import { motion } from "framer-motion";
 import AIInsightsSection from "@/components/knowledge/AIInsightsSection";
 import { computePatternProfile } from "@/lib/patternEngine";
@@ -177,9 +177,9 @@ export default function KnowledgeHub() {
       </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full justify-start">
+        <TabsList className="w-full justify-start bg-[#eef4fb]">
           <TabsTrigger value="insights" className="gap-2 text-base px-4 py-2">
-            <span>💡</span>
+            <Library className="w-5 h-5" />
             AI Insights
           </TabsTrigger>
           <TabsTrigger value="resources" className="gap-2 text-base px-4 py-2">
@@ -200,13 +200,13 @@ export default function KnowledgeHub() {
         {/* RESOURCES TAB */}
         <TabsContent value="resources" className="space-y-8 mt-4">
           {[
-            { title: "Core Relationship Science", icon: "📚", resources: RESOURCES.core },
-            { title: "LGBTQ+ Relationships & Male Couples", icon: "🌈", resources: RESOURCES.lgbtq },
-            { title: "Communication + Conflict", icon: "💬", resources: RESOURCES.communication },
+            { title: "Core Relationship Science", icon: Library, resources: RESOURCES.core },
+            { title: "LGBTQ+ Relationships & Male Couples", icon: Heart, resources: RESOURCES.lgbtq },
+            { title: "Communication + Conflict", icon: BookOpen, resources: RESOURCES.communication },
           ].map((section) => (
             <div key={section.title} className="space-y-4">
               <h2 className="font-display text-2xl font-semibold flex items-center gap-3">
-                <span>{section.icon}</span>
+                <section.icon className="h-6 w-6 text-primary" />
                 {section.title}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -221,31 +221,31 @@ export default function KnowledgeHub() {
         {/* WEEKLY SUMMARY TAB */}
         <TabsContent value="summary" className="space-y-5 mt-4">
           <div className="space-y-4">
-            <Card className="border-2 border-green-400/40 bg-green-500/10">
+            <Card className="border-2 border-[#0e6f72]/25 bg-white shadow-sm">
               <CardContent className="p-5 space-y-2">
-                <p className="text-sm font-bold text-green-300 uppercase tracking-wider">✓ What Improved This Week</p>
-                <p className="text-base text-green-100/80">You used the AI Coach 3 times to navigate difficult conversations.</p>
+                <p className="text-sm font-bold text-[#0e6f72] uppercase tracking-wider flex items-center gap-2"><TrendingUp className="h-4 w-4" /> What Improved This Week</p>
+                <p className="text-base text-[#14263f]">You used the AI Coach 3 times to navigate difficult conversations.</p>
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-yellow-400/40 bg-yellow-500/10">
+            <Card className="border-2 border-[#14263f]/25 bg-[#eef4fb] shadow-sm">
               <CardContent className="p-5 space-y-2">
-                <p className="text-sm font-bold text-yellow-300 uppercase tracking-wider">⚠ Pattern to Be Aware Of</p>
-                <p className="text-base text-yellow-100/80">Conflict avoidance appeared in 2 check-ins. Notice when you're pulling away.</p>
+                <p className="text-sm font-bold text-[#14263f] uppercase tracking-wider flex items-center gap-2"><ShieldAlert className="h-4 w-4" /> Pattern to Be Aware Of</p>
+                <p className="text-base text-[#14263f]">Conflict avoidance appeared in 2 check-ins. Notice when you're pulling away.</p>
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-orange-400/40 bg-orange-500/10">
+            <Card className="border-2 border-[#0e6f72]/25 bg-white shadow-sm">
               <CardContent className="p-5 space-y-2">
-                <p className="text-sm font-bold text-orange-300 uppercase tracking-wider">📉 Challenges This Week</p>
-                <p className="text-base text-orange-100/80">Mood declined mid-week (maybe work stress?), but you recovered together.</p>
+                <p className="text-sm font-bold text-[#0e6f72] uppercase tracking-wider flex items-center gap-2"><AlertCircle className="h-4 w-4" /> Challenges This Week</p>
+                <p className="text-base text-[#14263f]">Mood declined mid-week (maybe work stress?), but you recovered together.</p>
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-teal-400/40 bg-teal-500/10">
+            <Card className="border-2 border-[#14263f]/25 bg-[#eef4fb] shadow-sm">
               <CardContent className="p-5 space-y-2">
-                <p className="text-sm font-bold text-teal-300 uppercase tracking-wider">🎯 Focus for Next Week</p>
-                <p className="text-base text-teal-100/80">Practice proactive repair conversations. Check in emotionally BEFORE tension builds.</p>
+                <p className="text-sm font-bold text-[#14263f] uppercase tracking-wider flex items-center gap-2"><Target className="h-4 w-4" /> Focus for Next Week</p>
+                <p className="text-base text-[#14263f]">Practice proactive repair conversations. Check in emotionally BEFORE tension builds.</p>
               </CardContent>
             </Card>
           </div>

@@ -18,6 +18,7 @@ import ExportReportButton from "@/components/insight-library/ExportReportButton"
 import AskAIButton from "@/components/askAI/AskAIButton";
 import { buildContext } from "@/lib/contextBuilder";
 import { isAfter, subMonths, parseISO } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const PERSPECTIVES = ["All", "Tony", "Drew", "Tony→Drew", "Drew→Tony"];
 const TIME_RANGES = [
@@ -145,8 +146,23 @@ export default function InsightLibrary() {
           <p className="text-xs text-muted-foreground mt-0.5">Matching filters</p>
         </div>
         <div className="rounded-xl border border-border/60 bg-card p-3 text-center">
-          <p className="text-2xl font-bold text-foreground">{avgConfidence}%</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Avg confidence</p>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button type="button" className="w-full rounded-lg py-1 hover:bg-muted/30">
+                <p className="text-2xl font-bold text-foreground">{avgConfidence}%</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Avg confidence</p>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 space-y-2">
+              <p className="text-sm font-semibold text-foreground">Average confidence</p>
+              <p className="text-sm leading-6 text-muted-foreground">
+                This is the average confidence across the currently filtered insight entries. Higher percentages mean the underlying analyses had more supporting evidence and clearer recurring patterns.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Matching analyses: {filtered.length} · Total analyses: {entries.length}
+              </p>
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="rounded-xl border border-border/60 bg-card p-3 text-center">
           <p className="text-2xl font-bold text-foreground">{Object.keys(totalByPerspective).length}</p>
