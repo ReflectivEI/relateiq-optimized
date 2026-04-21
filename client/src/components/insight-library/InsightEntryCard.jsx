@@ -38,7 +38,7 @@ export default function InsightEntryCard({ entry, onNoteUpdate }) {
   };
 
   return (
-    <Card className="border border-border/50 hover:border-border/80 transition-colors">
+    <Card className="border border-[#0e6f72]/30 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#0e6f72]/50 hover:shadow-lg">
       <CardContent className="p-4 space-y-3">
         {/* Header row */}
         <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -73,7 +73,7 @@ export default function InsightEntryCard({ entry, onNoteUpdate }) {
         {/* Expand / collapse */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1 text-xs text-primary/60 hover:text-primary transition-colors"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#0e6f72]/30 bg-[#eef8f7] px-3 text-xs font-medium text-[#2b3445] transition-all hover:border-[#0e6f72] hover:bg-[#d9f4f1] hover:text-primary"
         >
           {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           {expanded ? "Less" : "Details"}

@@ -137,15 +137,15 @@ export default function InsightLibrary() {
 
       {/* Summary stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-xl border border-border/60 bg-card p-3 text-center">
+        <div className="rounded-xl border border-[#0e6f72]/30 bg-card p-3 text-center shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#0e6f72]/50 hover:shadow-md">
           <p className="text-2xl font-bold text-foreground">{entries.length}</p>
           <p className="text-xs text-muted-foreground mt-0.5">Total analyses</p>
         </div>
-        <div className="rounded-xl border border-border/60 bg-card p-3 text-center">
+        <div className="rounded-xl border border-[#0e6f72]/30 bg-card p-3 text-center shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#0e6f72]/50 hover:shadow-md">
           <p className="text-2xl font-bold text-foreground">{filtered.length}</p>
           <p className="text-xs text-muted-foreground mt-0.5">Matching filters</p>
         </div>
-        <div className="rounded-xl border border-border/60 bg-card p-3 text-center">
+        <div className="rounded-xl border border-[#0e6f72]/30 bg-card p-3 text-center shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#0e6f72]/50 hover:shadow-md">
           <Popover>
             <PopoverTrigger asChild>
               <button type="button" className="w-full rounded-lg py-1 hover:bg-muted/30">
@@ -164,7 +164,7 @@ export default function InsightLibrary() {
             </PopoverContent>
           </Popover>
         </div>
-        <div className="rounded-xl border border-border/60 bg-card p-3 text-center">
+        <div className="rounded-xl border border-[#0e6f72]/30 bg-card p-3 text-center shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#0e6f72]/50 hover:shadow-md">
           <p className="text-2xl font-bold text-foreground">{Object.keys(totalByPerspective).length}</p>
           <p className="text-xs text-muted-foreground mt-0.5">Perspectives covered</p>
         </div>
@@ -207,12 +207,12 @@ export default function InsightLibrary() {
                   key={p}
                   onClick={() => setPerspectiveFilter(p)}
                   className={cn(
-                    "px-2.5 py-1 rounded-lg border text-xs transition-all",
+                    "rounded-full border px-3 py-1.5 text-xs transition-all",
                     perspectiveFilter === p
                       ? p === "All"
-                        ? "border-foreground/30 bg-foreground/10 text-foreground font-medium"
-                        : cn("border font-medium", PERSPECTIVE_COLORS[p])
-                      : "border-border/50 text-muted-foreground hover:border-border hover:bg-muted/20"
+                        ? "border-[#0e6f72]/35 bg-[#eef8f7] font-medium text-[#2b3445]"
+                        : cn("border font-medium", PERSPECTIVE_COLORS[p], "shadow-sm")
+                      : "border-[#0e6f72]/25 bg-white text-[#2b3445] hover:border-[#0e6f72] hover:bg-[#e8f7f6]"
                   )}
                 >
                   {p}
@@ -227,10 +227,10 @@ export default function InsightLibrary() {
                   key={tr.label}
                   onClick={() => setTimeRange(tr.months)}
                   className={cn(
-                    "px-2.5 py-1 rounded-lg border text-xs transition-all",
+                    "rounded-full border px-3 py-1.5 text-xs transition-all",
                     timeRange === tr.months
-                      ? "border-primary/40 bg-primary/10 text-primary font-medium"
-                      : "border-border/50 text-muted-foreground hover:border-border hover:bg-muted/20"
+                      ? "border-[#0e6f72]/35 bg-[#eef8f7] font-medium text-[#2b3445]"
+                      : "border-[#0e6f72]/25 bg-white text-[#2b3445] hover:border-[#0e6f72] hover:bg-[#e8f7f6]"
                   )}
                 >
                   {tr.label}
