@@ -438,6 +438,7 @@ export default function Coach() {
                     </Button>
                     <ResponseExportBar
                       contentRef={responseRef}
+                      content={response}
                       filename={`coach-guidance-${speaker}-${speakingTo}.pdf`}
                       title={`Guidance: ${speaker} → ${speakingTo}`}
                     />

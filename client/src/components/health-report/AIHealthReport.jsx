@@ -125,6 +125,7 @@ export default function AIHealthReport({ checkIns, reflections, coachSessions, v
         <div className="space-y-3">
           <ResponseExportBar
             contentRef={reportRef}
+            content={report}
             filename={`health-report-${weekLabel.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.pdf`}
             title={`Relationship Health Report — ${weekLabel}`}
             showEmail={false}

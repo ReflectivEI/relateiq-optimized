@@ -117,6 +117,28 @@ export default function DailyConnections() {
         </TabsList>
       </Tabs>
 
+      <div className="grid gap-3 md:grid-cols-2">
+        {["Tony", "Drew"].map((name) => {
+          const reflection = reflections.find((item) => item.person_name === name);
+          const active = person === name;
+          return (
+            <Card key={name} className={active ? "border-2 border-primary/35 bg-primary/5" : "border border-border/60 bg-white"}>
+              <CardContent className="flex items-center justify-between gap-4 p-4">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{name}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {reflection ? "Reflection saved for today." : "No reflection saved yet today."}
+                  </p>
+                </div>
+                <Button size="sm" variant={active ? "default" : "outline"} onClick={() => setPerson(name)}>
+                  {active ? "Currently Viewing" : `Switch to ${name}`}
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
       {/* Today's Question */}
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}

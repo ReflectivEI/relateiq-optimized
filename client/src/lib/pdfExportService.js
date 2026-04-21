@@ -84,6 +84,63 @@ function extractBlocks(element) {
   return fallbackText ? [{ kind: "paragraph", text: fallbackText }] : [];
 }
 
+function formatLabel(key = "") {
+  return String(key)
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function serializeValue(value, depth = 0, label = "") {
+  if (value == null || value === "") return [];
+
+  if (typeof value === "string") {
+    const cleaned = normalizeLine(value.replace(/\*\*/g, "").replace(/`/g, ""));
+    if (!cleaned) return [];
+    const blocks = [];
+    if (label) blocks.push({ kind: "heading", text: formatLabel(label) });
+    blocks.push({ kind: label || depth > 0 ? "paragraph" : "heading", text: cleaned });
+    return blocks;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return label
+      ? [{ kind: "heading", text: formatLabel(label) }, { kind: "paragraph", text: String(value) }]
+      : [{ kind: "paragraph", text: String(value) }];
+  }
+
+  if (Array.isArray(value)) {
+    const blocks = [];
+    if (label) blocks.push({ kind: "heading", text: formatLabel(label) });
+    value.forEach((item) => {
+      if (typeof item === "string" || typeof item === "number") {
+        const cleaned = normalizeLine(String(item));
+        if (cleaned) blocks.push({ kind: "paragraph", text: `• ${cleaned}` });
+      } else {
+        blocks.push(...serializeValue(item, depth + 1));
+      }
+    });
+    return blocks;
+  }
+
+  if (typeof value === "object") {
+    const blocks = [];
+    if (label) blocks.push({ kind: "heading", text: formatLabel(label) });
+    Object.entries(value).forEach(([key, nested]) => {
+      blocks.push(...serializeValue(nested, depth + 1, key));
+    });
+    return blocks;
+  }
+
+  return [];
+}
+
+export function serializeExportContent(content, title = "") {
+  if (typeof content === "string") return content;
+  return serializeValue(content, 0, title).map((block) => block.text).join("\n\n");
+}
+
 export async function exportElementToPDF({
   element,
   filename = "response.pdf",

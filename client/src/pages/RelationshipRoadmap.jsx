@@ -458,6 +458,13 @@ export default function RelationshipRoadmap() {
             </Button>
             <ResponseExportBar
               contentRef={roadmapRef}
+              content={{
+                activeMonth: selectedMilestone?.month,
+                monthTitle: selectedMilestone?.title,
+                monthSubtitle: selectedMilestone?.subtitle,
+                monthlyGoals: selectedMilestone?.goals || [],
+                resources: (selectedMilestone?.resources || []).map((item) => `${item.title}: ${item.description}`),
+              }}
               filename="relationship-roadmap.pdf"
               title="Relationship Growth Roadmap"
               showEmail={false}

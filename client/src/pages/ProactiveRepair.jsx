@@ -483,6 +483,7 @@ export default function ProactiveRepair() {
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
             <ResponseExportBar
               contentRef={repairRef}
+              content={repair}
               filename={`repair-guidance-${person}.pdf`}
               title={`${person} Repair Guidance`}
               showEmail={false}

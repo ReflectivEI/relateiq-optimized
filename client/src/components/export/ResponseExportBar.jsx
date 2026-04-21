@@ -5,12 +5,13 @@
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { FileDown, Mail, Loader2 } from "lucide-react";
-import { downloadPDF, generateEmailPDF } from "@/lib/pdfExportService";
+import { downloadPDF, exportTextToPDF, generateEmailPDF, serializeExportContent } from "@/lib/pdfExportService";
 import { openEmailWithPDF } from "@/lib/emailService";
 import { toast } from "sonner";
 
 export default function ResponseExportBar({ 
   contentRef, 
+  content = null,
   filename = "response.pdf",
   title = "Response",
   showEmail = true 
@@ -19,18 +20,32 @@ export default function ResponseExportBar({
   const [emailing, setEmailing] = useState(false);
 
   const handleExportPDF = async () => {
-    if (!contentRef?.current) {
+    if (!content && !contentRef?.current) {
       toast.error("Content not found");
       return;
     }
 
     setExporting(true);
     try {
-      await downloadPDF({
-        element: contentRef.current,
-        filename,
-        title,
-      });
+      if (content) {
+        const result = await exportTextToPDF({
+          text: serializeExportContent(content, title),
+          filename,
+          title,
+        });
+        if (!result?.blob) throw new Error("Failed to create PDF");
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(result.blob);
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      } else {
+        await downloadPDF({
+          element: contentRef.current,
+          filename,
+          title,
+        });
+      }
       toast.success("PDF downloaded successfully");
     } catch (err) {
       toast.error("Failed to export PDF");
@@ -41,17 +56,23 @@ export default function ResponseExportBar({
   };
 
   const handleEmailPDF = async () => {
-    if (!contentRef?.current) {
+    if (!content && !contentRef?.current) {
       toast.error("Content not found");
       return;
     }
 
     setEmailing(true);
     try {
-      const result = await generateEmailPDF({
-        element: contentRef.current,
-        title,
-      });
+      const result = content
+        ? await exportTextToPDF({
+            text: serializeExportContent(content, title),
+            filename: `${title}.pdf`,
+            title,
+          })
+        : await generateEmailPDF({
+            element: contentRef.current,
+            title,
+          });
 
       if (result?.blob) {
         // Open email with PDF
@@ -72,7 +93,7 @@ export default function ResponseExportBar({
   };
 
   return (
-    <div className="flex gap-3 flex-wrap">
+    <div className="flex gap-3 flex-wrap" data-export-ignore="true">
       <Button
         onClick={handleExportPDF}
         disabled={exporting || emailing}

@@ -348,6 +348,17 @@ function ContextInsightsView({ insights, ctx, contentRef, insightId }) {
         <>
           <ResponseExportBar
             contentRef={contentRef}
+            content={{
+              whatSystemSees: insights.what_system_sees,
+              whatThisMeans: insights.what_this_means,
+              emergingPatterns: (insights.emerging_patterns || []).map((item) => `${item.title}: ${item.description}`),
+              signalsTony: insights.signals_tony || [],
+              signalsDrew: insights.signals_drew || [],
+              signalsTogether: insights.signals_together || [],
+              whatSeemsToHelp: insights.what_seems_to_help || [],
+              frictionSources: insights.friction_sources || [],
+              whatToTryNext: insights.what_to_try_next || [],
+            }}
             filename="context-insights.pdf"
             title="Context Insights"
           />
@@ -396,6 +407,7 @@ function DeepInsightsView({ insights, ctx, contentRef, insightId }) {
         <>
           <ResponseExportBar
             contentRef={contentRef}
+            content={insights}
             filename="deep-insights.pdf"
             title="Deep Relationship Analysis"
           />

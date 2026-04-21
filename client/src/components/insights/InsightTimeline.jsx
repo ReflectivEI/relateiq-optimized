@@ -82,7 +82,9 @@ function parseStructuredText(value, fallbackTitle) {
   const text = (value || "").replace(/\r/g, "").trim();
   if (!text) return [];
 
-  const inlineNormalized = text.replace(/\s+##\s+/g, "\n\n## ");
+  const inlineNormalized = text
+    .replace(/\s+##\s+/g, "\n\n## ")
+    .replace(/(##\s*[A-Za-z][A-Za-z '\-?]+)\s*(?=##\s*[A-Za-z])/g, "$1\n");
   const workingText = inlineNormalized.startsWith("## ") ? inlineNormalized : inlineNormalized;
 
   const headingRegex = /^#{2,}\s*(.+?)\s*$/gm;
@@ -99,7 +101,10 @@ function parseStructuredText(value, fallbackTitle) {
     const title = prettifyHeading(current[1] || fallbackTitle);
     const start = current.index + current[0].length;
     const end = next ? next.index : workingText.length;
-    const rawContent = workingText.slice(start, end).trim();
+    const rawContent = workingText
+      .slice(start, end)
+      .replace(/^(##\s*[A-Za-z][A-Za-z '\-?]+\s*)+$/gm, "")
+      .trim();
     if (!rawContent) continue;
     sections.push({
       title,

@@ -228,6 +228,12 @@ export default function RelationshipJournal() {
                   </Button>
                   <ResponseExportBar
                     contentRef={previewRef}
+                    content={{
+                      person: personName,
+                      title: title || "Untitled Entry",
+                      timestamp: format(timestamp, "MMMM d, yyyy 'at' h:mm a"),
+                      entry: content,
+                    }}
                     filename={`journal-${personName.toLowerCase()}-${format(timestamp, "yyyy-MM-dd-HHmm")}.pdf`}
                     title={`${personName} Journal Entry`}
                     showEmail={false}
