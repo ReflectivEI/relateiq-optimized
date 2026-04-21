@@ -12,7 +12,13 @@ import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
 import { format, subDays } from "date-fns";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
 
-function buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel }) {
+function buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel, viewMode }) {
+  const subject =
+    viewMode === "Tony"
+      ? "Tony within the Tony and Drew relationship"
+      : viewMode === "Drew"
+      ? "Drew within the Tony and Drew relationship"
+      : "the Tony and Drew relationship";
   const recentCheckIns = checkIns.slice(0, 8);
   const recentReflections = reflections.slice(0, 10);
   const recentSessions = coachSessions.slice(0, 5);
@@ -29,7 +35,7 @@ function buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel }) 
     .map((s) => `[${s.speaker}→${s.speaking_to}] ${s.situation}`)
     .join("\n");
 
-  return `You are a relationship intelligence system generating a weekly Relationship Health Report for a couple: Tony and Drew.
+  return `You are a relationship intelligence system generating a weekly Relationship Health Report focused on ${subject}.
 
 WEEK: ${weekLabel}
 
@@ -43,7 +49,7 @@ AI COACH SESSIONS:
 ${sessionSummary || "None yet."}
 
 Generate a structured Relationship Health Report with these sections:
-1. **Overall Health Pulse** — 2-3 sentences on the couple's overall relational health this period.
+1. **Overall Health Pulse** — 2-3 sentences on the relevant relational health this period.
 2. **Sentiment Trends** — What emotional tones are showing up? Are things improving, plateauing, or under strain?
 3. **Communication Patterns** — What communication strengths and friction patterns are visible across check-ins and sessions?
 4. **Key Themes This Week** — The 3-5 most significant themes emerging from their data (e.g. distance, gratitude, repair, vulnerability).
@@ -54,7 +60,7 @@ Generate a structured Relationship Health Report with these sections:
 Be warm, insightful, and evidence-based. Reference specific things from their data where possible. Keep each section concise (2-4 sentences max). Do NOT make assumptions not supported by the data.`;
 }
 
-export default function AIHealthReport({ checkIns, reflections, coachSessions }) {
+export default function AIHealthReport({ checkIns, reflections, coachSessions, viewMode = "compare" }) {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [creditError, setCreditError] = useState(false);
@@ -68,9 +74,14 @@ export default function AIHealthReport({ checkIns, reflections, coachSessions })
     try {
       const result = await safeInvokeLLM(
         {
-          prompt: buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel }),
+          prompt: buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel, viewMode }),
           model: "claude_sonnet_4_6",
-          partnerLanguage: { personName: "Tony", partnerName: "Drew", replacePronouns: false },
+          partnerLanguage:
+            viewMode === "Tony"
+              ? { personName: "Tony", partnerName: "Drew", replacePronouns: false }
+              : viewMode === "Drew"
+              ? { personName: "Drew", partnerName: "Tony", replacePronouns: false }
+              : { personName: "Tony", partnerName: "Drew", replacePronouns: false },
         },
         40000,
         null
@@ -123,7 +134,9 @@ export default function AIHealthReport({ checkIns, reflections, coachSessions })
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-base">
                 <FileText className="w-4 h-4 text-primary" />
-                AI Relationship Health Report — {weekLabel}
+                {viewMode === "compare"
+                  ? `AI Relationship Health Report — ${weekLabel}`
+                  : `AI ${viewMode} Health Report — ${weekLabel}`}
               </CardTitle>
               <Button variant="ghost" size="sm" onClick={generate} disabled={loading} className="gap-1.5 text-xs">
                 {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}

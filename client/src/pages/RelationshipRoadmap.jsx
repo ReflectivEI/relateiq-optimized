@@ -3,22 +3,198 @@
  * Tailored to couple's patterns, profiles, and detected challenges
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sparkles, TrendingUp, Heart, AlertCircle } from "lucide-react";
+import { Sparkles, TrendingUp, Heart, AlertCircle, BookOpen, MessageSquareText, NotebookPen, CalendarCheck, HeartHandshake, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { computePatternProfile, detectMisalignments } from "@/lib/patternEngine";
 import { generateRoadmap } from "@/lib/roadmapEngine";
 import MilestoneCard from "@/components/roadmap/MilestoneCard";
 import AskAIButton from "@/components/askAI/AskAIButton";
 import { buildContext } from "@/lib/contextBuilder";
+import ResponseExportBar from "@/components/export/ResponseExportBar";
+
+function buildMonthResources(milestone, tonyName = "Tony", drewName = "Drew") {
+  const resourcesByMonth = {
+    1: {
+      title: "Month 1 Resource Guide",
+      summary: `This month is about building a clear shared baseline. Focus on how ${tonyName} and ${drewName} each experience stress, repair, closeness, and emotional safety before trying to optimize anything else.`,
+      resources: [
+        {
+          title: "Questionnaire Review",
+          description: "Revisit unanswered or lightly answered questions so the rest of the system has a stronger foundation.",
+          path: "/questionnaire",
+          cta: "Open Questionnaire",
+          icon: BookOpen,
+        },
+        {
+          title: "Profiles Alignment",
+          description: "Read both profiles back-to-back and notice where each person’s needs and triggers overlap or mismatch.",
+          path: "/profiles",
+          cta: "Review Profiles",
+          icon: MessageSquareText,
+        },
+        {
+          title: "Journal The Baseline",
+          description: "Write one short entry each: what currently feels easy, what feels hard, and what you want more of.",
+          path: "/journal",
+          cta: "Open Journal",
+          icon: NotebookPen,
+        },
+      ],
+    },
+    2: {
+      title: "Month 2 Resource Guide",
+      summary: "Use this month to make conflict safer. Focus on smaller repair moments, cleaner pacing, and better aftercare instead of trying to solve everything at once.",
+      resources: [
+        {
+          title: "Proactive Repair",
+          description: "Generate repair language and use it after moments of tension before resentment has time to harden.",
+          path: "/repair",
+          cta: "Open Proactive Repair",
+          icon: HeartHandshake,
+        },
+        {
+          title: "AI Coach",
+          description: "Bring in one real conflict moment and ask for a calmer way to reopen it.",
+          path: "/coach",
+          cta: "Open AI Coach",
+          icon: MessageSquareText,
+        },
+        {
+          title: "Weekly Check-In",
+          description: "Track whether difficult conversations are becoming easier, more direct, or less activating.",
+          path: "/check-in",
+          cta: "Open Weekly Check-In",
+          icon: CalendarCheck,
+        },
+      ],
+    },
+    3: {
+      title: "Month 3 Resource Guide",
+      summary: "This month shifts from friction management into warmth. Rebuild affection, appreciation, and small moments of visible effort that make each person feel chosen.",
+      resources: [
+        {
+          title: "Daily Connections",
+          description: "Use the shared daily prompts to create more gentle, consistent contact without forcing a heavy conversation.",
+          path: "/daily",
+          cta: "Open Daily Connections",
+          icon: CalendarCheck,
+        },
+        {
+          title: "Journal Small Wins",
+          description: "Capture examples of affection, effort, and things that felt different in a good way.",
+          path: "/journal",
+          cta: "Write A Win",
+          icon: NotebookPen,
+        },
+        {
+          title: "Smart Tools",
+          description: "Use guided tools when you want structure around closeness, appreciation, or reconnecting after distance.",
+          path: "/smart-tools",
+          cta: "Open Smart Tools",
+          icon: BookOpen,
+        },
+      ],
+    },
+    4: {
+      title: "Month 4 Resource Guide",
+      summary: "Move from repair into alignment. This is the month to make the relationship feel more intentional, future-facing, and guided by shared values rather than only immediate problems.",
+      resources: [
+        {
+          title: "Vision Board",
+          description: "Capture what a stronger next season looks like so the relationship has a visible direction.",
+          path: "/vision-board",
+          cta: "Open Vision Board",
+          icon: BookOpen,
+        },
+        {
+          title: "Playbook",
+          description: "Turn what you are learning into repeatable ways of talking, repairing, and checking in.",
+          path: "/playbook",
+          cta: "Open Playbook",
+          icon: MessageSquareText,
+        },
+        {
+          title: "Insights",
+          description: "Review the larger couple patterns and see whether your goals match the actual dynamic you are living.",
+          path: "/insights",
+          cta: "Review Insights",
+          icon: TrendingUp,
+        },
+      ],
+    },
+    5: {
+      title: "Month 5 Resource Guide",
+      summary: "Apply what you have learned under real-world pressure. The goal is not perfection, but staying connected even when energy, time, or stress are limited.",
+      resources: [
+        {
+          title: "Knowledge Hub",
+          description: "Pull in outside frameworks and reading when you want stronger shared language for what is happening.",
+          path: "/knowledge",
+          cta: "Open Knowledge Hub",
+          icon: BookOpen,
+        },
+        {
+          title: "Smart Tools",
+          description: "Use structured prompts when you need help handling stress spillover, distance, or repeated friction.",
+          path: "/smart-tools",
+          cta: "Open Smart Tools",
+          icon: MessageSquareText,
+        },
+        {
+          title: "Check-In Under Pressure",
+          description: "Log how stress is affecting both people before it quietly becomes conflict.",
+          path: "/check-in",
+          cta: "Log A Check-In",
+          icon: CalendarCheck,
+        },
+      ],
+    },
+    6: {
+      title: "Month 6 Resource Guide",
+      summary: "Use this month to integrate. Review what changed, what still catches you, and what should become part of your normal rhythm going forward.",
+      resources: [
+        {
+          title: "Insights Review",
+          description: "Compare early patterns to current ones and decide what has genuinely improved.",
+          path: "/insights",
+          cta: "Review Insights",
+          icon: TrendingUp,
+        },
+        {
+          title: "Health Report",
+          description: "Use the broader weekly snapshot to see whether the relationship feels steadier, warmer, and more resilient overall.",
+          path: "/health-report",
+          cta: "Open Health Report",
+          icon: CalendarCheck,
+        },
+        {
+          title: "Journal The Next Season",
+          description: "Write down what should continue, what should stop, and what the next version of the roadmap should prioritize.",
+          path: "/journal",
+          cta: "Write Next Steps",
+          icon: NotebookPen,
+        },
+      ],
+    },
+  };
+
+  return resourcesByMonth[milestone.month] || {
+    title: `Month ${milestone.month} Resource Guide`,
+    summary: milestone.description,
+    resources: [],
+  };
+}
 
 export default function RelationshipRoadmap() {
-  const [selectedMonth, setSelectedMonth] = useState(null);
-  const [generateMode, setGenerateMode] = useState("auto");
+  const [selectedMonth, setSelectedMonth] = useState(1);
+  const resourcesRef = useRef(null);
+  const roadmapRef = useRef(null);
 
   // Fetch data
   const { data: tonyResponses = [] } = useQuery({
@@ -83,6 +259,23 @@ export default function RelationshipRoadmap() {
     sessions,
   });
 
+  const selectedMilestone =
+    roadmap?.milestones.find((milestone) => milestone.month === selectedMonth) || roadmap?.milestones?.[0];
+  const monthResourceGuide = selectedMilestone
+    ? buildMonthResources(
+        selectedMilestone,
+        tonyProfile?.person_name || "Tony",
+        drewProfile?.person_name || "Drew",
+      )
+    : null;
+
+  const handleViewResources = (month) => {
+    setSelectedMonth(month);
+    window.requestAnimationFrame(() => {
+      resourcesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   if (!roadmap) {
     return (
       <div className="space-y-6">
@@ -92,7 +285,9 @@ export default function RelationshipRoadmap() {
           <p className="text-muted-foreground max-w-lg mx-auto mb-4">
             Complete both questionnaires to generate your personalized 6-month relationship roadmap.
           </p>
-          <Button>Complete Questionnaire</Button>
+          <Button asChild>
+            <Link to="/questionnaire">Complete Questionnaire</Link>
+          </Button>
         </div>
       </div>
     );
@@ -120,30 +315,31 @@ export default function RelationshipRoadmap() {
         </div>
       </motion.div>
 
+      <div ref={roadmapRef} className="space-y-8">
       {/* Quick Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-2 bg-blue-50 border-blue-300">
+        <Card className="enterprise-panel border-2">
           <CardContent className="p-5">
-            <p className="text-sm text-blue-900 font-semibold uppercase tracking-wider">Primary Focus</p>
-            <p className="text-lg text-blue-950 font-bold mt-1 capitalize">
+            <p className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">Primary Focus</p>
+            <p className="text-lg text-foreground font-bold mt-1 capitalize">
               {roadmap.primaryFocus.replace(/_/g, " ")}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-2 bg-green-50 border-green-300">
+        <Card className="enterprise-panel border-2">
           <CardContent className="p-5">
-            <p className="text-sm text-green-900 font-semibold uppercase tracking-wider">Key Strength</p>
-            <p className="text-lg text-green-950 font-bold mt-1 capitalize">
+            <p className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">Key Strength</p>
+            <p className="text-lg text-foreground font-bold mt-1 capitalize">
               {roadmap.competentAreas[0]?.replace(/_/g, " ") || "Connection"}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-2 bg-amber-50 border-amber-300">
+        <Card className="enterprise-panel border-2">
           <CardContent className="p-5">
-            <p className="text-sm text-amber-900 font-semibold uppercase tracking-wider">Duration</p>
-            <p className="text-lg text-amber-950 font-bold mt-1">
+            <p className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">Duration</p>
+            <p className="text-lg text-foreground font-bold mt-1">
               {roadmap.estimatedDuration}
             </p>
           </CardContent>
@@ -177,10 +373,69 @@ export default function RelationshipRoadmap() {
               milestone={milestone}
               isActive={selectedMonth === milestone.month}
               onSelect={setSelectedMonth}
+              onViewResources={handleViewResources}
             />
           ))}
         </div>
       </div>
+
+      {selectedMilestone && monthResourceGuide && (
+        <Card ref={resourcesRef} className="enterprise-panel border-2 scroll-mt-24">
+          <CardHeader className="pb-4">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <p className="enterprise-section-label">Month {selectedMilestone.month}</p>
+                <CardTitle className="mt-2 text-2xl">
+                  {monthResourceGuide.title}
+                </CardTitle>
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground">
+                  {monthResourceGuide.summary}
+                </p>
+              </div>
+              <div className="rounded-full bg-[#0e6f72] px-4 py-2 text-sm font-semibold text-white">
+                Focus: {selectedMilestone.focus}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 lg:grid-cols-3">
+              {monthResourceGuide.resources.map((resource) => (
+                <Card key={resource.title} className="enterprise-panel-muted border">
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/20 bg-white">
+                        <resource.icon className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-base font-semibold text-foreground">{resource.title}</p>
+                        <p className="text-sm leading-6 text-muted-foreground">{resource.description}</p>
+                      </div>
+                    </div>
+                    <Button asChild variant="outline" className="w-full">
+                      <Link to={resource.path}>
+                        {resource.cta}
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="rounded-[1.2rem] border border-primary/15 bg-white p-5">
+              <p className="enterprise-section-label">This Month's Working Goals</p>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                {selectedMilestone.goals.map((goal) => (
+                  <div key={goal} className="flex gap-2 rounded-2xl border border-primary/10 bg-[#eef4fb] p-4 text-sm leading-6 text-foreground">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    <span>{goal}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* CTA */}
       <Card className="border-2 border-primary/30 bg-primary/5">
@@ -193,13 +448,20 @@ export default function RelationshipRoadmap() {
             Your roadmap is personalized based on your communication styles, patterns, and growth areas. Each month builds on the last.
           </p>
           <div className="flex gap-3 flex-wrap">
-            <Button className="border-2 border-primary text-base gap-2">
+            <Button
+              type="button"
+              onClick={() => handleViewResources(1)}
+              className="border-2 border-primary text-base gap-2"
+            >
               <Sparkles className="w-4 h-4" />
               Start Month 1 Today
             </Button>
-            <Button variant="outline" className="border-2 text-base">
-              Download as PDF
-            </Button>
+            <ResponseExportBar
+              contentRef={roadmapRef}
+              filename="relationship-roadmap.pdf"
+              title="Relationship Growth Roadmap"
+              showEmail={false}
+            />
           </div>
         </CardContent>
       </Card>
@@ -210,6 +472,7 @@ export default function RelationshipRoadmap() {
           This roadmap is generated from your questionnaire responses and relationship patterns.
           Adjust timing and focus based on your actual progress and needs.
         </p>
+      </div>
       </div>
     </div>
   );

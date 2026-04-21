@@ -411,11 +411,21 @@ export function getRiskSummary({ checkIns, tonyProfile, drewProfile }) {
       repairs: [],
       timeline: "5-7 days",
       days_ahead: 5,
+      breakdown: {
+        signal_count: 0,
+        strongest_signal: null,
+        average_signal_score: 0,
+        scoring_method:
+          "The risk score is calculated as the midpoint between the strongest detected signal and the average of all detected signals.",
+      },
     };
   }
 
   const repairs = generateMicroRepairs({ riskSignals: signals, tonyProfile, drewProfile });
   const overall = calculateOverallRiskScore(signals);
+  const averageSignalScore =
+    signals.reduce((sum, signal) => sum + signal.risk_score, 0) / signals.length;
+  const strongestSignal = [...signals].sort((a, b) => b.risk_score - a.risk_score)[0];
 
   return {
     status: overall >= 0.7 ? "high_risk" : overall >= 0.4 ? "elevated" : "caution",
@@ -430,5 +440,12 @@ export function getRiskSummary({ checkIns, tonyProfile, drewProfile }) {
     repairs,
     timeline: "5-7 days",
     days_ahead: 5,
+    breakdown: {
+      signal_count: signals.length,
+      strongest_signal: strongestSignal,
+      average_signal_score: Math.round(averageSignalScore * 100) / 100,
+      scoring_method:
+        "The risk score is calculated as the midpoint between the strongest detected signal and the average of all detected signals.",
+    },
   };
 }

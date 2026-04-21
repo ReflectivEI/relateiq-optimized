@@ -33,14 +33,14 @@ function PersonCard({ name, profile, colorClass }) {
   ]);
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="grid gap-4 xl:grid-cols-2">
       {[
         { title: "How to Approach Them", icon: MessageSquareText, items: communication },
         { title: "What They Need During Tension", icon: ShieldCheck, items: needs },
         { title: "What Activates Them", icon: Siren, items: triggers },
         { title: "What Helps Them Improve", icon: ListChecks, items: growth },
       ].map((section) => (
-        <Card key={section.title} className="enterprise-panel border-2">
+        <Card key={section.title} className="enterprise-panel border-2 h-full">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
               <section.icon className={`h-4 w-4 ${colorClass}`} />
@@ -49,7 +49,7 @@ function PersonCard({ name, profile, colorClass }) {
           </CardHeader>
           <CardContent className="space-y-3">
             {section.items.map((item) => (
-              <div key={item} className="enterprise-panel-muted rounded-2xl p-4 text-sm leading-7 text-foreground">
+              <div key={item} className="enterprise-panel-muted rounded-2xl p-4 text-sm leading-6 text-foreground">
                 {item}
               </div>
             ))}
@@ -117,7 +117,7 @@ export default function RelationshipPlaybook() {
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
+      <section className="space-y-6">
         <Card className="enterprise-panel border-2">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-2xl">
@@ -146,9 +146,9 @@ export default function RelationshipPlaybook() {
               </TabsContent>
 
               <TabsContent value="together">
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 lg:grid-cols-2">
                   {sharedTemplate.map((item) => (
-                    <Card key={item.title} className="enterprise-panel border-2">
+                    <Card key={item.title} className="enterprise-panel border-2 h-full">
                       <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-lg">
                           <Handshake className="h-4 w-4 text-primary" />
@@ -168,7 +168,7 @@ export default function RelationshipPlaybook() {
           </CardContent>
         </Card>
 
-        <div className="space-y-6">
+        <div className="grid gap-6 lg:grid-cols-2">
           <Card className="enterprise-panel border-2">
             <CardHeader className="pb-3">
               <CardTitle className="text-xl">Starter Template</CardTitle>
@@ -189,7 +189,7 @@ export default function RelationshipPlaybook() {
             </CardContent>
           </Card>
 
-          <Card className="enterprise-panel border-2">
+          <Card className="enterprise-panel border-2 h-full">
             <CardHeader className="pb-3">
               <CardTitle className="text-xl">What This Page Will Eventually Hold</CardTitle>
             </CardHeader>

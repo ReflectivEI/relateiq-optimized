@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
-import { BookText, Clock3, NotebookPen, Save, FileText, UserRound } from "lucide-react";
+import { BookText, Clock3, NotebookPen, Save, FileText, UserRound, Trash2 } from "lucide-react";
 
 function JournalPreview({ personName, title, content, timestamp }) {
   return (
@@ -83,6 +83,16 @@ export default function RelationshipJournal() {
       toast.error("Could not save the journal entry.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async (entryId) => {
+    try {
+      await api.entities.JournalEntry.delete(entryId);
+      toast.success("Journal entry deleted.");
+      queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+    } catch (error) {
+      toast.error("Could not delete the journal entry.");
     }
   };
 
@@ -227,6 +237,15 @@ export default function RelationshipJournal() {
                           {entry.person_name}
                         </div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(entry.id)}
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/15 bg-white text-muted-foreground transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                        title="Delete journal entry"
+                        aria-label={`Delete ${entry.title || `${entry.person_name}'s journal entry`}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(entry.entry_timestamp || entry.created_date), "MMMM d, yyyy • h:mm a")}

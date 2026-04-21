@@ -17,7 +17,7 @@ import {
   Lightbulb,
   CheckCircle2,
   Clock,
-  TrendingDown,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -118,6 +118,8 @@ function MicroRepairCollapsible({ repair, index }) {
 }
 
 export default function EarlyWarningCard({ riskSummary }) {
+  const [showScoreDetails, setShowScoreDetails] = useState(false);
+
   if (!riskSummary) {
     return null;
   }
@@ -125,6 +127,18 @@ export default function EarlyWarningCard({ riskSummary }) {
   const config = STATUS_CONFIG[riskSummary.status] || STATUS_CONFIG.caution;
   const Icon = config.icon;
   const riskPercent = Math.round(riskSummary.overall_score * 100);
+  const strongestSignal = riskSummary.breakdown?.strongest_signal;
+  const averageSignalPercent = Math.round((riskSummary.breakdown?.average_signal_score || 0) * 100);
+  const scoreGuidance =
+    riskPercent >= 70
+      ? "This score is elevated. The goal is to bring it down quickly by repairing the strongest active signals."
+      : riskPercent >= 40
+      ? "This score is moderate. It means tension is forming, but it is still very workable with early repair."
+      : "This score is relatively contained. Keep reinforcing the patterns that are protecting the relationship.";
+  const coachingTips = (riskSummary.repairs || [])
+    .slice(0, 3)
+    .map((repair) => repair.actions?.[0]?.action)
+    .filter(Boolean);
 
   return (
     <Card className={cn("border-2", config.border, config.bg)}>
@@ -146,15 +160,97 @@ export default function EarlyWarningCard({ riskSummary }) {
             </div>
           </div>
 
-          {/* Risk Score Gauge */}
-          <div className="flex flex-col items-center justify-center shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowScoreDetails((value) => !value)}
+            className="flex shrink-0 flex-col items-center justify-center rounded-2xl border border-primary/15 bg-white/70 px-4 py-3 text-center transition-colors hover:border-primary/30 hover:bg-white"
+          >
             <div className="text-3xl font-bold text-foreground">{riskPercent}%</div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Risk Score</p>
-          </div>
+            <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-primary">
+              <Info className="h-3 w-3" />
+              {showScoreDetails ? "Hide details" : "What this means"}
+            </span>
+          </button>
         </div>
       </CardHeader>
 
       <CardContent className="pt-0 space-y-4">
+        {showScoreDetails && (
+          <div className="rounded-[1.2rem] border border-primary/20 bg-white/90 p-4 space-y-4">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                What This Score Means
+              </p>
+              <p className="text-sm leading-7 text-foreground">
+                {scoreGuidance} Because this is a risk score, improving it means bringing the percentage down over time.
+              </p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-2xl border border-primary/15 bg-[#eef4fb] p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Strongest Signal
+                </p>
+                <p className="mt-2 text-sm font-semibold text-foreground">
+                  {strongestSignal?.label || "No active signal"}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {strongestSignal ? `${Math.round(strongestSignal.risk_score * 100)}% weight in current score` : "Nothing is materially elevating risk right now."}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-primary/15 bg-[#eef4fb] p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Average Signal Weight
+                </p>
+                <p className="mt-2 text-sm font-semibold text-foreground">{averageSignalPercent}%</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Based on all currently detected early-warning signals.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-primary/15 bg-[#eef4fb] p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Prediction Window
+                </p>
+                <p className="mt-2 text-sm font-semibold text-foreground">{riskSummary.timeline}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  This is a near-term read, not a permanent judgment about the relationship.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Where It Comes From
+              </p>
+              <p className="text-sm leading-7 text-foreground">
+                {riskSummary.breakdown?.scoring_method} Right now the score is being driven by{" "}
+                <span className="font-semibold">
+                  {riskSummary.breakdown?.signal_count || 0} detected signal
+                  {(riskSummary.breakdown?.signal_count || 0) === 1 ? "" : "s"}
+                </span>
+                {strongestSignal ? `, with ${strongestSignal.label.toLowerCase()} as the main driver.` : "."}
+              </p>
+            </div>
+
+            {coachingTips.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Best Ways To Improve It
+                </p>
+                <div className="space-y-2">
+                  {coachingTips.map((tip) => (
+                    <div key={tip} className="flex gap-2 rounded-2xl border border-primary/15 bg-[#e8f7f6] p-3 text-sm leading-6 text-foreground">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>{tip}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Risk Signals */}
         {riskSummary.signals && riskSummary.signals.length > 0 && (
           <div className="space-y-2">

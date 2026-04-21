@@ -2,7 +2,7 @@
  * MilestoneCard.jsx — Individual milestone card for the roadmap
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, Target, CheckCircle2 } from "lucide-react";
@@ -15,8 +15,14 @@ const DIFFICULTY_COLORS = {
   hard: "bg-orange-50 border-orange-300",
 };
 
-export default function MilestoneCard({ milestone, isActive = false, onSelect }) {
+export default function MilestoneCard({ milestone, isActive = false, onSelect, onViewResources }) {
   const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (isActive) {
+      setExpanded(true);
+    }
+  }, [isActive]);
 
   return (
     <motion.div
@@ -41,16 +47,13 @@ export default function MilestoneCard({ milestone, isActive = false, onSelect })
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3 flex-1">
-                <span className="text-3xl">{milestone.icon}</span>
+                <span className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#0e6f72] text-sm font-bold text-white">
+                  {milestone.month}
+                </span>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold">
-                      {milestone.month}
-                    </span>
-                    <CardTitle className="text-lg font-bold text-foreground">
-                      {milestone.title}
-                    </CardTitle>
-                  </div>
+                  <CardTitle className="text-lg font-bold text-foreground">
+                    {milestone.title}
+                  </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
                     {milestone.theme}
                   </p>
@@ -95,7 +98,11 @@ export default function MilestoneCard({ milestone, isActive = false, onSelect })
               </span>
             </div>
 
-            <Button className="w-full border-2 border-primary text-base mt-3">
+            <Button
+              type="button"
+              onClick={() => onViewResources && onViewResources(milestone.month)}
+              className="w-full border-2 border-primary text-base mt-3"
+            >
               View Resources for Month {milestone.month}
             </Button>
           </CardContent>

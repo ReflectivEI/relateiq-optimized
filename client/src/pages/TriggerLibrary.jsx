@@ -37,6 +37,7 @@ const TRIGGER_TYPES = [
 
 const SOURCE_LABELS = {
   manual: "Added manually",
+  starter_example: "Starter example",
   ai_inferred: "AI inferred",
   ai_coach: "AI Coach",
   weekly_checkin: "Weekly Check-In",
@@ -62,8 +63,91 @@ const EMPTY_FORM = {
   confidence: "medium",
 };
 
+const STARTER_TRIGGERS = {
+  Tony: [
+    {
+      id: "starter-tony-need-pause",
+      owner: "Tony",
+      title: "Needs a pause before more questions",
+      description: "When Tony is already activated, rapid follow-up questions can feel like pressure instead of support.",
+      trigger_type: "too_many_questions",
+      confidence: "medium",
+      confirmed: true,
+      source: "starter_example",
+      common_reaction: "Goes quiet, withdraws, or becomes harder to read.",
+      what_helps: "One clear question, slower pacing, and a little room to process before continuing.",
+      what_worsens: "Stacked questions, urgency, or being pushed to explain before he is ready.",
+    },
+    {
+      id: "starter-tony-dismissive-tone",
+      owner: "Tony",
+      title: "Dismissive or bored tone",
+      description: "Flat or disengaged tone can register as indifference and make Tony feel emotionally unsafe.",
+      trigger_type: "tone",
+      confidence: "medium",
+      confirmed: true,
+      source: "starter_example",
+      common_reaction: "Becomes hurt internally and shuts down further.",
+      what_helps: "Warm tone, eye contact, and reflecting back what was actually heard.",
+      what_worsens: "Rushing past the feeling or acting like the concern is too much.",
+    },
+  ],
+  Drew: [
+    {
+      id: "starter-drew-lecturing-tone",
+      owner: "Drew",
+      title: "Lecturing tone",
+      description: "Drew reacts badly when a conversation feels like he is being talked at instead of talked to.",
+      trigger_type: "tone",
+      confidence: "medium",
+      confirmed: true,
+      source: "starter_example",
+      common_reaction: "Gets defensive or checks out fast.",
+      what_helps: "Soft tone, clear check-in, and space to answer without interruption.",
+      what_worsens: "Advice mode, over-explaining, or turning his feeling into a lesson.",
+    },
+    {
+      id: "starter-drew-not-priority",
+      owner: "Drew",
+      title: "Feeling low priority",
+      description: "When bids for connection do not get a response, Drew often reads it as not mattering enough.",
+      trigger_type: "feeling_ignored",
+      confidence: "medium",
+      confirmed: true,
+      source: "starter_example",
+      common_reaction: "Irritability, shortness, or pushing harder for reassurance.",
+      what_helps: "Follow-through, direct reassurance, and visible effort without needing to ask twice.",
+      what_worsens: "Silence, vague promises, or delayed repair after distance.",
+    },
+  ],
+};
+
+function dedupeTriggers(items = []) {
+  return items.filter((trigger, index, all) => {
+    const key = [
+      trigger.owner,
+      (trigger.title || "").trim().toLowerCase(),
+      trigger.trigger_type,
+      trigger.confirmed ? "confirmed" : "unconfirmed",
+    ].join(":");
+    return (
+      index ===
+      all.findIndex((candidate) => {
+        const candidateKey = [
+          candidate.owner,
+          (candidate.title || "").trim().toLowerCase(),
+          candidate.trigger_type,
+          candidate.confirmed ? "confirmed" : "unconfirmed",
+        ].join(":");
+        return candidateKey === key;
+      })
+    );
+  });
+}
+
 function TriggerCard({ trigger, onConfirm, onEdit, onDelete }) {
   const [expanded, setExpanded] = useState(false);
+  const isStarter = String(trigger.id).startsWith("starter-");
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
@@ -94,12 +178,16 @@ function TriggerCard({ trigger, onConfirm, onEdit, onDelete }) {
               <button onClick={() => setExpanded(!expanded)} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
                 {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
-              <button onClick={() => onEdit(trigger)} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
-                <Pencil className="w-3.5 h-3.5" />
-              </button>
-              <button onClick={() => onDelete(trigger.id)} className="p-1 text-muted-foreground hover:text-destructive transition-colors">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              {!isStarter && (
+                <>
+                  <button onClick={() => onEdit(trigger)} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => onDelete(trigger.id)} className="p-1 text-muted-foreground hover:text-destructive transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -140,7 +228,7 @@ function TriggerCard({ trigger, onConfirm, onEdit, onDelete }) {
             )}
           </AnimatePresence>
 
-          {!trigger.confirmed && (
+          {!trigger.confirmed && !isStarter && (
             <div className="flex items-center gap-2 pt-1">
               <Button
                 size="sm"
@@ -277,8 +365,13 @@ export default function TriggerLibrary() {
     setShowForm(false);
   };
 
-  const unconfirmed = triggers.filter((t) => !t.confirmed);
-  const confirmed = triggers.filter((t) => t.confirmed);
+  const unconfirmed = dedupeTriggers(triggers.filter((t) => !t.confirmed));
+  const confirmedBase = dedupeTriggers(triggers.filter((t) => t.confirmed));
+  const confirmedTitles = new Set(confirmedBase.map((trigger) => trigger.title.trim().toLowerCase()));
+  const starterConfirmed = (STARTER_TRIGGERS[person] || []).filter(
+    (trigger) => !confirmedTitles.has(trigger.title.trim().toLowerCase())
+  );
+  const confirmed = [...confirmedBase, ...starterConfirmed];
 
   return (
     <div className="space-y-8">

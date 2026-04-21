@@ -37,6 +37,10 @@ const EFFORT_COLORS = {
   high: "bg-orange-100 text-orange-700 border-orange-200",
 };
 
+function normalizeRepairText(value) {
+  return (value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 function RepairScriptCard({ script }) {
   const [expanded, setExpanded] = useState(false);
   const handleCopy = () => { navigator.clipboard.writeText(script.script); toast.success("Copied"); };
@@ -233,6 +237,18 @@ export default function ProactiveRepair() {
 
   const speakerProfile = profiles.find((p) => p.person_name === person);
   const targetProfile = profiles.find((p) => p.person_name === partnerName);
+  const visibleRepairHistory = repairEntries
+    .filter((entry) => entry.owner === person)
+    .filter((entry, index, entries) => {
+      const key = `${entry.owner}:${normalizeRepairText(entry.what_happened)}`;
+      return (
+        index ===
+        entries.findIndex(
+          (candidate) => `${candidate.owner}:${normalizeRepairText(candidate.what_happened)}` === key
+        )
+      );
+    })
+    .slice(0, 5);
 
   const toggleTag = (tag) => setTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
 
@@ -445,11 +461,11 @@ export default function ProactiveRepair() {
       </AnimatePresence>
 
       {/* Past repair history */}
-      {repairEntries.length > 0 && (
+      {visibleRepairHistory.length > 0 && (
         <div className="space-y-3">
           <h2 className="font-display text-lg font-semibold text-muted-foreground">Past Repair Sessions</h2>
           <div className="space-y-2">
-            {repairEntries.slice(0, 5).map((entry) => (
+            {visibleRepairHistory.map((entry) => (
               <Card key={entry.id} className="border border-border/40">
                 <CardContent className="p-4 flex items-start gap-3">
                   <HeartHandshake className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />

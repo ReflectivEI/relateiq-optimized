@@ -2,11 +2,12 @@
  * HealthReport.jsx — Weekly Relationship Health Report dashboard
  * Synthesizes check-ins, reflections, and coach sessions into a rich summary.
  */
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { api } from "@/api/client";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { ActivitySquare, ShieldCheck, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import HealthReportMetrics from "@/components/health-report/HealthReportMetrics";
 import SentimentTrendChart from "@/components/health-report/SentimentTrendChart";
 import ThemeCloud from "@/components/health-report/ThemeCloud";
@@ -14,6 +15,8 @@ import AIHealthReport from "@/components/health-report/AIHealthReport";
 import CommunicationPatterns from "@/components/health-report/CommunicationPatterns";
 
 export default function HealthReport() {
+  const [viewMode, setViewMode] = useState("compare");
+
   const { data: checkIns = [] } = useQuery({
     queryKey: ["health-checkins"],
     queryFn: () => api.entities.CheckIn.list("-created_date", 30),
@@ -29,6 +32,20 @@ export default function HealthReport() {
     queryFn: () => api.entities.CoachSession.list("-created_date", 30),
   });
 
+  const visibleData = useMemo(() => {
+    if (viewMode === "compare") {
+      return { checkIns, reflections, coachSessions };
+    }
+
+    return {
+      checkIns: checkIns.filter((entry) => entry.person_name === viewMode),
+      reflections: reflections.filter((entry) => entry.person_name === viewMode),
+      coachSessions: coachSessions.filter(
+        (entry) => entry.speaker === viewMode || entry.speaking_to === viewMode,
+      ),
+    };
+  }, [checkIns, reflections, coachSessions, viewMode]);
+
   return (
     <div className="space-y-8">
       <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="enterprise-hero overflow-hidden">
@@ -43,6 +60,24 @@ export default function HealthReport() {
               A cleaner, enterprise-grade snapshot of your relationship health. This page is meant to surface
               traction, friction, and recurring patterns in a way that is easier to read and easier to use.
             </p>
+            <div className="flex flex-wrap gap-2 pt-2">
+              {[
+                { value: "compare", label: "Compare Side by Side" },
+                { value: "Tony", label: "Tony" },
+                { value: "Drew", label: "Drew" },
+              ].map((option) => (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant={viewMode === option.value ? "default" : "outline"}
+                  size="sm"
+                  className={viewMode === option.value ? "border-white/0" : "border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"}
+                  onClick={() => setViewMode(option.value)}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-[1.15rem] border border-white/15 bg-white/10 p-4 text-slate-100">
@@ -69,7 +104,11 @@ export default function HealthReport() {
 
       {/* Metrics */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <HealthReportMetrics checkIns={checkIns} reflections={reflections} coachSessions={coachSessions} />
+        <HealthReportMetrics
+          checkIns={visibleData.checkIns}
+          reflections={visibleData.reflections}
+          coachSessions={visibleData.coachSessions}
+        />
       </motion.div>
 
       {/* Sentiment chart + Theme cloud side by side on large screens */}
@@ -79,18 +118,27 @@ export default function HealthReport() {
         transition={{ delay: 0.15 }}
         className="grid grid-cols-1 lg:grid-cols-2 gap-6"
       >
-        <SentimentTrendChart checkIns={checkIns} />
-        <ThemeCloud checkIns={checkIns} reflections={reflections} coachSessions={coachSessions} />
+        <SentimentTrendChart checkIns={visibleData.checkIns} />
+        <ThemeCloud
+          checkIns={visibleData.checkIns}
+          reflections={visibleData.reflections}
+          coachSessions={visibleData.coachSessions}
+        />
       </motion.div>
 
       {/* Communication Patterns */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-        <CommunicationPatterns checkIns={checkIns} coachSessions={coachSessions} />
+        <CommunicationPatterns checkIns={visibleData.checkIns} coachSessions={visibleData.coachSessions} />
       </motion.div>
 
       {/* AI Narrative Report */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-        <AIHealthReport checkIns={checkIns} reflections={reflections} coachSessions={coachSessions} />
+        <AIHealthReport
+          checkIns={visibleData.checkIns}
+          reflections={visibleData.reflections}
+          coachSessions={visibleData.coachSessions}
+          viewMode={viewMode}
+        />
       </motion.div>
 
       <p className="text-center text-xs text-muted-foreground/60 border-t border-border pt-6">
