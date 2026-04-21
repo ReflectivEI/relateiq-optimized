@@ -7,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  Loader2, RefreshCw, User, Brain, Heart, Zap, Shield, TrendingUp,
-  MessageCircle, AlertTriangle, Eye, Star, HelpCircle
+  Loader2, RefreshCw, User, Brain, ShieldCheck, Zap, Shield, TrendingUp,
+  MessageCircle, AlertTriangle, Eye, Star, HelpCircle, FileStack
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { buildProfileGenerationPrompt } from "@/lib/prompts";
@@ -207,12 +207,16 @@ export default function Profiles() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <div className="space-y-2">
+          <p className="enterprise-section-label">Behavioral Profiles</p>
           <h1 className="font-display text-3xl font-bold tracking-tight">Profiles</h1>
-          <p className="text-muted-foreground mt-1">AI-generated behavioral profiles based on questionnaire data</p>
+          <p className="max-w-3xl text-muted-foreground">
+            Clean, readable behavioral profiles for Tony and Drew. Use the overview for the summary, the profile
+            tab for deeper interpretation, and the trait map for the data underneath it.
+          </p>
         </div>
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex flex-col items-start gap-2 lg:items-end">
           <Button onClick={generateProfile} disabled={generating || responses.length === 0} className="gap-2">
             {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             {profile ? "Regenerate" : "Generate"} Profile
@@ -232,7 +236,7 @@ export default function Profiles() {
       <AILoadingState active={generating} mode="profile" />
 
       <Tabs value={activePerson} onValueChange={(v) => { setActivePerson(v); setActiveTab("overview"); }}>
-        <TabsList>
+        <TabsList className="rounded-full border border-border bg-muted/40 p-1">
           <TabsTrigger value="Tony">Tony</TabsTrigger>
           <TabsTrigger value="Drew">Drew</TabsTrigger>
         </TabsList>
@@ -252,7 +256,7 @@ export default function Profiles() {
 
       {profile ? (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-2">
+          <TabsList className="mb-2 rounded-full border border-border bg-muted/40 p-1">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="my-profile">My Profile</TabsTrigger>
             <TabsTrigger value="traits">Trait Map</TabsTrigger>
@@ -262,23 +266,35 @@ export default function Profiles() {
           <TabsContent value="overview" className="space-y-5 mt-4">
             {isFallbackProfile && <FallbackBadge />}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <Card className="bg-primary/5 border-primary/15">
+              <Card className="enterprise-panel border-2 border-primary/20">
                 <CardContent className="p-6">
-                  <p className="text-foreground leading-relaxed">{profile.ai_behavioral_summary}</p>
-                  {profile.love_language && (
-                    <div className="mt-3 flex items-center gap-2 text-sm text-primary">
-                      <Heart className="w-4 h-4" />
-                      <span className="font-semibold">{profile.love_language}</span>
+                  <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(300px,0.9fr)]">
+                    <div className="space-y-4">
+                      <p className="enterprise-section-label">Executive Summary</p>
+                      <p className="text-foreground leading-8">{profile.ai_behavioral_summary}</p>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {profile.processing_style && (
+                          <div className="enterprise-panel-muted rounded-2xl p-4">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                              <Brain className="w-4 h-4 text-primary" />
+                              Processing Style
+                            </div>
+                            <p className="mt-2 text-sm leading-6 text-muted-foreground">{profile.processing_style}</p>
+                          </div>
+                        )}
+                        {profile.love_language && (
+                          <div className="enterprise-panel-muted rounded-2xl p-4">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                              <ShieldCheck className="w-4 h-4 text-primary" />
+                              Connection Signal
+                            </div>
+                            <p className="mt-2 text-sm leading-6 text-muted-foreground">{profile.love_language}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                  {profile.processing_style && (
-                    <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                      <Brain className="w-4 h-4" />
-                      <span>{profile.processing_style}</span>
-                    </div>
-                  )}
-                  <div className="mt-4 pt-3 border-t border-primary/10 space-y-2 flex items-start justify-between">
-                    <div className="flex-1 space-y-2">
+                    <div className="space-y-3 rounded-[1.25rem] border border-border bg-muted/20 p-5">
+                      <p className="enterprise-section-label">Tools</p>
                       <DataSourceBadge sources={[
                         { label: "questionnaire answers", count: responses.length },
                         { label: "behavioral tags", count: (profile.personality_traits || []).length },
@@ -292,22 +308,22 @@ export default function Profiles() {
                       `Emotional Triggers:\n${(profile.emotional_triggers || []).map(t => `• ${t}`).join("\n")}`,
                       `Growth Areas:\n${(profile.growth_areas || []).map(g => `• ${g}`).join("\n")}`,
                       ].join("\n\n")} />
-                      </div>
-                      </div>
                       <AskAIButton
-                      context={askAIContext}
-                      modalTitle={`${activePerson}'s Profile`}
-                      showText={true}
+                        context={askAIContext}
+                        modalTitle={`${activePerson}'s Profile`}
+                        showText={true}
                       />
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
               {[
                 { key: "communication_style", label: "Communication Style", icon: MessageCircle },
                 { key: "conflict_tendencies", label: "Conflict Tendencies", icon: Zap },
-                { key: "emotional_triggers", label: "Emotional Triggers", icon: Heart },
+                { key: "emotional_triggers", label: "Emotional Triggers", icon: AlertTriangle },
                 { key: "needs_during_conflict", label: "Needs During Conflict", icon: Shield },
                 { key: "growth_areas", label: "Growth Areas", icon: TrendingUp },
                 { key: "values_priorities", label: "Core Values", icon: Star },
@@ -316,7 +332,7 @@ export default function Profiles() {
                 if (!value || (Array.isArray(value) && value.length === 0)) return null;
                 return (
                   <motion.div key={section.key} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                    <Card>
+                    <Card className="enterprise-panel border-2 h-full">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
                           <section.icon className="w-5 h-5 text-primary" />
@@ -327,8 +343,7 @@ export default function Profiles() {
                         {Array.isArray(value) ? (
                           <div className="flex flex-wrap gap-2">
                             {value.map((item) => (
-                              <div key={item} className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-lg text-sm text-foreground">
-                                <Zap className="w-3.5 h-3.5 text-primary" />
+                              <div key={item} className="rounded-full border border-teal-500/30 bg-[#14263f] px-3 py-1.5 text-sm text-white">
                                 {item}
                               </div>
                             ))}
@@ -346,9 +361,10 @@ export default function Profiles() {
 
           {/* MY PROFILE DEEP DIVE TAB */}
           <TabsContent value="my-profile" className="space-y-3 mt-4">
-            <p className="text-sm text-muted-foreground">
-              Each section below is fully interactive — tap to expand, then explore what it means, why it matters, what to do differently, and a real-life example.
-            </p>
+            <div className="enterprise-panel-muted rounded-2xl p-4 text-sm leading-7 text-muted-foreground">
+              Each section below is intentionally broken into clearer pieces. Open a section to see what it means,
+              why it matters, what to try differently, and a practical example.
+            </div>
             {deepSections.map((section, i) => (
               <motion.div key={section.title} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
                 <ProfileSection
@@ -365,9 +381,12 @@ export default function Profiles() {
           {/* TRAIT MAP TAB */}
           <TabsContent value="traits" className="space-y-4 mt-4">
             {profile.trait_weights && (
-              <Card>
+              <Card className="enterprise-panel border-2">
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Trait Intensity</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <FileStack className="h-4 w-4 text-primary" />
+                    Trait Intensity
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {Object.entries(profile.trait_weights).map(([trait, weight]) => (
@@ -386,7 +405,7 @@ export default function Profiles() {
             {(profile.past_patterns || profile.partner_perception) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {profile.past_patterns && (
-                  <Card>
+                  <Card className="enterprise-panel border-2">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-medium text-muted-foreground">Past Patterns</CardTitle>
                     </CardHeader>
@@ -396,7 +415,7 @@ export default function Profiles() {
                   </Card>
                 )}
                 {profile.partner_perception && (
-                  <Card>
+                  <Card className="enterprise-panel border-2">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-medium text-muted-foreground">Partner Perception</CardTitle>
                     </CardHeader>

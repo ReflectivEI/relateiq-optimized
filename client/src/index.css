@@ -22,7 +22,7 @@
     --popover-foreground: 50 60% 95%;
 
     /* Primary: teal accent matching screenshot highlight */
-    --primary: 178 55% 42%;
+    --primary: 180 55% 40%;
     --primary-foreground: 0 0% 100%;
 
     /* Secondary: muted navy */
@@ -33,8 +33,8 @@
     --muted: 218 38% 18%;
     --muted-foreground: 218 20% 60%;
 
-    /* Accent: pale yellow tint */
-    --accent: 47 80% 88%;
+    /* Accent stays within the navy/teal enterprise system */
+    --accent: 201 40% 93%;
     --accent-foreground: 218 47% 11%;
 
     --destructive: 0 60% 55%;
@@ -55,7 +55,7 @@
 
     /* Sidebar: deep navy, like screenshot left panel */
     --sidebar-background: 218 52% 8%;
-    --sidebar-foreground: 50 40% 88%;
+    --sidebar-foreground: 180 42% 74%;
     --sidebar-primary: 178 55% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 218 44% 15%;
@@ -67,33 +67,33 @@
   /* Keep dark as identical (it's already a dark theme) */
   /* Light theme override — activated via data-theme="light" on <html> */
   [data-theme="light"] {
-    --background: 210 30% 96%;
-    --foreground: 218 47% 11%;
+    --background: 210 24% 96%;
+    --foreground: 218 44% 14%;
     --card: 0 0% 100%;
-    --card-foreground: 218 47% 11%;
+    --card-foreground: 218 44% 14%;
     --popover: 0 0% 100%;
-    --popover-foreground: 218 47% 11%;
-    --primary: 178 55% 38%;
+    --popover-foreground: 218 44% 14%;
+    --primary: 180 56% 37%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 25% 90%;
-    --secondary-foreground: 218 40% 20%;
-    --muted: 210 20% 92%;
-    --muted-foreground: 218 20% 45%;
-    --accent: 47 80% 88%;
-    --accent-foreground: 218 47% 11%;
+    --secondary: 208 24% 91%;
+    --secondary-foreground: 218 34% 24%;
+    --muted: 204 22% 93%;
+    --muted-foreground: 215 18% 43%;
+    --accent: 201 34% 93%;
+    --accent-foreground: 218 44% 14%;
     --destructive: 0 60% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 210 20% 82%;
-    --input: 210 20% 82%;
-    --ring: 178 55% 38%;
+    --border: 205 24% 82%;
+    --input: 205 24% 82%;
+    --ring: 180 56% 37%;
     --sidebar-background: 218 47% 14%;
-    --sidebar-foreground: 50 40% 88%;
-    --sidebar-primary: 178 55% 42%;
+    --sidebar-foreground: 180 42% 74%;
+    --sidebar-primary: 180 56% 37%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 218 44% 20%;
-    --sidebar-accent-foreground: 50 60% 95%;
+    --sidebar-accent-foreground: 188 58% 93%;
     --sidebar-border: 218 35% 22%;
-    --sidebar-ring: 178 55% 42%;
+    --sidebar-ring: 180 56% 37%;
   }
 
   .dark {
@@ -160,5 +160,36 @@
   }
   small {
     @apply text-sm;
+  }
+}
+
+@layer components {
+  .enterprise-hero {
+    @apply rounded-[1.5rem] border border-border bg-card shadow-sm;
+    background: linear-gradient(135deg, hsl(216 48% 17%) 0%, hsl(196 42% 19%) 52%, hsl(177 43% 25%) 100%);
+  }
+
+  .enterprise-panel {
+    @apply rounded-[1.25rem] border border-border bg-card text-card-foreground shadow-sm;
+  }
+
+  .enterprise-panel-muted {
+    @apply rounded-[1.25rem] border border-border bg-muted/40 text-card-foreground;
+  }
+
+  .enterprise-pill {
+    @apply inline-flex items-center gap-2 rounded-full border-2 border-teal-500 bg-[#14263f] px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#0f1d31] hover:text-white;
+  }
+
+  .enterprise-pill-reverse {
+    @apply inline-flex items-center gap-2 rounded-full border-2 border-teal-500 bg-white px-4 py-2 text-sm font-semibold text-[#14263f] transition-all duration-200 hover:bg-slate-50;
+  }
+
+  .enterprise-section-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.24em] text-primary;
+  }
+
+  .enterprise-grid-card {
+    @apply rounded-[1.15rem] border border-border bg-card p-5 shadow-sm;
   }
 }

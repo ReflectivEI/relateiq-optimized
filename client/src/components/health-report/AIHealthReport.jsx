@@ -4,7 +4,7 @@
 import React, { useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, RefreshCw } from "lucide-react";
+import { FileText, Loader2, RefreshCw } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { api } from "@/api/client";
 import { safeInvokeLLM, CreditLimitError } from "@/lib/aiSafe";
@@ -92,9 +92,9 @@ export default function AIHealthReport({ checkIns, reflections, coachSessions })
       {creditError && <CreditLimitBanner />}
 
       {!report ? (
-        <Card className="border-2 border-primary/25 bg-primary/5">
+        <Card className="enterprise-panel border-2">
           <CardContent className="p-8 text-center space-y-4">
-            <Sparkles className="w-10 h-10 text-primary mx-auto opacity-70" />
+            <FileText className="w-10 h-10 text-primary mx-auto opacity-70" />
             <div>
               <p className="text-lg font-semibold text-foreground">Generate Your Health Report</p>
               <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
@@ -102,7 +102,7 @@ export default function AIHealthReport({ checkIns, reflections, coachSessions })
               </p>
             </div>
             <Button onClick={generate} disabled={loading || (checkIns.length === 0 && reflections.length === 0)} className="gap-2">
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
               {loading ? "Generating report..." : "Generate Report"}
             </Button>
             {checkIns.length === 0 && reflections.length === 0 && (
@@ -118,11 +118,11 @@ export default function AIHealthReport({ checkIns, reflections, coachSessions })
             title={`Relationship Health Report — ${weekLabel}`}
             showEmail={false}
           />
-        <Card className="border-2 border-primary/20 bg-card" ref={reportRef}>
+        <Card className="enterprise-panel border-2" ref={reportRef}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-base">
-                <Sparkles className="w-4 h-4 text-primary" />
+                <FileText className="w-4 h-4 text-primary" />
                 AI Relationship Health Report — {weekLabel}
               </CardTitle>
               <Button variant="ghost" size="sm" onClick={generate} disabled={loading} className="gap-1.5 text-xs">

@@ -5,25 +5,72 @@
 
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { MessageCircle, Zap, Heart, TrendingUp, AlertCircle } from "lucide-react";
+import { MessageCircle, Wrench, LineChart, AlertCircle, Clock3 } from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 
 const ICON_MAP = {
   coach: MessageCircle,
-  repair: Heart,
-  insight: TrendingUp,
+  repair: Wrench,
+  insight: LineChart,
   risk: AlertCircle,
-  shift: Zap,
+  shift: LineChart,
 };
 
-const COLOR_MAP = {
-  coach: "bg-blue-50 border-blue-200 text-blue-700",
-  repair: "bg-green-50 border-green-200 text-green-700",
-  insight: "bg-purple-50 border-purple-200 text-purple-700",
-  risk: "bg-red-50 border-red-200 text-red-700",
-  shift: "bg-orange-50 border-orange-200 text-orange-700",
-};
+const CARD_STYLES = [
+  {
+    card: "border-[#14263f]/25 bg-[#eef4fb]",
+    iconWrap: "border-[#14263f]/20 bg-white",
+    icon: "text-[#14263f]",
+  },
+  {
+    card: "border-[#0e6f72]/25 bg-[#e8f7f6]",
+    iconWrap: "border-[#0e6f72]/20 bg-white",
+    icon: "text-[#0e6f72]",
+  },
+];
+
+function cleanText(value) {
+  if (!value || typeof value !== "string") return "";
+  return value.replace(/\[[^\]]+\]\s*/g, "").replace(/\s+/g, " ").trim();
+}
+
+function formatEvent(event) {
+  if (event.type === "coach") {
+    const body = cleanText(event.description);
+    const lowered = body.toLowerCase();
+    let title = "Coach Guidance";
+    if (lowered.includes("reconnect") || lowered.includes("repair")) title = "Reconnection Guidance";
+    else if (lowered.includes("misunderstood")) title = "Misunderstanding Support";
+    else if (lowered.includes("conflict") || lowered.includes("tension")) title = "Conflict Coaching";
+    else if (lowered.includes("trigger") || lowered.includes("overwhelmed")) title = "Regulation Coaching";
+    return {
+      title,
+      description: body && body.toLowerCase() !== "hi"
+        ? body
+        : `A short coaching request was opened for ${event.meta}.`,
+    };
+  }
+
+  if (event.type === "repair") {
+    return {
+      title: "Repair Session",
+      description: event.description || "A repair attempt was logged.",
+    };
+  }
+
+  if (event.type === "insight") {
+    return {
+      title: "Generated Insight",
+      description: cleanText(event.description) || "A new insight was added to the relationship timeline.",
+    };
+  }
+
+  return {
+    title: event.title,
+    description: cleanText(event.description) || "No description available.",
+  };
+}
 
 export default function InsightTimeline({
   sessions = [],
@@ -44,6 +91,7 @@ export default function InsightTimeline({
       title: `Coach: ${s.speaker} → ${s.speaking_to}`,
       description: preview(s.situation, "Coach session recorded"),
       date: new Date(s.created_date),
+      meta: `${s.speaker} → ${s.speaking_to}`,
       id: s.id,
     })),
     ...repairs.map((r) => ({
@@ -52,6 +100,7 @@ export default function InsightTimeline({
       description: r.situation_type || "Repair attempted",
       date: new Date(r.created_date),
       outcome: r.outcome_rating,
+      meta: r.owner,
       id: r.id,
     })),
     ...insights.map((i) => ({
@@ -59,6 +108,7 @@ export default function InsightTimeline({
       title: `Insight: ${i.perspective}`,
       description: preview(i.core_insight, "Insight generated"),
       date: new Date(i.created_date),
+      meta: i.perspective,
       id: i.id,
     })),
   ];
@@ -82,7 +132,8 @@ export default function InsightTimeline({
       <div className="space-y-2">
         {timeline.map((event, idx) => {
           const Icon = ICON_MAP[event.type] || MessageCircle;
-          const colorClass = COLOR_MAP[event.type] || "bg-slate-50 border-slate-200 text-slate-700";
+          const styles = CARD_STYLES[idx % 2];
+          const formatted = formatEvent(event);
 
           return (
             <motion.div
@@ -91,15 +142,19 @@ export default function InsightTimeline({
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 }}
             >
-              <Card className={`border-2 ${colorClass}`}>
+              <Card className={`border-2 ${styles.card}`}>
                 <CardContent className="p-4 flex items-start gap-3">
-                  <div className={`mt-0.5 p-2 rounded-lg ${colorClass.replace("text-", "bg-").replace("border-", "bg-").replace(" border", "")}`}>
-                    <Icon className="w-4 h-4" />
+                  <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${styles.iconWrap}`}>
+                    <Icon className={`w-4 h-4 ${styles.icon}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-foreground">{event.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{event.description}</p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <p className="font-semibold text-sm text-foreground">{formatted.title}</p>
+                      <p className="text-xs text-muted-foreground">{event.meta}</p>
+                    </div>
+                    <p className="mt-1 text-sm text-[#14263f]">{formatted.description}</p>
+                    <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground/80">
+                      <Clock3 className="h-3 w-3" />
                       {format(event.date, "MMM d, h:mm a")}
                     </p>
                     {event.outcome && (

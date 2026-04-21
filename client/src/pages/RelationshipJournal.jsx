@@ -1,15 +1,12 @@
-/**
- * RelationshipJournal.jsx
- * Interactive searchable timeline journal pulling from Coach sessions, Reflections, and Check-Ins
- * Supports filtering by tone, session type, topic, and person
- */
-
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { api } from "@/api/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -17,366 +14,233 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Search, Filter, X, TrendingUp } from "lucide-react";
-import { motion } from "framer-motion";
-import { format } from "date-fns";
-import JournalEntryCard from "@/components/journal/JournalEntryCard";
+import ResponseExportBar from "@/components/export/ResponseExportBar";
+import { BookText, Clock3, NotebookPen, Save, FileText, UserRound } from "lucide-react";
 
-const MOOD_OPTIONS = [
-  { value: "grateful", label: "🙏 Grateful" },
-  { value: "hopeful", label: "✨ Hopeful" },
-  { value: "reflective", label: "🤔 Reflective" },
-  { value: "vulnerable", label: "💙 Vulnerable" },
-  { value: "thoughtful", label: "💭 Thoughtful" },
-  { value: "honest", label: "✓ Honest" },
-  { value: "great", label: "🌟 Great" },
-  { value: "good", label: "👍 Good" },
-  { value: "okay", label: "→ Okay" },
-  { value: "tough", label: "⚠️ Tough" },
-  { value: "difficult", label: "🌊 Difficult" },
-];
+function JournalPreview({ personName, title, content, timestamp }) {
+  return (
+    <div className="enterprise-panel bg-white p-6 text-slate-900">
+      <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
+        <div>
+          <p className="enterprise-section-label text-teal-700">Private Journal Entry</p>
+          <h3 className="mt-2 text-2xl font-display font-semibold text-slate-900">
+            {title || "Untitled Entry"}
+          </h3>
+        </div>
+        <div className="text-right text-sm text-slate-500">
+          <p className="font-semibold text-slate-700">{personName}</p>
+          <p>{format(timestamp, "MMMM d, yyyy")}</p>
+          <p>{format(timestamp, "h:mm a")}</p>
+        </div>
+      </div>
 
-const TYPE_OPTIONS = [
-  { value: "coach", label: "AI Coach Sessions" },
-  { value: "reflection", label: "Daily Reflections" },
-  { value: "check-in", label: "Weekly Check-Ins" },
-];
-
-const TOPIC_OPTIONS = [
-  { value: "communication", label: "Communication" },
-  { value: "conflict", label: "Conflict" },
-  { value: "intimacy", label: "Intimacy" },
-  { value: "growth", label: "Growth" },
-  { value: "gratitude", label: "Gratitude" },
-  { value: "vulnerability", label: "Vulnerability" },
-  { value: "dreams", label: "Dreams & Future" },
-  { value: "memories", label: "Memories" },
-  { value: "values", label: "Values" },
-  { value: "healing", label: "Healing" },
-];
+      <div className="mt-6 whitespace-pre-wrap text-[15px] leading-7 text-slate-700">
+        {content || "Start writing to create a clean PDF export of this journal entry."}
+      </div>
+    </div>
+  );
+}
 
 export default function RelationshipJournal() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedType, setSelectedType] = useState("");
-  const [selectedMood, setSelectedMood] = useState("");
-  const [selectedTopic, setSelectedTopic] = useState("");
-  const [selectedPerson, setSelectedPerson] = useState("");
+  const queryClient = useQueryClient();
+  const previewRef = useRef(null);
+  const [personName, setPersonName] = useState("Tony");
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  // Fetch all sources
-  const { data: coachSessions = [] } = useQuery({
-    queryKey: ["coach-journal"],
-    queryFn: () => api.entities.CoachSession.list("-created_date", 100),
+  const timestamp = useMemo(() => new Date(), [title, content, personName]);
+
+  const { data: entries = [] } = useQuery({
+    queryKey: ["journal-entries"],
+    queryFn: () => api.entities.JournalEntry.list("-created_date", 50),
   });
 
-  const { data: reflections = [] } = useQuery({
-    queryKey: ["reflections-journal"],
-    queryFn: () => api.entities.DailyReflection.list("-created_date", 100),
-  });
+  const filteredEntries = useMemo(
+    () => entries.filter((entry) => !personName || entry.person_name === personName),
+    [entries, personName],
+  );
 
-  const { data: checkIns = [] } = useQuery({
-    queryKey: ["checkins-journal"],
-    queryFn: () => api.entities.CheckIn.list("-created_date", 100),
-  });
+  const handleSave = async () => {
+    if (!content.trim()) {
+      toast.error("Write something before saving.");
+      return;
+    }
 
-  // Aggregate and normalize entries
-  const allEntries = useMemo(() => {
-    const entries = [];
-
-    // Coach sessions
-    coachSessions.forEach((s) => {
-      entries.push({
-        id: `coach-${s.id}`,
-        type: "coach",
-        date: new Date(s.created_date),
-        person_name: s.speaker,
-        content: s.situation,
-        direction: `${s.speaker}→${s.speaking_to}`,
-        speaker: s.speaker,
-        speaking_to: s.speaking_to,
-        searchText: `${s.situation} ${s.speaker}`.toLowerCase(),
+    setSaving(true);
+    try {
+      await api.entities.JournalEntry.create({
+        person_name: personName,
+        title: title.trim() || `${personName}'s Journal Entry`,
+        content: content.trim(),
+        entry_timestamp: timestamp.toISOString(),
       });
-    });
-
-    // Daily reflections
-    reflections.forEach((r) => {
-      entries.push({
-        id: `reflection-${r.id}`,
-        type: "reflection",
-        date: new Date(r.reflection_date || r.created_date),
-        person_name: r.person_name,
-        content: r.answer,
-        mood: r.mood,
-        topic: r.mood, // Mood acts as topic filter
-        searchText: `${r.answer} ${r.person_name}`.toLowerCase(),
-      });
-    });
-
-    // Check-ins
-    checkIns.forEach((c) => {
-      entries.push({
-        id: `checkin-${c.id}`,
-        type: "check-in",
-        date: new Date(c.created_date),
-        person_name: c.person_name,
-        content: `What worked: ${c.what_worked}. Could improve: ${c.what_could_improve}`,
-        what_worked: c.what_worked,
-        what_could_improve: c.what_could_improve,
-        gratitude: c.gratitude,
-        mood: c.mood,
-        searchText: `${c.what_worked} ${c.what_could_improve} ${c.person_name}`.toLowerCase(),
-      });
-    });
-
-    return entries.sort((a, b) => b.date - a.date);
-  }, [coachSessions, reflections, checkIns]);
-
-  // Filter entries
-  const filteredEntries = useMemo(() => {
-    return allEntries.filter((entry) => {
-      // Search query
-      if (
-        searchQuery.trim() &&
-        !entry.searchText.includes(searchQuery.toLowerCase())
-      ) {
-        return false;
-      }
-
-      // Type filter
-      if (selectedType && entry.type !== selectedType) {
-        return false;
-      }
-
-      // Mood/Tone filter
-      if (selectedMood && entry.mood !== selectedMood) {
-        return false;
-      }
-
-      // Topic filter
-      if (selectedTopic && !entry.searchText.includes(selectedTopic.toLowerCase())) {
-        return false;
-      }
-
-      // Person filter
-      if (selectedPerson && entry.person_name !== selectedPerson) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [allEntries, searchQuery, selectedType, selectedMood, selectedTopic, selectedPerson]);
-
-  // Group by date for timeline
-  const groupedByDate = useMemo(() => {
-    const groups = {};
-    filteredEntries.forEach((entry) => {
-      const dateKey = format(entry.date, "MMMM d, yyyy");
-      if (!groups[dateKey]) groups[dateKey] = [];
-      groups[dateKey].push(entry);
-    });
-    return groups;
-  }, [filteredEntries]);
-
-  const hasActiveFilters =
-    searchQuery || selectedType || selectedMood || selectedTopic || selectedPerson;
-
-  const clearFilters = () => {
-    setSearchQuery("");
-    setSelectedType("");
-    setSelectedMood("");
-    setSelectedTopic("");
-    setSelectedPerson("");
+      toast.success("Journal entry saved.");
+      setTitle("");
+      setContent("");
+      queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+    } catch (error) {
+      toast.error("Could not save the journal entry.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Hero */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="text-center space-y-2">
-          <h1 className="font-display text-4xl font-bold tracking-tight">
-            Relationship Journal
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Your searchable timeline of growth, reflections, and moments together
-          </p>
+    <div className="space-y-8">
+      <section className="enterprise-hero overflow-hidden">
+        <div className="px-6 py-6 md:px-8 md:py-7">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-200/70">Context: Us</p>
+          <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-3xl space-y-3">
+              <h1 className="font-display text-4xl font-bold text-white md:text-5xl">Journal</h1>
+              <p className="max-w-2xl text-base leading-7 text-slate-200">
+                A private writing space for Tony and Drew. Capture what happened, what you felt, and what you
+                want to remember without the noise of analytics or prompts.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-slate-100">
+              <div className="flex items-center gap-2">
+                <Clock3 className="h-4 w-4 text-teal-200" />
+                <span>{format(timestamp, "MMMM d, yyyy • h:mm a")}</span>
+              </div>
+            </div>
+          </div>
         </div>
-      </motion.div>
+      </section>
 
-      {/* Search & Filters */}
-      <Card className="border-2">
-        <CardContent className="p-6 space-y-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search entries by content, names, emotions..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 text-sm bg-background"
-            />
-          </div>
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(360px,0.9fr)]">
+        <div className="space-y-6">
+          <Card className="enterprise-panel border-2">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-2xl">
+                <NotebookPen className="h-5 w-5 text-primary" />
+                New Journal Entry
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Choose who is writing, add a title if you want one, then write freely.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <p className="enterprise-section-label">Person</p>
+                  <Select value={personName} onValueChange={setPersonName}>
+                    <SelectTrigger className="h-11 rounded-2xl border-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Tony">Tony</SelectItem>
+                      <SelectItem value="Drew">Drew</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          {/* Filters */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                Type
-              </label>
-              <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="All types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={null}>All types</SelectItem>
-                  {TYPE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                Tone
-              </label>
-              <Select value={selectedMood} onValueChange={setSelectedMood}>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="All tones" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={null}>All tones</SelectItem>
-                  {MOOD_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                Topic
-              </label>
-              <Select value={selectedTopic} onValueChange={setSelectedTopic}>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="All topics" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={null}>All topics</SelectItem>
-                  {TOPIC_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                Person
-              </label>
-              <Select value={selectedPerson} onValueChange={setSelectedPerson}>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="Both people" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={null}>Both people</SelectItem>
-                  <SelectItem value="Tony">Tony</SelectItem>
-                  <SelectItem value="Drew">Drew</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {hasActiveFilters && (
-              <div className="flex items-end">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearFilters}
-                  className="gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full"
-                >
-                  <X className="w-3 h-3" />
-                  Clear filters
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Stats */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border/40">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>
-              Showing <strong>{filteredEntries.length}</strong> of{" "}
-              <strong>{allEntries.length}</strong> entries
-            </span>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Timeline */}
-      {filteredEntries.length > 0 ? (
-        <div className="space-y-8">
-          {Object.entries(groupedByDate).map(([dateKey, entries]) => (
-            <motion.div
-              key={dateKey}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-3"
-            >
-              {/* Date header */}
-              <div className="sticky top-0 z-10 flex items-center gap-3 bg-background/80 backdrop-blur-sm py-2">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-sm font-semibold text-muted-foreground px-3 whitespace-nowrap">
-                  {dateKey}
-                </span>
-                <div className="flex-1 h-px bg-border" />
+                <div className="space-y-2">
+                  <p className="enterprise-section-label">Timestamp</p>
+                  <div className="enterprise-panel-muted flex h-11 items-center rounded-2xl px-4 text-sm text-foreground">
+                    {format(timestamp, "MMMM d, yyyy • h:mm a")}
+                  </div>
+                </div>
               </div>
 
-              {/* Entries for this date */}
-              <div className="space-y-3 pl-2 sm:pl-0">
-                {entries.map((entry, idx) => (
-                  <JournalEntryCard key={entry.id} entry={entry} />
-                ))}
+              <div className="space-y-2">
+                <p className="enterprise-section-label">Entry Title</p>
+                <Input
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  placeholder="Example: After tonight’s conversation"
+                  className="h-11 rounded-2xl border-2 bg-background"
+                />
               </div>
-            </motion.div>
-          ))}
+
+              <div className="space-y-2">
+                <p className="enterprise-section-label">Journal Entry</p>
+                <Textarea
+                  value={content}
+                  onChange={(event) => setContent(event.target.value)}
+                  placeholder="Write what happened, what you're feeling, what mattered, and anything you want to revisit later."
+                  className="min-h-[320px] rounded-[1.15rem] border-2 bg-background p-4 text-[15px] leading-7"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-2">
+                <div className="text-sm text-muted-foreground">
+                  Entries are private to the person who writes them and saved with a timestamp.
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Button onClick={handleSave} disabled={saving || !content.trim()} className="gap-2">
+                    <Save className="h-4 w-4" />
+                    {saving ? "Saving..." : "Save Entry"}
+                  </Button>
+                  <ResponseExportBar
+                    contentRef={previewRef}
+                    filename={`journal-${personName.toLowerCase()}-${format(timestamp, "yyyy-MM-dd-HHmm")}.pdf`}
+                    title={`${personName} Journal Entry`}
+                    showEmail={false}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div ref={previewRef}>
+            <JournalPreview personName={personName} title={title} content={content} timestamp={timestamp} />
+          </div>
         </div>
-      ) : (
-        <Card className="border-dashed">
-          <CardContent className="p-12 text-center space-y-3">
-            <Filter className="w-8 h-8 text-muted-foreground/40 mx-auto" />
-            <p className="text-muted-foreground">
-              {searchQuery || selectedType || selectedMood || selectedTopic || selectedPerson
-                ? "No entries match your filters. Try adjusting them."
-                : "No journal entries yet. Start with AI Coach, Daily Reflections, or Check-Ins!"}
-            </p>
-            {hasActiveFilters && (
-              <Button variant="outline" size="sm" onClick={clearFilters} className="mt-3">
-                Clear filters
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Growth summary (show if entries exist) */}
-      {allEntries.length > 0 && (
-        <Card className="border-2 border-primary/30 bg-primary/5">
-          <CardContent className="p-6">
-            <p className="text-sm text-foreground leading-relaxed">
-              <span className="font-semibold">Your journey:</span> You've recorded{" "}
-              <strong>{coachSessions.length}</strong> coaching moments,{" "}
-              <strong>{reflections.length}</strong> reflections, and{" "}
-              <strong>{checkIns.length}</strong> weekly check-ins together. Each entry is a
-              step in understanding each other better.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+        <div className="space-y-6">
+          <Card className="enterprise-panel border-2">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <BookText className="h-5 w-5 text-primary" />
+                Saved Entries
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Recent entries for {personName}. Use these as a record of what each person is noticing over time.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {filteredEntries.length === 0 ? (
+                <div className="enterprise-panel-muted flex min-h-[220px] flex-col items-center justify-center gap-3 p-6 text-center">
+                  <FileText className="h-8 w-8 text-primary" />
+                  <div>
+                    <p className="text-base font-semibold text-foreground">No saved entries yet</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Save the first journal entry above and it will show up here with its timestamp.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                filteredEntries.map((entry) => (
+                  <div key={entry.id} className="enterprise-grid-card space-y-3">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="enterprise-section-label">Journal Entry</p>
+                        <h3 className="mt-1 text-lg font-semibold text-foreground">
+                          {entry.title || `${entry.person_name}'s Entry`}
+                        </h3>
+                      </div>
+                      <div className="rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
+                        <div className="flex items-center gap-1.5">
+                          <UserRound className="h-3.5 w-3.5" />
+                          {entry.person_name}
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(entry.entry_timestamp || entry.created_date), "MMMM d, yyyy • h:mm a")}
+                    </p>
+                    <p className="line-clamp-5 whitespace-pre-wrap text-sm leading-7 text-foreground">
+                      {entry.content}
+                    </p>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </section>
     </div>
   );
 }

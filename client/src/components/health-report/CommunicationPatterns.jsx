@@ -3,17 +3,9 @@
  */
 import React, { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, UserRound } from "lucide-react";
 
 const MOOD_SCORE = { great: 5, good: 4, okay: 3, tough: 2, difficult: 1 };
-
-function moodEmoji(score) {
-  if (score >= 4.5) return "😊";
-  if (score >= 3.5) return "🙂";
-  if (score >= 2.5) return "😐";
-  if (score >= 1.5) return "😔";
-  return "😞";
-}
 
 export default function CommunicationPatterns({ checkIns, coachSessions }) {
   const stats = useMemo(() => {
@@ -51,7 +43,7 @@ export default function CommunicationPatterns({ checkIns, coachSessions }) {
   const maxTopic = stats.sortedTopics[0]?.[1] || 1;
 
   return (
-    <Card className="border-2 border-border/60">
+    <Card className="enterprise-panel border-2">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <MessageCircle className="w-4 h-4 text-primary" />
@@ -65,8 +57,10 @@ export default function CommunicationPatterns({ checkIns, coachSessions }) {
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Mood by Person</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {stats.personStats.map((p) => (
-                <div key={p.name} className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border/40">
-                  <span className="text-2xl">{moodEmoji(p.avg)}</span>
+                <div key={p.name} className="flex items-center gap-3 rounded-2xl border border-border bg-muted/30 p-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/20 bg-primary/8">
+                    <UserRound className="h-5 w-5 text-primary" />
+                  </div>
                   <div>
                     <p className="text-sm font-semibold text-foreground">{p.name}</p>
                     <p className="text-xs text-muted-foreground">
@@ -90,7 +84,7 @@ export default function CommunicationPatterns({ checkIns, coachSessions }) {
                   <span className="text-sm text-muted-foreground capitalize w-28 shrink-0">{topic}</span>
                   <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-primary rounded-full"
+                      className="h-full rounded-full bg-primary"
                       style={{ width: `${(count / maxTopic) * 100}%` }}
                     />
                   </div>

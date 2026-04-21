@@ -149,6 +149,7 @@ export const api = {
     DailyQuestion: entityClient("DailyQuestion"),
     DailyReflection: entityClient("DailyReflection"),
     InsightEntry: entityClient("InsightEntry"),
+    JournalEntry: entityClient("JournalEntry"),
     Note: entityClient("Note"),
     OutcomeLog: entityClient("OutcomeLog"),
     QuestionnaireResponse: entityClient("QuestionnaireResponse"),

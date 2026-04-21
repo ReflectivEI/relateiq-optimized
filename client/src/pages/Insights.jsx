@@ -85,22 +85,34 @@ function DataAvailableBar({ tonyResponses, drewResponses, sessions, checkIns }) 
 }
 
 function ModeCard({ icon: Icon, title, badge, description, sources, locked, onClick, loading, active }) {
+  const colorway = title === "Context Insights"
+    ? {
+        card: "border-[#14263f]/25 bg-[#eef4fb]",
+        iconWrap: "bg-white border-[#14263f]/20",
+        icon: "text-[#14263f]",
+      }
+    : {
+        card: "border-[#0e6f72]/25 bg-[#e8f7f6]",
+        iconWrap: "bg-white border-[#0e6f72]/20",
+        icon: "text-[#0e6f72]",
+      };
+
   return (
     <Card
-      className={`border transition-all ${locked ? "opacity-60" : "cursor-pointer hover:border-primary/30 hover:shadow-sm"} ${active ? "border-primary/30 shadow-sm" : "border-border/50"}`}
+      className={`border-2 transition-all ${colorway.card} ${locked ? "opacity-60" : "cursor-pointer hover:shadow-sm"} ${active ? "ring-2 ring-primary/20" : ""}`}
       onClick={!locked ? onClick : undefined}
     >
       <CardContent className="p-5 space-y-3">
         <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${locked ? "bg-muted" : "bg-primary/10"}`}>
-            <Icon className={`w-4 h-4 ${locked ? "text-muted-foreground" : "text-primary"}`} />
+          <div className={`flex h-10 w-10 items-center justify-center rounded-xl border ${colorway.iconWrap}`}>
+            <Icon className={`w-4 h-4 ${locked ? "text-muted-foreground" : colorway.icon}`} />
           </div>
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="font-semibold text-sm text-foreground">{title}</span>
+            <span className="font-semibold text-sm text-[#14263f]">{title}</span>
             {badge && <Badge variant="outline" className="text-[10px] shrink-0">{badge}</Badge>}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">{description}</p>
         {sources && (
           <div className="space-y-1.5">
             {sources.map((s) => (
@@ -841,7 +853,7 @@ export default function Insights() {
         <ModeCard
           icon={Zap}
           title="Context Insights"
-          description="Generates from all available data — AI Coach sessions, Smart Tools, Check-Ins, partial questionnaire answers, and any stored profile information. Available any time."
+          description="Best for a fast, broad read of the relationship using sessions, tools, check-ins, and questionnaire patterns already in the system."
           sources={SOURCE_ITEMS}
           active={activeTab === "context"}
           loading={loadingMode === "context"}
@@ -850,10 +862,9 @@ export default function Insights() {
         <ModeCard
           icon={BookOpen}
           title="Full Deep Insights"
-          badge={bothReady ? undefined : "Early Access"}
           description={bothReady
-            ? "A deeper layer incorporating full questionnaire data, complete pattern maps, and detailed partner comparisons."
-            : "Full relationship intelligence. Available now with partial data — improves significantly when both profiles are complete."}
+            ? "Use this for the deeper partner comparison: shared strengths, risks, recurring loops, predictions, and grounded next steps."
+            : "A deeper couple analysis is still available now. It becomes more precise as both Tony and Drew complete more profile data."}
           locked={false}
           active={activeTab === "deep"}
           onClick={generateDeepInsights}
@@ -880,21 +891,21 @@ export default function Insights() {
           {/* Top risks and strengths */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {relationshipIntelligence.top_3_risks.length > 0 && (
-              <Card className="border-2 border-red-200 bg-red-50/30">
+              <Card className="border-2 border-[#14263f]/20 bg-[#eef4fb]">
                 <CardContent className="p-4 space-y-2">
-                  <p className="text-xs font-semibold text-red-700 uppercase tracking-wide">Top Risks</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#14263f]">Top Risks</p>
                   {relationshipIntelligence.top_3_risks.map((risk, i) => (
-                    <p key={i} className="text-sm text-red-800">• {risk}</p>
+                    <p key={i} className="text-sm text-[#14263f]">• {risk}</p>
                   ))}
                 </CardContent>
               </Card>
             )}
             {relationshipIntelligence.top_3_strengths.length > 0 && (
-              <Card className="border-2 border-green-200 bg-green-50/30">
+              <Card className="border-2 border-[#0e6f72]/20 bg-[#e8f7f6]">
                 <CardContent className="p-4 space-y-2">
-                  <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">Top Strengths</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#0e6f72]">Top Strengths</p>
                   {relationshipIntelligence.top_3_strengths.map((strength, i) => (
-                    <p key={i} className="text-sm text-green-800">• {strength}</p>
+                    <p key={i} className="text-sm text-[#14263f]">• {strength}</p>
                   ))}
                 </CardContent>
               </Card>
@@ -911,7 +922,7 @@ export default function Insights() {
 
       {/* Empty hero state */}
       {!contextInsights && !deepInsights && !loading && (
-        <Card className="border border-border/50">
+        <Card className="border-2 border-primary/15 bg-white">
           <CardContent className="p-8 text-center space-y-4">
             <div className="w-16 h-16 rounded-2xl bg-primary/8 border border-primary/15 flex items-center justify-center mx-auto">
               <Sparkles className="w-7 h-7 text-primary" />

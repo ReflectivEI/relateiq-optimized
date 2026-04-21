@@ -165,11 +165,8 @@ export default function Home() {
           <Heart className="w-3.5 h-3.5" fill="currentColor" />
           Tony & Drew
         </div>
-        <h1 className="font-display text-4xl sm:text-5xl font-bold tracking-tight text-foreground">
-          Context: Us
-        </h1>
-        <p className="text-muted-foreground text-lg max-w-lg mx-auto leading-relaxed">
-          Understanding each other deeply, communicating with intention, and growing together — powered by insight.
+        <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
+          Your relationship command center for reflection, coaching, insight generation, and practical growth tools.
         </p>
       </motion.div>
 

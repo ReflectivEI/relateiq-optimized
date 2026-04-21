@@ -1,17 +1,64 @@
-/**
- * RelationshipPlaybook.jsx
- * Auto-generated operating manual for the relationship
- * Shows how each person communicates best, triggers, conflict approach, etc.
- */
-
 import React from "react";
 import { api } from "@/api/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Heart, AlertTriangle, CheckCircle2, MessageCircle, Shield, TrendingUp } from "lucide-react";
-import { motion } from "framer-motion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  BookOpenText,
+  MessageSquareText,
+  ShieldCheck,
+  Siren,
+  Handshake,
+  ListChecks,
+} from "lucide-react";
+
+function bulletize(value, fallback) {
+  if (Array.isArray(value) && value.length > 0) return value;
+  if (typeof value === "string" && value.trim()) return [value.trim()];
+  return fallback;
+}
+
+function PersonCard({ name, profile, colorClass }) {
+  const communication = bulletize(profile?.communication_style, [
+    `${name}’s communication style will populate here after the profile is generated.`,
+  ]);
+  const needs = bulletize(profile?.needs_during_conflict, [
+    `${name}’s core needs in conflict will appear here once the profile is available.`,
+  ]);
+  const triggers = bulletize(profile?.emotional_triggers, [
+    `No trigger entries recorded yet for ${name}.`,
+  ]);
+  const growth = bulletize(profile?.growth_areas, [
+    `Growth areas for ${name} will appear here after more analysis runs.`,
+  ]);
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      {[
+        { title: "How to Approach Them", icon: MessageSquareText, items: communication },
+        { title: "What They Need During Tension", icon: ShieldCheck, items: needs },
+        { title: "What Activates Them", icon: Siren, items: triggers },
+        { title: "What Helps Them Improve", icon: ListChecks, items: growth },
+      ].map((section) => (
+        <Card key={section.title} className="enterprise-panel border-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <section.icon className={`h-4 w-4 ${colorClass}`} />
+              {section.title}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {section.items.map((item) => (
+              <div key={item} className="enterprise-panel-muted rounded-2xl p-4 text-sm leading-7 text-foreground">
+                {item}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
 
 export default function RelationshipPlaybook() {
   const { data: profiles = [] } = useQuery({
@@ -19,305 +66,142 @@ export default function RelationshipPlaybook() {
     queryFn: () => api.entities.UserProfile.list(),
   });
 
-  const { data: triggers = [] } = useQuery({
-    queryKey: ["triggers-playbook"],
-    queryFn: () => api.entities.TriggerEntry.list(),
-  });
+  const tony = profiles.find((profile) => profile.person_name === "Tony");
+  const drew = profiles.find((profile) => profile.person_name === "Drew");
 
-  const { data: sessions = [] } = useQuery({
-    queryKey: ["sessions-playbook"],
-    queryFn: () => api.entities.CoachSession.list("-created_date", 30),
-  });
-
-  const tony = profiles.find((p) => p.person_name === "Tony");
-  const drew = profiles.find((p) => p.person_name === "Drew");
-  const tonyTriggers = triggers.filter((t) => t.owner === "Tony");
-  const drewTriggers = triggers.filter((t) => t.owner === "Drew");
-
-  const preview = (value, length = 60, fallback = "No situation recorded yet") => {
-    const text = typeof value === "string" ? value.trim() : "";
-    if (!text) return fallback;
-    return text.length > length ? `${text.slice(0, length)}...` : text;
-  };
-
-  const getProvenApproaches = (person) => {
-    return sessions
-      .filter((s) => (s.speaker === person || s.speaking_to === person) && s.tool_type === "coach")
-      .slice(0, 3)
-      .map((s) => ({
-        situation: preview(s.situation, 50),
-        context: `Session with ${s.speaking_to}`,
-      }));
-  };
-
-  if (!tony || !drew) {
-    return (
-      <div className="text-center py-12 space-y-3">
-        <h2 className="font-display text-2xl font-bold">Playbook Coming Soon</h2>
-        <p className="text-muted-foreground">Complete both profiles to unlock your relationship operating manual.</p>
-      </div>
-    );
-  }
+  const sharedTemplate = [
+    {
+      title: "When One Person Is Upset",
+      prompt:
+        "Start with: “I want to understand what’s happening for you before I respond. Do you want comfort, clarity, or a little space first?”",
+    },
+    {
+      title: "When A Conversation Starts To Go Sideways",
+      prompt:
+        "Pause early. Name the shift. Use: “I think we’re starting to miss each other. Let’s slow down and make sure we’re talking about the same thing.”",
+    },
+    {
+      title: "When Repair Is Needed",
+      prompt:
+        "Use a three-part repair: 1) name what landed badly, 2) validate the other person’s experience, 3) state the next behavior you want to change.",
+    },
+    {
+      title: "Weekly Playbook Review",
+      prompt:
+        "Ask three questions together: What worked this week? Where did we get stuck? What one adjustment are we carrying into next week?",
+    },
+  ];
 
   return (
     <div className="space-y-8">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="text-center space-y-2 mb-8">
-          <h1 className="font-display text-4xl font-bold tracking-tight">
-            {tony.person_name} & {drew.person_name}'s Playbook
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Your custom operating manual for navigating together
-          </p>
+      <section className="enterprise-hero overflow-hidden">
+        <div className="px-6 py-6 md:px-8 md:py-7">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-200/70">Context: Us</p>
+          <div className="mt-3 grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.8fr)]">
+            <div className="space-y-3">
+              <h1 className="font-display text-4xl font-bold text-white md:text-5xl">Relationship Playbook</h1>
+              <p className="max-w-3xl text-base leading-7 text-slate-200">
+                This page is your working operating manual. It explains how Tony and Drew tend to communicate,
+                what helps when pressure rises, and gives you practical scripts and routines you can actually use.
+              </p>
+            </div>
+            <div className="rounded-[1.25rem] border border-white/15 bg-white/10 p-5 text-slate-100">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-200/70">How to Use It</p>
+              <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-200">
+                <li>Use the person tabs before hard conversations.</li>
+                <li>Use the shared templates after conflict or during weekly reviews.</li>
+                <li>Treat this page as a living guide, not a static report.</li>
+              </ul>
+            </div>
+          </div>
         </div>
-      </motion.div>
+      </section>
 
-      <Tabs defaultValue="tony" className="space-y-4">
-        <TabsList className="w-full sm:w-auto">
-          <TabsTrigger value="tony">Tony's Profile</TabsTrigger>
-          <TabsTrigger value="drew">Drew's Profile</TabsTrigger>
-          <TabsTrigger value="together">Together</TabsTrigger>
-        </TabsList>
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
+        <Card className="enterprise-panel border-2">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-2xl">
+              <BookOpenText className="h-5 w-5 text-primary" />
+              Working Playbook
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              A clearer structure for how this page should work: individual guidance on one side, usable shared
+              templates on the other.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="tony" className="space-y-5">
+              <TabsList className="w-full justify-start">
+                <TabsTrigger value="tony">Tony</TabsTrigger>
+                <TabsTrigger value="drew">Drew</TabsTrigger>
+                <TabsTrigger value="together">Together</TabsTrigger>
+              </TabsList>
 
-        {/* TONY'S PROFILE */}
-        <TabsContent value="tony" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* How Tony communicates */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <MessageCircle className="w-5 h-5 text-primary" />
-                  How Tony Communicates Best
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {tony.communication_style && (
-                  <p className="text-sm text-foreground">{tony.communication_style}</p>
-                )}
-                {tony.love_language && (
-                  <div className="flex items-center gap-2 text-sm bg-primary/10 px-3 py-2 rounded-lg border border-primary/20">
-                    <Heart className="w-4 h-4 text-primary" />
-                    <span className="font-medium">Love Language:</span>
-                    <span>{tony.love_language}</span>
-                  </div>
-                )}
-                {tony.processing_style && (
-                  <p className="text-xs text-muted-foreground">
-                    <span className="font-medium">Processing style:</span> {tony.processing_style}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+              <TabsContent value="tony">
+                <PersonCard name="Tony" profile={tony} colorClass="text-primary" />
+              </TabsContent>
 
-            {/* Tony's Triggers */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-orange-500" />
-                  What Triggers Tony
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {tonyTriggers.length > 0 ? (
-                  tonyTriggers.slice(0, 3).map((t) => (
-                    <div key={t.id} className="p-2 rounded-lg bg-orange-50 border border-orange-100">
-                      <p className="font-medium text-sm text-foreground">{t.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>
-                      <p className="text-xs text-orange-700 mt-1">
-                        <strong>Reaction:</strong> {t.common_reaction || "Withdrawal"}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">No triggers logged yet</p>
-                )}
-              </CardContent>
-            </Card>
+              <TabsContent value="drew">
+                <PersonCard name="Drew" profile={drew} colorClass="text-primary" />
+              </TabsContent>
 
-            {/* How to approach Tony */}
-            <Card className="md:col-span-2">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  What Helps Tony Show Up Best
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {tony.needs_during_conflict && (
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm font-medium text-foreground mb-1">During Conflict:</p>
-                    <p className="text-sm text-muted-foreground">{tony.needs_during_conflict}</p>
-                  </div>
-                )}
-                {tony.growth_areas && tony.growth_areas.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-foreground mb-2">Growth Areas:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {tony.growth_areas.map((area) => (
-                        <Badge key={area} variant="outline" className="text-xs">
-                          {area}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* DREW'S PROFILE */}
-        <TabsContent value="drew" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* How Drew communicates */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <MessageCircle className="w-5 h-5 text-accent-foreground" />
-                  How Drew Communicates Best
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {drew.communication_style && (
-                  <p className="text-sm text-foreground">{drew.communication_style}</p>
-                )}
-                {drew.love_language && (
-                  <div className="flex items-center gap-2 text-sm bg-accent/10 px-3 py-2 rounded-lg border border-accent/20">
-                    <Heart className="w-4 h-4 text-accent-foreground" />
-                    <span className="font-medium">Love Language:</span>
-                    <span>{drew.love_language}</span>
-                  </div>
-                )}
-                {drew.processing_style && (
-                  <p className="text-xs text-muted-foreground">
-                    <span className="font-medium">Processing style:</span> {drew.processing_style}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Drew's Triggers */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-orange-500" />
-                  What Triggers Drew
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {drewTriggers.length > 0 ? (
-                  drewTriggers.slice(0, 3).map((t) => (
-                    <div key={t.id} className="p-2 rounded-lg bg-orange-50 border border-orange-100">
-                      <p className="font-medium text-sm text-foreground">{t.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>
-                      <p className="text-xs text-orange-700 mt-1">
-                        <strong>Reaction:</strong> {t.common_reaction || "Activation"}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">No triggers logged yet</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* How to approach Drew */}
-            <Card className="md:col-span-2">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  What Helps Drew Show Up Best
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {drew.needs_during_conflict && (
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm font-medium text-foreground mb-1">During Conflict:</p>
-                    <p className="text-sm text-muted-foreground">{drew.needs_during_conflict}</p>
-                  </div>
-                )}
-                {drew.growth_areas && drew.growth_areas.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-foreground mb-2">Growth Areas:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {drew.growth_areas.map((area) => (
-                        <Badge key={area} variant="outline" className="text-xs">
-                          {area}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* TOGETHER */}
-        <TabsContent value="together" className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            <Card className="border-2 border-primary/30 bg-primary/5">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Heart className="w-5 h-5 text-primary" fill="currentColor" />
-                  How You Approach Conflict
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm font-medium text-foreground mb-1">What tends to work:</p>
-                    {sessions.slice(0, 2).map((s, i) => (
-                      <p key={i} className="text-sm text-muted-foreground">
-                        • {preview(s.situation)}
-                      </p>
-                    ))}
-                  </div>
-                  <div className="pt-2 border-t border-border/40">
-                    <p className="text-sm font-medium text-foreground mb-2">What to avoid:</p>
-                    <ul className="space-y-1 text-sm text-muted-foreground">
-                      <li>• Dismissing each other's needs</li>
-                      <li>• Withdrawing without communication</li>
-                      <li>• Assuming intent without clarifying</li>
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-green-600" />
-                  Proven Successful Approaches
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                    When Tony Takes the Lead:
-                  </p>
-                  {getProvenApproaches("Tony").map((item, i) => (
-                    <p key={i} className="text-sm text-foreground mb-1">
-                      • {item.situation}
-                    </p>
+              <TabsContent value="together">
+                <div className="grid gap-4 md:grid-cols-2">
+                  {sharedTemplate.map((item) => (
+                    <Card key={item.title} className="enterprise-panel border-2">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                          <Handshake className="h-4 w-4 text-primary" />
+                          {item.title}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="enterprise-panel-muted rounded-2xl p-4 text-sm leading-7 text-foreground">
+                          {item.prompt}
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
-                <div className="pt-3 border-t border-border/40">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                    When Drew Takes the Lead:
-                  </p>
-                  {getProvenApproaches("Drew").map((item, i) => (
-                    <p key={i} className="text-sm text-foreground mb-1">
-                      • {item.situation}
-                    </p>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6">
+          <Card className="enterprise-panel border-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl">Starter Template</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm leading-7 text-foreground">
+              <div className="enterprise-panel-muted rounded-2xl p-4">
+                <p className="enterprise-section-label">Before A Hard Conversation</p>
+                <p className="mt-2">“I want to have this conversation in a way that actually works for both of us.”</p>
+              </div>
+              <div className="enterprise-panel-muted rounded-2xl p-4">
+                <p className="enterprise-section-label">During The Conversation</p>
+                <p className="mt-2">“What are you hearing me say right now?” and “What do you need most from me in this moment?”</p>
+              </div>
+              <div className="enterprise-panel-muted rounded-2xl p-4">
+                <p className="enterprise-section-label">At The End</p>
+                <p className="mt-2">“What should we repeat next time, and what should we do differently?”</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="enterprise-panel border-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl">What This Page Will Eventually Hold</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground leading-7">
+              <p>Profile-informed talking points for Tony and Drew.</p>
+              <p>Repair scripts tied to your actual conflict patterns.</p>
+              <p>Weekly rhythms and decision rules you can reuse.</p>
+              <p>A living set of templates you can edit over time.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
     </div>
   );
 }

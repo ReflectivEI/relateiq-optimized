@@ -12,7 +12,21 @@ import { globalState } from "@/lib/globalState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Sparkles, MessageCircle, Copy } from "lucide-react";
+import {
+  Loader2,
+  Sparkles,
+  MessageCircle,
+  Copy,
+  AlertTriangle,
+  Wrench,
+  MapPin,
+  Search,
+  Pencil,
+  Waves,
+  RefreshCw,
+  MessageSquare,
+  Clock3,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
 import { buildCoachPrompt } from "@/lib/prompts";
@@ -34,15 +48,55 @@ import NotesPanel from "@/components/notes/NotesPanel";
 import { enforceCoachStructure, deriveCoachModes } from "@/lib/coachStructureEnforcer";
 
 const SUGGESTION_PILLS = [
-  { id: "handling_conflict", label: "Handling Conflict", icon: "⚡" },
-  { id: "repair_after_tension", label: "Repair After Tension", icon: "💞" },
-  { id: "feel_misunderstood", label: "I Feel Misunderstood", icon: "😕" },
-  { id: "they_feel_distant", label: "They Feel Distant", icon: "📍" },
-  { id: "something_felt_off", label: "Something Felt Off", icon: "🤔" },
-  { id: "say_this_better", label: "I Want to Say This Better", icon: "💬" },
-  { id: "overwhelmed_triggered", label: "I'm Overwhelmed / Triggered", icon: "🌊" },
-  { id: "repeating_pattern", label: "We Keep Repeating This Pattern", icon: "🔄" },
+  { id: "handling_conflict", label: "Handling Conflict", icon: AlertTriangle, description: "Get grounded guidance before a hard conversation escalates." },
+  { id: "repair_after_tension", label: "Repair After Tension", icon: Wrench, description: "Find the cleanest way to reconnect after friction or distance." },
+  { id: "feel_misunderstood", label: "I Feel Misunderstood", icon: MessageSquare, description: "Clarify what landed wrong and how to say it more clearly." },
+  { id: "they_feel_distant", label: "They Feel Distant", icon: MapPin, description: "Respond when the other person feels emotionally farther away." },
+  { id: "something_felt_off", label: "Something Felt Off", icon: Search, description: "Make sense of a subtle moment that felt tense or unclear." },
+  { id: "say_this_better", label: "I Want to Say This Better", icon: Pencil, description: "Rewrite a thought into language that is steadier and easier to receive." },
+  { id: "overwhelmed_triggered", label: "I'm Overwhelmed / Triggered", icon: Waves, description: "Slow down and regulate before the next move." },
+  { id: "repeating_pattern", label: "We Keep Repeating This Pattern", icon: RefreshCw, description: "Name the cycle and interrupt it with a better response." },
 ];
+
+function cleanSituationText(value) {
+  if (!value || typeof value !== "string") return "";
+  return value
+    .replace(/\[[^\]]+\]\s*/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function summarizeCoachSession(session) {
+  const rawText = cleanSituationText(session?.situation);
+  const text = rawText.length > 140 ? `${rawText.slice(0, 137)}...` : rawText;
+  const lower = rawText.toLowerCase();
+
+  let title = "Recent Coaching Request";
+  let description = text || "A recent request for relationship guidance.";
+
+  if (lower.includes("repair") || lower.includes("reconnect")) {
+    title = "Reconnection Support";
+  } else if (lower.includes("misunderstood") || lower.includes("misheard") || lower.includes("dismissed")) {
+    title = "Feeling Misunderstood";
+  } else if (lower.includes("conflict") || lower.includes("tension")) {
+    title = "Conflict Navigation";
+  } else if (lower.includes("trigger") || lower.includes("overwhelmed")) {
+    title = "Regulation Support";
+  } else if (lower.includes("say") || lower.includes("phrase") || lower.includes("word")) {
+    title = "Wording Support";
+  } else if (session?.situation?.includes("[Questionnaire")) {
+    title = "Questionnaire Follow-Up";
+    description = rawText && rawText.toLowerCase() !== "hi"
+      ? text
+      : `A short follow-up started from ${session.speaker}'s questionnaire context.`;
+  }
+
+  if (!rawText || rawText.toLowerCase() === "hi") {
+    description = `A brief coaching prompt was opened for ${session.speaker} speaking to ${session.speaking_to}.`;
+  }
+
+  return { title, description };
+}
 
 export default function Coach() {
   const [speaker, setSpeaker] = useState("Tony");
@@ -264,7 +318,7 @@ export default function Coach() {
       )}
 
       {/* Input Section */}
-      <Card className="border border-border/60 bg-card/80">
+      <Card className="enterprise-panel border-2">
         <CardContent className="p-6 space-y-4">
           {/* Directional Mode */}
           <div className="space-y-3">
@@ -424,19 +478,42 @@ export default function Coach() {
             {pastSessions
               .filter((s) => s.tool_type === "coach")
               .slice(0, 8)
-              .map((session) => (
-                <Card key={session.id} className="cursor-pointer hover:shadow-sm transition-shadow" onClick={() => { setSpeaker(session.speaker); setSpeakingTo(session.speaking_to); setSituation(session.situation); setBaseResponse(session.ai_response); setResponse(session.ai_response); }}>
+              .map((session) => {
+                const summary = summarizeCoachSession(session);
+                return (
+                <Card
+                  key={session.id}
+                  className="cursor-pointer border-2 border-primary/15 bg-white transition-all hover:border-primary/30 hover:shadow-sm"
+                  onClick={() => { setSpeaker(session.speaker); setSpeakingTo(session.speaking_to); setSituation(cleanSituationText(session.situation)); setBaseResponse(session.ai_response); setResponse(session.ai_response); }}
+                >
                   <CardContent className="p-4 flex items-start gap-3">
-                    <MessageCircle className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-[#eef7f8]">
+                      <MessageCircle className="w-4 h-4 text-[#0e6f72]" />
+                    </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground">
-                        {session.speaker} → {session.speaking_to}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <p className="text-sm font-semibold text-foreground">{summary.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {session.speaker} → {session.speaking_to}
+                        </p>
+                        <span className="hidden text-muted-foreground/40 sm:inline">•</span>
+                        <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock3 className="h-3 w-3" />
+                          {new Date(session.created_date).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                      <p className="mt-1 text-sm text-[#14263f]">
+                        {summary.description}
                       </p>
-                      <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">{session.situation}</p>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              )})}
           </div>
         </div>
       )}

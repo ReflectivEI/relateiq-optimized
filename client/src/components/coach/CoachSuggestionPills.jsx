@@ -18,10 +18,19 @@ export default function CoachSuggestionPills({ pills, onSelect, loading }) {
               size="sm"
               onClick={() => onSelect(pill.id)}
               disabled={loading}
-              className="w-full justify-start text-xs gap-1.5 text-left"
+              className="h-auto w-full justify-start gap-3 rounded-2xl border-2 border-primary/25 bg-white px-3 py-2.5 text-left text-xs text-foreground hover:border-primary hover:bg-[#eef7f8]"
             >
-              <span>{pill.icon}</span>
-              <span>{pill.label}</span>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-[#dff3f1]">
+                <pill.icon className="h-4 w-4 text-[#0e6f72]" />
+              </span>
+              <span className="flex min-w-0 flex-col items-start">
+                <span className="font-semibold text-[#14263f]">{pill.label}</span>
+                {pill.description && (
+                  <span className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                    {pill.description}
+                  </span>
+                )}
+              </span>
             </Button>
           </motion.div>
         ))}

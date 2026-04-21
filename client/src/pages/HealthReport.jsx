@@ -6,7 +6,7 @@ import React from "react";
 import { api } from "@/api/client";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Activity } from "lucide-react";
+import { ActivitySquare, ShieldCheck, TrendingUp } from "lucide-react";
 import HealthReportMetrics from "@/components/health-report/HealthReportMetrics";
 import SentimentTrendChart from "@/components/health-report/SentimentTrendChart";
 import ThemeCloud from "@/components/health-report/ThemeCloud";
@@ -31,19 +31,41 @@ export default function HealthReport() {
 
   return (
     <div className="space-y-8">
-      {/* Hero */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 pt-2">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/25 text-primary text-xs font-semibold uppercase tracking-wide">
-          <Activity className="w-4 h-4" />
-          Weekly Summary
+      <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="enterprise-hero overflow-hidden">
+        <div className="grid gap-6 px-6 py-6 md:px-8 md:py-7 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.85fr)]">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-teal-200/80">
+              <ActivitySquare className="h-4 w-4" />
+              Weekly Summary
+            </div>
+            <h1 className="font-display text-4xl font-bold text-white md:text-5xl">Relationship Health Report</h1>
+            <p className="max-w-3xl text-base leading-7 text-slate-200">
+              A cleaner, enterprise-grade snapshot of your relationship health. This page is meant to surface
+              traction, friction, and recurring patterns in a way that is easier to read and easier to use.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-[1.15rem] border border-white/15 bg-white/10 p-4 text-slate-100">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <ShieldCheck className="h-4 w-4 text-teal-200" />
+                What This Report Answers
+              </div>
+              <p className="mt-3 text-sm leading-6 text-slate-200">
+                What is stable, what is drifting, and where attention is needed next.
+              </p>
+            </div>
+            <div className="rounded-[1.15rem] border border-white/15 bg-white/10 p-4 text-slate-100">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <TrendingUp className="h-4 w-4 text-teal-200" />
+                Best Use
+              </div>
+              <p className="mt-3 text-sm leading-6 text-slate-200">
+                Review this weekly together, then choose one concrete focus for the next seven days.
+              </p>
+            </div>
+          </div>
         </div>
-        <h1 className="font-display text-4xl sm:text-5xl font-bold text-foreground">
-          Relationship Health Report
-        </h1>
-        <p className="text-muted-foreground text-lg max-w-2xl">
-          A data-driven snapshot of your relationship's health — themes, sentiment trends, and communication patterns from your shared history.
-        </p>
-      </motion.div>
+      </motion.section>
 
       {/* Metrics */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>

@@ -10,9 +10,9 @@ import { ChevronDown, ChevronUp, AlertTriangle, Brain, Eye, Zap, ShieldCheck, Ro
 import { cn } from "@/lib/utils";
 
 const RISK_STYLES = {
-  low:    { badge: "bg-green-100 text-green-700 border-green-200",  bar: "bg-green-500"  },
-  medium: { badge: "bg-yellow-100 text-yellow-700 border-yellow-200", bar: "bg-yellow-500" },
-  high:   { badge: "bg-red-100 text-red-700 border-red-200",        bar: "bg-red-500"    },
+  low:    { badge: "border-teal-500 bg-[#14263f] text-white", bar: "bg-primary"  },
+  medium: { badge: "border-teal-500 bg-white text-[#14263f]", bar: "bg-primary" },
+  high:   { badge: "border-red-500 bg-white text-red-700", bar: "bg-red-500" },
 };
 
 function Section({ icon: Icon, label, children, accent = "text-primary" }) {
@@ -62,8 +62,39 @@ export default function PredictionCard({ prediction }) {
   const risk = RISK_STYLES[prediction.risk_level] || RISK_STYLES.medium;
   const trace = prediction.trace || {};
 
+  const readableSections = [
+    {
+      title: "Predicted Behavior",
+      subtitle: "What the model expects the actor to do first",
+      icon: Zap,
+      content: prediction.predicted_behavior,
+      accent: "text-primary",
+    },
+    {
+      title: "Emotional State",
+      subtitle: "How the actor is likely to be feeling internally",
+      icon: Eye,
+      content: prediction.emotional_state,
+      accent: "text-primary",
+    },
+    {
+      title: "Likely Misinterpretation",
+      subtitle: "What the other person may assume if nothing changes",
+      icon: AlertTriangle,
+      content: prediction.likely_misinterpretation,
+      accent: "text-primary",
+    },
+    {
+      title: "Recommended Preemptive Action",
+      subtitle: "The cleanest move to lower risk before the conversation escalates",
+      icon: ShieldCheck,
+      content: prediction.recommended_preemptive_action,
+      accent: "text-primary",
+    },
+  ];
+
   return (
-    <Card className="border border-border/60">
+    <Card className="enterprise-panel border-2">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="text-sm flex items-center gap-2">
@@ -85,32 +116,27 @@ export default function PredictionCard({ prediction }) {
       </CardHeader>
 
       <CardContent className="space-y-5">
-        {/* Predicted Behavior */}
-        <Section icon={Zap} label="Predicted Behavior">
-          {prediction.predicted_behavior}
-        </Section>
-
-        {/* Emotional State */}
-        <Section icon={Eye} label="Emotional State" accent="text-purple-600">
-          {prediction.emotional_state}
-        </Section>
-
-        {/* Likely Misinterpretation */}
-        <Section icon={AlertTriangle} label="Likely Misinterpretation" accent="text-orange-600">
-          {prediction.likely_misinterpretation}
-        </Section>
-
-        {/* Preemptive Action */}
-        <Section icon={ShieldCheck} label="Recommended Preemptive Action" accent="text-green-700">
-          {prediction.recommended_preemptive_action}
-        </Section>
+        <div className="grid gap-4">
+          {readableSections.map((section) => (
+            <div key={section.title} className="enterprise-panel-muted rounded-2xl p-4">
+              <div className="flex items-center gap-2">
+                <section.icon className={cn("h-4 w-4", section.accent)} />
+                <p className="text-sm font-semibold text-foreground">{section.title}</p>
+              </div>
+              <p className="mt-1 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                {section.subtitle}
+              </p>
+              <p className="mt-3 text-sm leading-7 text-foreground">{section.content}</p>
+            </div>
+          ))}
+        </div>
 
         {/* Drivers — expandable */}
         {prediction.drivers?.length > 0 && (
-          <div className="rounded-xl border border-border/50 overflow-hidden">
+          <div className="rounded-[1.1rem] border border-border/50 overflow-hidden">
             <button
               onClick={() => setDriversOpen(!driversOpen)}
-              className="w-full flex items-center justify-between px-4 py-2.5 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+              className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
             >
               <span className="text-xs font-semibold text-foreground">What is driving this?</span>
               {driversOpen ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
@@ -126,10 +152,10 @@ export default function PredictionCard({ prediction }) {
         )}
 
         {/* Trace Panel — expandable */}
-        <div className="rounded-xl border border-border/50 overflow-hidden">
+        <div className="rounded-[1.1rem] border border-border/50 overflow-hidden">
           <button
             onClick={() => setTraceOpen(!traceOpen)}
-            className="w-full flex items-center justify-between px-4 py-2.5 bg-muted/20 hover:bg-muted/40 transition-colors text-left"
+            className="w-full flex items-center justify-between px-4 py-3 bg-muted/20 hover:bg-muted/40 transition-colors text-left"
           >
             <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
               <Route className="w-3.5 h-3.5" />
@@ -139,7 +165,7 @@ export default function PredictionCard({ prediction }) {
           </button>
 
           {traceOpen && (
-            <div className="px-4 pb-4 pt-2 space-y-4 font-mono text-[11px]">
+            <div className="px-4 pb-4 pt-3 space-y-4 text-sm">
 
               <TraceRow label="Scenario Matched">
                 <p className="text-foreground">{trace.scenario_matched} <span className="text-muted-foreground">({trace.scenario_id})</span></p>
@@ -150,7 +176,7 @@ export default function PredictionCard({ prediction }) {
                 <TraceRow label="Trigger Words Found">
                   <div className="flex flex-wrap gap-1 mt-1">
                     {trace.trigger_words_found.map((w, i) => (
-                      <span key={i} className="px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">{w}</span>
+                      <span key={i} className="rounded-full border border-teal-500/35 bg-[#14263f] px-2 py-1 text-[11px] font-semibold text-white">{w}</span>
                     ))}
                   </div>
                 </TraceRow>

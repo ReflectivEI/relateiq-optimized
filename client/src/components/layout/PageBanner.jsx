@@ -4,52 +4,67 @@
  */
 import React from "react";
 import { useLocation } from "react-router-dom";
-import { Heart, Home, User, MessageCircleHeart, BarChart3, CalendarCheck, Sparkles, Zap, HeartHandshake, MessagesSquare, BrainCircuit, Library, BookOpen, TrendingUp, Sunrise, BookMarked, Stars } from "lucide-react";
+import {
+  ActivitySquare,
+  BarChart3,
+  BookOpenText,
+  Bot,
+  BrainCircuit,
+  CalendarCheck2,
+  ClipboardList,
+  Handshake,
+  LayoutDashboard,
+  LibraryBig,
+  Link2,
+  MessagesSquare,
+  NotebookPen,
+  ShieldAlert,
+  Telescope,
+  TrendingUp,
+  Users,
+  Wrench,
+} from "lucide-react";
 
 const PAGE_META = {
-  "/":             { label: "Home",              subtitle: "Your relationship command center",               icon: Home },
-  "/journal":      { label: "Journal",            subtitle: "Your private reflection timeline",               icon: BookMarked },
-  "/vision":       { label: "Vision Board",       subtitle: "Pin your shared dreams and aspirations",         icon: Stars },
-  "/playbook":     { label: "Playbook",           subtitle: "Your personalized relationship guide",           icon: BookOpen },
-  "/profiles":     { label: "Profiles",           subtitle: "Behavioral profiles built from your data",       icon: User },
-  "/questionnaire":{ label: "Questionnaire",      subtitle: "Build relationship context through reflection",  icon: MessageCircleHeart },
+  "/":             { label: "Context: Us",       subtitle: "Understanding each other deeply, communicating with intention, and growing together — powered by insight.", icon: LayoutDashboard },
+  "/journal":      { label: "Journal",            subtitle: "A private writing space for Tony and Drew",      icon: NotebookPen },
+  "/vision":       { label: "Vision Board",       subtitle: "Pin your shared dreams and aspirations",         icon: Telescope },
+  "/playbook":     { label: "Playbook",           subtitle: "Your relationship operating manual and templates", icon: BookOpenText },
+  "/profiles":     { label: "Profiles",           subtitle: "Behavioral profiles built from your data",       icon: Users },
+  "/questionnaire":{ label: "Questionnaire",      subtitle: "Build relationship context through reflection",  icon: ClipboardList },
   "/analysis":     { label: "Analysis Engine",    subtitle: "Multi-perspective relationship intelligence",    icon: BrainCircuit },
   "/roadmap":      { label: "Growth Roadmap",     subtitle: "Your 6-month personalized growth plan",         icon: TrendingUp },
-  "/daily":        { label: "Daily Connections",  subtitle: "One question. Two perspectives. Every day.",     icon: Sunrise },
-  "/insight-library":{ label: "Insight Library",  subtitle: "Every analysis saved and searchable",           icon: Library },
-  "/knowledge":    { label: "Knowledge Hub",      subtitle: "AI insights + curated psychology resources",    icon: BookOpen },
-  "/coach":        { label: "AI Coach",           subtitle: "Context-aware guidance for real situations",    icon: Sparkles },
+  "/daily":        { label: "Daily Connections",  subtitle: "One question. Two perspectives. Every day.",     icon: Handshake },
+  "/insight-library":{ label: "Insight Library",  subtitle: "Every analysis saved and searchable",           icon: LibraryBig },
+  "/knowledge":    { label: "Knowledge Hub",      subtitle: "AI insights + curated psychology resources",    icon: BookOpenText },
+  "/coach":        { label: "AI Coach",           subtitle: "Context-aware guidance for real situations",    icon: Bot },
   "/insights":     { label: "Insights",           subtitle: "Deep relationship pattern analysis",            icon: BarChart3 },
-  "/check-in":     { label: "Weekly Check-In",    subtitle: "Track how you're growing together",            icon: CalendarCheck },
-  "/tools":        { label: "Smart Tools",        subtitle: "Real-time support for in-the-moment challenges", icon: Zap },
-  "/triggers":     { label: "Trigger Library",    subtitle: "Know what activates you — and each other",     icon: Zap },
-  "/repair":       { label: "Proactive Repair",   subtitle: "AI-guided repair after tension or conflict",    icon: HeartHandshake },
+  "/check-in":     { label: "Weekly Check-In",    subtitle: "Track how you're growing together",            icon: CalendarCheck2 },
+  "/tools":        { label: "Smart Tools",        subtitle: "Real-time support for in-the-moment challenges", icon: Wrench },
+  "/triggers":     { label: "Trigger Library",    subtitle: "Know what activates you — and each other",     icon: ShieldAlert },
+  "/repair":       { label: "Proactive Repair",   subtitle: "AI-guided repair after tension or conflict",    icon: ShieldAlert },
   "/chat":         { label: "Relationship Chat",  subtitle: "Open conversation with your AI relationship coach", icon: MessagesSquare },
+  "/health-report": { label: "Health Report",     subtitle: "An enterprise-grade snapshot of your relationship health", icon: ActivitySquare },
 };
 
 export default function PageBanner() {
   const location = useLocation();
-  const meta = PAGE_META[location.pathname] || { label: "Context: Us", subtitle: "Better Together", icon: Heart };
+  const meta = PAGE_META[location.pathname] || { label: "Context: Us", subtitle: "Better Together", icon: Link2 };
   const Icon = meta.icon;
 
   return (
-    <div
-      className="rounded-xl border border-border mb-8 overflow-hidden"
-      style={{
-        background: "linear-gradient(135deg, hsl(178 40% 22%) 0%, hsl(195 45% 18%) 60%, hsl(218 44% 18%) 100%)",
-      }}
-    >
+    <div className="enterprise-hero mb-8 overflow-hidden">
       <div className="px-6 py-5 flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-widest text-teal-300/70">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-200/70">
             Context: Us
           </p>
           <h2 className="font-display text-2xl sm:text-3xl font-bold text-white">
             {meta.label}
           </h2>
-          <p className="text-sm text-teal-100/70 mt-0.5">{meta.subtitle}</p>
+          <p className="max-w-2xl text-sm leading-relaxed text-teal-100/75 mt-0.5">{meta.subtitle}</p>
         </div>
-        <div className="shrink-0 w-10 h-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center mt-1">
+        <div className="shrink-0 w-10 h-10 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center mt-1">
           <Icon className="w-5 h-5 text-teal-200" />
         </div>
       </div>

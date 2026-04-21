@@ -14,16 +14,6 @@ const STOP_WORDS = new Set([
   "as", "from", "by", "re", "which", "would", "could", "should", "also", "much",
 ]);
 
-const THEME_COLORS = [
-  "text-primary bg-primary/10",
-  "text-blue-300 bg-blue-400/10",
-  "text-purple-300 bg-purple-400/10",
-  "text-green-300 bg-green-400/10",
-  "text-orange-300 bg-orange-400/10",
-  "text-rose-300 bg-rose-400/10",
-  "text-teal-300 bg-teal-400/10",
-];
-
 function extractTopWords(texts, topN = 18) {
   const freq = {};
   texts.forEach((text) => {
@@ -58,7 +48,7 @@ export default function ThemeCloud({ checkIns, reflections, coachSessions }) {
   const max = words[0]?.count || 1;
 
   return (
-    <Card className="border-2 border-border/60">
+    <Card className="enterprise-panel border-2">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Hash className="w-4 h-4 text-primary" />
@@ -70,15 +60,14 @@ export default function ThemeCloud({ checkIns, reflections, coachSessions }) {
         <div className="flex flex-wrap gap-2">
           {words.map(({ word, count }, i) => {
             const size = count / max;
-            const colorClass = THEME_COLORS[i % THEME_COLORS.length];
             return (
               <span
                 key={word}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold capitalize ${colorClass}`}
+                className={`rounded-full border border-teal-500/35 bg-[#14263f] px-3 py-1.5 text-xs font-semibold capitalize text-white`}
                 style={{ fontSize: `${0.7 + size * 0.45}rem` }}
               >
                 {word}
-                <span className="ml-1 opacity-50 text-[10px]">×{count}</span>
+                <span className="ml-1 text-[10px] text-teal-200/80">×{count}</span>
               </span>
             );
           })}

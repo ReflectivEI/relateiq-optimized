@@ -31,7 +31,7 @@ export default function SentimentTrendChart({ checkIns }) {
     });
 
   return (
-    <Card className="border-2 border-primary/20">
+    <Card className="enterprise-panel border-2 border-primary/20">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <TrendingUp className="w-4 h-4 text-primary" />

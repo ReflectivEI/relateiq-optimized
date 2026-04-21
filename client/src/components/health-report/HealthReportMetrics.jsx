@@ -3,7 +3,7 @@
  */
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ActivitySquare, BrainCircuit, MessageSquareText, TrendingDown, TrendingUp, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const MOOD_SCORE = { great: 5, good: 4, okay: 3, tough: 2, difficult: 1 };
@@ -34,40 +34,43 @@ function avgMoodLabel(checkIns) {
 export default function HealthReportMetrics({ checkIns, reflections, coachSessions }) {
   const trend = moodTrend(checkIns);
   const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
-  const trendColor = trend === "up" ? "text-green-400" : trend === "down" ? "text-red-400" : "text-muted-foreground";
+  const trendColor = trend === "up" ? "text-teal-500" : trend === "down" ? "text-red-500" : "text-muted-foreground";
 
   const metrics = [
     {
-      label: "Avg Mood",
+      label: "Overall Tone",
       value: avgMoodLabel(checkIns),
-      sub: "past check-ins",
+      sub: "from recent check-ins",
       icon: <TrendIcon className={cn("w-4 h-4", trendColor)} />,
-      color: trend === "up" ? "border-green-400/30" : trend === "down" ? "border-red-400/30" : "border-border",
+      color: "border-primary/20",
     },
     {
       label: "Check-Ins",
       value: checkIns.length,
-      sub: "total logged",
-      color: "border-primary/30",
+      sub: "weekly snapshots logged",
+      icon: <ActivitySquare className="w-4 h-4 text-primary" />,
+      color: "border-primary/20",
     },
     {
       label: "Reflections",
       value: reflections.length,
-      sub: "daily answers",
-      color: "border-blue-400/30",
+      sub: "journal-style entries",
+      icon: <MessageSquareText className="w-4 h-4 text-primary" />,
+      color: "border-primary/20",
     },
     {
       label: "Coach Sessions",
       value: coachSessions.length,
       sub: "conversations",
-      color: "border-purple-400/30",
+      icon: <BrainCircuit className="w-4 h-4 text-primary" />,
+      color: "border-primary/20",
     },
   ];
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {metrics.map((m) => (
-        <Card key={m.label} className={cn("border-2", m.color)}>
+        <Card key={m.label} className={cn("enterprise-panel border-2", m.color)}>
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-1">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{m.label}</p>
