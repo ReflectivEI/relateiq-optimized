@@ -32,18 +32,22 @@ export default function NotesPanel({
       }),
   });
 
-  // My notes
-  const myNotes = notes.filter((n) => n.person_name === personName);
+  const isSharedScope = personName === "Tony_Drew";
   const partnerName = personName === "Tony" ? "Drew" : "Tony";
-  const sharedNotes = notes.filter(
-    (n) => n.person_name === partnerName && n.shared_with_partner
-  );
+  const myNotes = isSharedScope
+    ? notes.filter((n) => n.person_name === "Tony" || n.person_name === "Drew")
+    : notes.filter((n) => n.person_name === personName);
+  const sharedNotes = isSharedScope
+    ? []
+    : notes.filter(
+        (n) => n.person_name === partnerName && n.shared_with_partner
+      );
 
   // Create note
   const createNoteMutation = useMutation({
     mutationFn: (content) =>
       api.entities.Note.create({
-        person_name: personName,
+        person_name: isSharedScope ? "Tony" : personName,
         content,
         related_section: section,
         related_item_id: relatedItemId,
@@ -129,7 +133,7 @@ export default function NotesPanel({
               {myNotes.length > 0 && (
                 <div className="space-y-2 border-t border-border/40 pt-3">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Your Notes ({myNotes.length})
+                    {isSharedScope ? `Shared Notes (${myNotes.length})` : `Your Notes (${myNotes.length})`}
                   </p>
                   {myNotes.map((note) => (
                     <div
@@ -138,7 +142,7 @@ export default function NotesPanel({
                     >
                       <p className="text-foreground">{note.content}</p>
                       <div className="flex gap-2 pt-2">
-                        {!note.shared_with_partner ? (
+                        {!isSharedScope && !note.shared_with_partner ? (
                           <Button
                             onClick={() => shareNoteMutation.mutate(note.id)}
                             disabled={shareNoteMutation.isPending}
@@ -149,9 +153,13 @@ export default function NotesPanel({
                             <Share2 className="w-3 h-3 mr-1" />
                             Share
                           </Button>
-                        ) : (
+                        ) : !isSharedScope ? (
                           <span className="text-xs text-teal-700 font-semibold px-2 py-1">
                             ✓ Shared
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground px-2 py-1">
+                            {note.person_name}
                           </span>
                         )}
                         <Button

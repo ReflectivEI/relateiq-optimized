@@ -346,7 +346,7 @@ function ContextInsightsView({ insights, ctx, contentRef, insightId }) {
         </>
       )}
 
-      <NotesPanel section="insights" relatedItemId={insightId} personName="Tony" />
+      <NotesPanel section="insights" relatedItemId={insightId} personName="Tony_Drew" />
     </div>
   );
 }
@@ -388,7 +388,7 @@ function DeepInsightsView({ insights, ctx, contentRef, insightId }) {
         </>
       )}
 
-      <NotesPanel section="insights" relatedItemId={insightId} personName="Tony" />
+      <NotesPanel section="insights" relatedItemId={insightId} personName="Tony_Drew" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
