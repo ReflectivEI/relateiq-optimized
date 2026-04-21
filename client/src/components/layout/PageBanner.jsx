@@ -49,6 +49,12 @@ const PAGE_META = {
 
 export default function PageBanner() {
   const location = useLocation();
+  const customHeroRoutes = new Set(["/journal", "/playbook", "/health-report"]);
+
+  if (customHeroRoutes.has(location.pathname)) {
+    return null;
+  }
+
   const meta = PAGE_META[location.pathname] || { label: "Context: Us", subtitle: "Better Together", icon: Link2 };
   const Icon = meta.icon;
 
