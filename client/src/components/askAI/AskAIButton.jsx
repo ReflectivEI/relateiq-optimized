@@ -17,6 +17,9 @@ export default function AskAIButton({
   variant = "ghost",
 }) {
   const [modalOpen, setModalOpen] = useState(false);
+  const resolvedClassName = showText
+    ? `enterprise-icon-pill ${className}`
+    : `h-10 w-10 rounded-full border border-[#0e6f72]/35 bg-[#eef8f7] text-primary hover:bg-[#d9f4f1] hover:shadow-[0_0_0_3px_rgba(14,111,114,0.10)] ${className}`;
 
   return (
     <>
@@ -24,11 +27,11 @@ export default function AskAIButton({
         variant={variant}
         size={size}
         onClick={() => setModalOpen(true)}
-        className={`gap-1.5 text-primary hover:bg-primary/10 ${className}`}
+        className={resolvedClassName}
         title="Ask AI Coach"
       >
-        <Sparkles className="w-3.5 h-3.5" />
-        {showText && <span className="text-xs">Ask AI</span>}
+        <Sparkles className="h-3.5 w-3.5 text-primary" />
+        {showText && <span className="text-sm text-[#2b3445]">Ask AI</span>}
       </Button>
 
       <AskAIModal

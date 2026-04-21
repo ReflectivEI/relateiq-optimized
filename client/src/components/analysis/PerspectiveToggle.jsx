@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import { UserRound, ArrowRightLeft } from "lucide-react";
 
 const LABELS = {
   "Tony": "Tony (Individual)",
@@ -16,12 +17,15 @@ export default function PerspectiveToggle({ value, onChange, options }) {
           key={opt}
           onClick={() => onChange(opt)}
           className={cn(
-            "px-3 py-1.5 rounded-lg border text-xs font-medium transition-all",
-            value === opt
-              ? "bg-primary text-primary-foreground border-primary shadow-sm"
-              : "bg-card border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-accent/30"
+            "enterprise-option-pill",
+            value === opt && "enterprise-option-pill-active"
           )}
         >
+          {opt.includes("→") ? (
+            <ArrowRightLeft className={cn("h-4 w-4", value === opt ? "text-white" : "text-primary")} />
+          ) : (
+            <UserRound className={cn("h-4 w-4", value === opt ? "text-white" : "text-primary")} />
+          )}
           {LABELS[opt] || opt}
         </button>
       ))}

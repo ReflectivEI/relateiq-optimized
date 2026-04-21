@@ -180,11 +180,11 @@ export default function AnalysisEngine() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">Analysis Engine</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
+          <p className="mt-2 text-base text-muted-foreground">
             Structured intelligence — {tonyResponses.length + drewResponses.length} data points loaded
           </p>
         </div>
@@ -202,8 +202,8 @@ export default function AnalysisEngine() {
 
         {/* ── ANALYSIS TAB ── */}
         <TabsContent value="analysis" className="space-y-5 mt-4">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="space-y-2">
+          <div className="grid gap-4 xl:grid-cols-2">
+            <div className="enterprise-control-surface p-5 space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Perspective</p>
               <PerspectiveToggle value={perspective} onChange={handlePerspectiveSwitch} options={PERSPECTIVES} />
               {/* Active perspective label */}
@@ -225,13 +225,13 @@ export default function AnalysisEngine() {
                 )}
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="enterprise-control-surface p-5 space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Output Mode</p>
               <AnalysisModeSelector value={mode} onChange={handleModeSwitch} disabled={!baseAnalysis} />
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="enterprise-control-surface p-5 space-y-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Scenario (optional)
             </p>
@@ -239,12 +239,12 @@ export default function AnalysisEngine() {
               placeholder="e.g. Drew brings up a sensitive topic unexpectedly after a long day at work..."
               value={scenario}
               onChange={(e) => setScenario(e.target.value)}
-              className="min-h-[72px] resize-none bg-background/50 text-sm"
+              className="min-h-[92px] resize-none bg-background/50 text-base"
             />
           </div>
 
           <div className="flex flex-wrap gap-3 items-center">
-            <Button onClick={handleGenerate} disabled={loading || perspectiveSwitching} className="gap-2">
+            <Button onClick={handleGenerate} disabled={loading || perspectiveSwitching} className="enterprise-pill gap-2 h-11 px-5">
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               {loading ? `Generating ${perspective} analysis...` : `Generate Analysis`}
             </Button>
@@ -254,7 +254,7 @@ export default function AnalysisEngine() {
                 size="sm"
                 onClick={handleGenerate}
                 disabled={loading}
-                className="gap-1.5 text-xs"
+                className="enterprise-option-pill gap-1.5"
               >
                 <RefreshCw className="w-3 h-3" />
                 Re-run

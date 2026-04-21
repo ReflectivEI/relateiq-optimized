@@ -1,12 +1,13 @@
 import React from "react";
+import { Search, Lightbulb, Zap, ClipboardList, CheckSquare2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const MODES = [
-  { key: "deep", label: "In-Depth", icon: "🔍" },
-  { key: "explain", label: "Explain", icon: "💡" },
-  { key: "recap", label: "60s Recap", icon: "⚡" },
-  { key: "summary", label: "Summary", icon: "📋" },
-  { key: "action", label: "Action Plan", icon: "✅" },
+  { key: "deep", label: "In-Depth", icon: Search },
+  { key: "explain", label: "Explain", icon: Lightbulb },
+  { key: "recap", label: "60s Recap", icon: Zap },
+  { key: "summary", label: "Summary", icon: ClipboardList },
+  { key: "action", label: "Action Plan", icon: CheckSquare2 },
 ];
 
 export default function AnalysisModeSelector({ value, onChange, disabled }) {
@@ -17,15 +18,13 @@ export default function AnalysisModeSelector({ value, onChange, disabled }) {
           key={m.key}
           onClick={() => onChange(m.key)}
           className={cn(
-            "px-3 py-1.5 rounded-lg border text-xs font-medium transition-all flex items-center gap-1.5",
-            value === m.key
-              ? "bg-primary text-primary-foreground border-primary shadow-sm"
-              : "bg-card border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-accent/30",
+            "enterprise-option-pill",
+            value === m.key && "enterprise-option-pill-active",
             disabled && m.key !== value && "opacity-70"
           )}
           title={disabled && m.key !== value ? "Generate an analysis first, then switch modes instantly" : ""}
         >
-          <span>{m.icon}</span>
+          <m.icon className={cn("h-4 w-4", value === m.key ? "text-white" : "text-primary")} />
           {m.label}
         </button>
       ))}

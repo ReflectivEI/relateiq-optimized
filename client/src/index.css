@@ -78,7 +78,7 @@
     --secondary: 208 24% 91%;
     --secondary-foreground: 218 34% 24%;
     --muted: 204 22% 93%;
-    --muted-foreground: 215 18% 43%;
+    --muted-foreground: 218 20% 31%;
     --accent: 201 34% 93%;
     --accent-foreground: 218 44% 14%;
     --destructive: 0 60% 55%;
@@ -191,5 +191,21 @@
 
   .enterprise-grid-card {
     @apply rounded-[1.15rem] border border-border bg-card p-5 shadow-sm;
+  }
+
+  .enterprise-control-surface {
+    @apply rounded-[1.25rem] border border-border bg-card/80 shadow-sm;
+  }
+
+  .enterprise-option-pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-[#0e6f72]/25 bg-white px-4 py-2 text-sm font-medium text-[#2b3445] transition-all duration-200 hover:border-[#0e6f72] hover:bg-[#e8f7f6] hover:shadow-sm;
+  }
+
+  .enterprise-option-pill-active {
+    @apply border-[#0e6f72] bg-[#0e6f72] text-white shadow-sm;
+  }
+
+  .enterprise-icon-pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-[#0e6f72]/35 bg-[#eef8f7] px-4 py-2 text-sm font-medium text-[#2b3445] transition-all duration-200 hover:border-[#0e6f72] hover:bg-[#d9f4f1] hover:shadow-[0_0_0_3px_rgba(14,111,114,0.10)];
   }
 }
