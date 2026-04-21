@@ -13,6 +13,7 @@ import {
   Clock3,
   ChevronDown,
   ChevronUp,
+  FileText,
 } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
@@ -40,7 +41,7 @@ const CARD_STYLES = [
 
 function cleanText(value) {
   if (!value || typeof value !== "string") return "";
-  return value.replace(/\[[^\]]+\]\s*/g, "").replace(/\s+/g, " ").trim();
+  return value.replace(/\[[^\]]+\]\s*/g, "").replace(/[ \t]+/g, " ").trim();
 }
 
 function previewText(value, fallback = "No description available") {
@@ -59,8 +60,100 @@ function normalizeItems(items) {
   return [];
 }
 
+function summarizeSection(section) {
+  if (section.list?.length) {
+    return `${section.list.length} key point${section.list.length === 1 ? "" : "s"} highlighted here.`;
+  }
+  const text = cleanText(section.content || "");
+  if (!text) return "A brief summary is not available for this section yet.";
+  const sentence = text.split(/(?<=[.!?])\s+/).find(Boolean) || text;
+  return sentence.length > 165 ? `${sentence.substring(0, 162)}...` : sentence;
+}
+
+function prettifyHeading(value) {
+  return value
+    .replace(/[_#*]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function parseStructuredText(value, fallbackTitle) {
+  const text = (value || "").replace(/\r/g, "").trim();
+  if (!text) return [];
+
+  const headingRegex = /^#{2,}\s*(.+?)\s*$/gm;
+  const matches = [...text.matchAll(headingRegex)];
+
+  if (matches.length === 0) {
+    return [{ title: fallbackTitle, content: cleanText(text) }];
+  }
+
+  const sections = [];
+  for (let index = 0; index < matches.length; index += 1) {
+    const current = matches[index];
+    const next = matches[index + 1];
+    const title = prettifyHeading(current[1] || fallbackTitle);
+    const start = current.index + current[0].length;
+    const end = next ? next.index : text.length;
+    const rawContent = text.slice(start, end).trim();
+    if (!rawContent) continue;
+    sections.push({
+      title,
+      content: cleanText(rawContent),
+    });
+  }
+
+  return sections.length > 0
+    ? sections
+    : [{ title: fallbackTitle, content: cleanText(text) }];
+}
+
+function SectionCard({ section }) {
+  const [showSummary, setShowSummary] = useState(false);
+  const summary = summarizeSection(section);
+
+  return (
+    <div className="rounded-2xl border border-primary/15 bg-white/85 p-4 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          {section.title}
+        </p>
+        <button
+          type="button"
+          onClick={() => setShowSummary((value) => !value)}
+          className="shrink-0 rounded-full border border-primary/20 bg-[#eef4fb] px-3 py-1 text-[11px] font-semibold text-primary transition-colors hover:border-primary/35 hover:bg-[#e8f0fa]"
+        >
+          Summarize
+        </button>
+      </div>
+
+      {showSummary && (
+        <div className="rounded-xl border border-primary/10 bg-[#eef4fb] px-3 py-2 text-sm leading-6 text-[#14263f]">
+          {summary}
+        </div>
+      )}
+
+      {section.content && (
+        <p className="text-sm leading-7 text-foreground whitespace-pre-wrap">{section.content}</p>
+      )}
+      {section.list && (
+        <div className="space-y-2">
+          {section.list.map((item) => (
+            <div key={item} className="flex gap-2 text-sm leading-6 text-foreground">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function buildEventDetails(event) {
   if (event.type === "coach") {
+    const guidanceSections = parseStructuredText(cleanText(event.aiResponse), "Guidance");
     return {
       title: event.titleLabel,
       summary:
@@ -71,7 +164,9 @@ function buildEventDetails(event) {
           content: cleanText(event.summary) || `A short coaching request was opened for ${event.meta}.`,
         },
         ...(cleanText(event.aiResponse)
-          ? [{ title: "Guidance Given", content: cleanText(event.aiResponse) }]
+          ? guidanceSections.length > 1
+            ? guidanceSections
+            : [{ title: "Guidance Given", content: cleanText(event.aiResponse) }]
           : []),
       ],
     };
@@ -178,24 +273,7 @@ function TimelineEventCard({ event, index }) {
               >
                 <div className="border-t border-primary/10 px-4 pb-4 pl-[4.75rem] pt-4 space-y-4">
                   {details.sections.map((section) => (
-                    <div key={section.title} className="rounded-2xl border border-primary/15 bg-white/80 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        {section.title}
-                      </p>
-                      {section.content && (
-                        <p className="mt-2 text-sm leading-7 text-foreground">{section.content}</p>
-                      )}
-                      {section.list && (
-                        <div className="mt-2 space-y-2">
-                          {section.list.map((item) => (
-                            <div key={item} className="flex gap-2 text-sm leading-6 text-foreground">
-                              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                              <span>{item}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <SectionCard key={`${details.title}-${section.title}`} section={section} />
                   ))}
                 </div>
               </motion.div>

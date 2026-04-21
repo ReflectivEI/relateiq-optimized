@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Loader2, RefreshCw, User, Brain, ShieldCheck, Zap, Shield, TrendingUp,
-  MessageCircle, AlertTriangle, Eye, Star, HelpCircle, FileStack
+  MessageCircle, AlertTriangle, Eye, Star, HelpCircle, FileStack, Heart
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { buildProfileGenerationPrompt } from "@/lib/prompts";

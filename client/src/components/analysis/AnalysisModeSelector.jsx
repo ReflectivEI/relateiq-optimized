@@ -27,7 +27,6 @@ export default function AnalysisModeSelector({ value, onChange, disabled }) {
         >
           <span>{m.icon}</span>
           {m.label}
-          {disabled && m.key !== value && <span className="text-[9px] text-muted-foreground/60">free</span>}
         </button>
       ))}
     </div>
