@@ -264,8 +264,17 @@ function getCorsHeaders(request: Request, env: Env) {
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
+  const previewSuffixes = [".relateiq-growth.pages.dev"];
+  const originAllowedByPreviewSuffix = previewSuffixes.some(
+    (suffix) =>
+      origin.startsWith("https://") &&
+      origin.endsWith(suffix) &&
+      origin !== `https://${suffix.replace(/^\./, "")}`,
+  );
   const allowOrigin =
-    configured.length === 0 || configured.includes(origin) ? origin : configured[0] || "*";
+    configured.length === 0 || configured.includes(origin) || originAllowedByPreviewSuffix
+      ? origin
+      : configured[0] || "*";
 
   return {
     "access-control-allow-origin": allowOrigin,
