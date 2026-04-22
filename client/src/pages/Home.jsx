@@ -253,13 +253,13 @@ export default function Home() {
                       <div className="grid grid-cols-2 gap-2 pt-1">
                         <div className="rounded-2xl border border-primary/15 bg-primary/5 px-3 py-2">
                           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Needs</p>
-                          <p className="mt-1 line-clamp-2 text-xs text-foreground">
+                          <p className="mt-1 text-xs leading-5 text-foreground">
                             {profile.needs_during_conflict || "Clear reassurance and steadier communication."}
                           </p>
                         </div>
                         <div className="rounded-2xl border border-primary/15 bg-primary/5 px-3 py-2">
                           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Watch For</p>
-                          <p className="mt-1 line-clamp-2 text-xs text-foreground">
+                          <p className="mt-1 text-xs leading-5 text-foreground">
                             {Array.isArray(profile.emotional_triggers)
                               ? profile.emotional_triggers.slice(0, 2).join(", ")
                               : profile.emotional_triggers || "Moments of distance, mismatch, or unspoken tension."}

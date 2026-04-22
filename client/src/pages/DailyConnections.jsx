@@ -207,6 +207,15 @@ export default function DailyConnections() {
                   <VoiceRecorder
                     onTranscribed={handleVoiceTranscribed}
                     disabled={loading}
+                    instructions={{
+                      title: "How voice memo works",
+                      bullets: [
+                        "Tap Record Voice Memo, speak naturally, and press Stop when you are done.",
+                        "The memo is uploaded securely and transcribed into text to prefill your reflection.",
+                        "The transcript is what gets saved into Daily Connections. The original audio is only used to create that transcript and support the reflection workflow.",
+                        "Your voice memo can also help the app detect tone, summarize themes, and improve coaching context for Tony and Drew."
+                      ],
+                    }}
                   />
                 )}
 

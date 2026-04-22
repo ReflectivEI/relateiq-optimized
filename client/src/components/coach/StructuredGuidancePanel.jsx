@@ -20,22 +20,33 @@ const TONE_COLORS = {
   direct: "bg-orange-100 text-orange-700 border-orange-200",
 };
 
+const SECTION_COLOR_STYLES = {
+  amber: { open: "bg-amber-50 border-amber-200", icon: "text-amber-600" },
+  blue: { open: "bg-blue-50 border-blue-200", icon: "text-blue-600" },
+  purple: { open: "bg-purple-50 border-purple-200", icon: "text-purple-600" },
+  red: { open: "bg-red-50 border-red-200", icon: "text-red-600" },
+  green: { open: "bg-green-50 border-green-200", icon: "text-green-600" },
+  orange: { open: "bg-orange-50 border-orange-200", icon: "text-orange-600" },
+  emerald: { open: "bg-emerald-50 border-emerald-200", icon: "text-emerald-600" },
+};
+
 function CollapsibleSection({ icon: Icon, label, color, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
+  const styles = SECTION_COLOR_STYLES[color] || SECTION_COLOR_STYLES.blue;
   return (
     <div className="space-y-1.5">
       <button
         onClick={() => setOpen(!open)}
         className={cn(
-          "flex items-center gap-2 w-full px-3 py-2 rounded-lg border transition-colors",
-          open ? `bg-${color}-50 border-${color}-200` : "bg-muted/30 border-border/50 hover:border-border"
+          "flex min-w-0 w-full items-center gap-2 rounded-lg border px-3 py-2 transition-colors",
+          open ? styles.open : "bg-muted/30 border-border/50 hover:border-border"
         )}
       >
-        <Icon className={cn("w-4 h-4", open ? `text-${color}-600` : "text-muted-foreground")} />
-        <span className="text-xs font-semibold flex-1 text-left">{label}</span>
+        <Icon className={cn("h-4 w-4 shrink-0", open ? styles.icon : "text-muted-foreground")} />
+        <span className="min-w-0 flex-1 break-words text-left text-xs font-semibold text-foreground">{label}</span>
         {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
       </button>
-      {open && <div className="pl-6 space-y-2 text-sm leading-relaxed">{children}</div>}
+      {open && <div className="space-y-2 break-words pl-6 text-sm leading-relaxed">{children}</div>}
     </div>
   );
 }
@@ -95,21 +106,21 @@ export default function StructuredGuidancePanel({ baseOutput, perspective }) {
       <CardContent className="space-y-5">
         {/* Situation */}
         {displayOutput.situation_summary && (
-          <CollapsibleSection icon={Lightbulb} label="Situation" color="amber" defaultOpen={true}>
+          <CollapsibleSection icon={Lightbulb} label="Situation" color="amber" defaultOpen={false}>
             <p>{displayOutput.situation_summary}</p>
           </CollapsibleSection>
         )}
 
         {/* You (actor) */}
         {displayOutput.what_you_are_experiencing && (
-          <CollapsibleSection icon={Eye} label="What You're Experiencing" color="blue" defaultOpen={variant === "full"}>
+          <CollapsibleSection icon={Eye} label="What You're Experiencing" color="blue" defaultOpen={false}>
             <p>{displayOutput.what_you_are_experiencing}</p>
           </CollapsibleSection>
         )}
 
         {/* Them (target) */}
         {displayOutput.what_they_are_experiencing && (
-          <CollapsibleSection icon={Eye} label="What They're Likely Experiencing" color="purple" defaultOpen={variant === "full"}>
+          <CollapsibleSection icon={Eye} label="What They're Likely Experiencing" color="purple" defaultOpen={false}>
             <p>{displayOutput.what_they_are_experiencing}</p>
           </CollapsibleSection>
         )}
@@ -130,7 +141,7 @@ export default function StructuredGuidancePanel({ baseOutput, perspective }) {
 
         {/* What To Do */}
         {displayOutput.what_to_do?.length > 0 && (
-          <CollapsibleSection icon={CheckCircle2} label="What To Do" color="green" defaultOpen={true}>
+          <CollapsibleSection icon={CheckCircle2} label="What To Do" color="green" defaultOpen={false}>
             <ul className="space-y-1.5">
               {displayOutput.what_to_do.map((action, i) => (
                 <li key={i} className="flex items-start gap-2">
@@ -158,7 +169,7 @@ export default function StructuredGuidancePanel({ baseOutput, perspective }) {
 
         {/* What To Say */}
         {displayOutput.suggested_language?.length > 0 && (
-          <CollapsibleSection icon={MessageCircle} label="What To Say" color="emerald" defaultOpen={true}>
+          <CollapsibleSection icon={MessageCircle} label="What To Say" color="emerald" defaultOpen={false}>
             <LanguageBlock phrases={displayOutput.suggested_language} />
           </CollapsibleSection>
         )}

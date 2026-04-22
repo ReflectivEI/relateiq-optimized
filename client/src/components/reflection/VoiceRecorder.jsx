@@ -4,13 +4,13 @@
  */
 
 import React, { useState, useRef } from "react";
-import { Mic, Square, Loader2, Copy, Trash2 } from "lucide-react";
+import { Mic, Square, Loader2, Copy, Trash2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api } from "@/api/client";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function VoiceRecorder({ onTranscribed, disabled = false }) {
+export default function VoiceRecorder({ onTranscribed, disabled = false, instructions = null }) {
   const [recording, setRecording] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -227,6 +227,20 @@ ${transcriptSeed}`,
                 </>
               )}
             </Button>
+          )}
+
+          {instructions && (
+            <div className="rounded-xl border border-[#0e6f72]/20 bg-[#f3fbfb] p-3">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-[#0e6f72]" />
+                <p className="text-sm font-semibold text-foreground">{instructions.title}</p>
+              </div>
+              <ul className="mt-2 space-y-1.5 pl-5 text-xs leading-5 text-muted-foreground">
+                {instructions.bullets?.map((bullet) => (
+                  <li key={bullet} className="list-disc">{bullet}</li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       ) : null}

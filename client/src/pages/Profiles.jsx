@@ -141,6 +141,15 @@ export default function Profiles() {
   };
 
   const profileContext = profile?.ai_behavioral_summary || "";
+  const formatProfileDisplayValue = (value) => {
+    if (!value) return value;
+    const normalized = String(value).trim().toLowerCase();
+    if (normalized === "needs_time") return "Needs Time";
+    if (normalized === "mixed") return "Mixed";
+    return String(value)
+      .replace(/[_-]+/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
 
   const deepSections = profile ? [
     {
@@ -279,7 +288,7 @@ export default function Profiles() {
                               <Brain className="w-4 h-4 text-primary" />
                               Processing Style
                             </div>
-                            <p className="mt-2 text-sm leading-6 text-muted-foreground">{profile.processing_style}</p>
+                            <p className="mt-2 text-sm leading-6 text-muted-foreground">{formatProfileDisplayValue(profile.processing_style)}</p>
                           </div>
                         )}
                         {profile.love_language && (

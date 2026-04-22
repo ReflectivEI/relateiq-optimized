@@ -38,7 +38,7 @@ const DELIVERY_LABELS = {
 };
 
 function BidCard({ bid, index }) {
-  const [expanded, setExpanded] = useState(index === 0); // first bid open by default
+  const [expanded, setExpanded] = useState(false);
   const bidType = GOTTMAN_BID_TYPES[bid.type] || GOTTMAN_BID_TYPES.reconnection;
 
   const handleCopy = (e) => {
@@ -127,7 +127,7 @@ function BidCard({ bid, index }) {
 }
 
 export default function RepairSuggestionAlert({ suggestion, loading, onDismiss, onRefresh }) {
-  const [minimized, setMinimized] = useState(false);
+  const [minimized, setMinimized] = useState(true);
 
   if (loading) {
     return (

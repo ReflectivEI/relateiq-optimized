@@ -271,7 +271,7 @@ function buildEventDetails(event) {
 }
 
 function TimelineEventCard({ event, index }) {
-  const [expanded, setExpanded] = useState(index === 0);
+  const [expanded, setExpanded] = useState(false);
   const Icon = ICON_MAP[event.type] || MessageCircle;
   const styles = CARD_STYLES[index % 2];
   const details = buildEventDetails(event);

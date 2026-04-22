@@ -101,11 +101,13 @@ export default function InsightEntryCard({ entry, onNoteUpdate, onDelete }) {
           <div className="space-y-3 pt-1">
             {/* Behavioral patterns */}
             {entry.behavioral_patterns?.length > 0 && (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Patterns</p>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="space-y-2">
                   {entry.behavioral_patterns.map((p, i) => (
-                    <Badge key={i} variant="outline" className="text-[10px] font-normal">{p}</Badge>
+                    <div key={i} className="rounded-md border border-[#0e6f72]/25 bg-[#f9fcfc] px-3 py-2 text-xs text-foreground">
+                      {p}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -113,11 +115,13 @@ export default function InsightEntryCard({ entry, onNoteUpdate, onDelete }) {
 
             {/* Risk flags */}
             {entry.risk_flags?.length > 0 && (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Risks</p>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="space-y-2">
                   {entry.risk_flags.map((r, i) => (
-                    <Badge key={i} className="text-[10px] font-normal bg-red-50 text-red-700 border-red-200 border">{r}</Badge>
+                    <div key={i} className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                      {r}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -125,11 +129,13 @@ export default function InsightEntryCard({ entry, onNoteUpdate, onDelete }) {
 
             {/* Strengths */}
             {entry.strengths?.length > 0 && (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Strengths</p>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="space-y-2">
                   {entry.strengths.map((s, i) => (
-                    <Badge key={i} className="text-[10px] font-normal bg-green-50 text-green-700 border-green-200 border">{s}</Badge>
+                    <div key={i} className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
+                      {s}
+                    </div>
                   ))}
                 </div>
               </div>

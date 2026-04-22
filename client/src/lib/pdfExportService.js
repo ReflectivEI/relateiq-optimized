@@ -137,7 +137,7 @@ function serializeValue(value, depth = 0, label = "") {
 }
 
 export function serializeExportContent(content, title = "") {
-  if (typeof content === "string") return content;
+  if (typeof content === "string") return content.replace(/\r/g, "").trim();
   return serializeValue(content, 0, title).map((block) => block.text).join("\n\n");
 }
 
@@ -159,15 +159,39 @@ export async function exportTextToPDF({
   filename = "response.pdf",
   title = "Relationship Analysis",
 }) {
-  const blocks = String(text || "")
+  const rawBlocks = String(text || "")
     .replace(/\r/g, "")
-    .split(/\n+/)
-    .map((line) => normalizeLine(line.replace(/^#{1,6}\s*/, "").replace(/\*\*/g, "").replace(/`/g, "")))
-    .filter(Boolean)
-    .map((line) => ({
-      kind: /^[A-Z][A-Za-z0-9 &:+/-]{0,80}$/.test(line) && line.length < 90 ? "heading" : "paragraph",
-      text: line,
-    }));
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  const blocks = rawBlocks.flatMap((block) => {
+    const cleaned = block.replace(/\*\*/g, "").replace(/`/g, "");
+    const lines = cleaned
+      .split("\n")
+      .map((line) => normalizeLine(line.replace(/^#{1,6}\s*/, "")))
+      .filter(Boolean);
+
+    if (lines.length === 0) return [];
+
+    if (lines.length === 1) {
+      const [line] = lines;
+      return [{
+        kind: /^[A-Z][A-Za-z0-9 &:+/-]{0,80}$/.test(line) && line.length < 90 ? "heading" : "paragraph",
+        text: line,
+      }];
+    }
+
+    const [first, ...rest] = lines;
+    const blockItems = [];
+    if (/^[A-Z][A-Za-z0-9 &:+/-]{0,80}$/.test(first) && first.length < 90) {
+      blockItems.push({ kind: "heading", text: first });
+      rest.forEach((line) => blockItems.push({ kind: "paragraph", text: line }));
+      return blockItems;
+    }
+
+    return [{ kind: "paragraph", text: lines.join(" ") }];
+  });
 
   return exportBlocksToPDF({ blocks, filename, title });
 }
@@ -247,7 +271,7 @@ export async function downloadPDF({ element, filename = "response.pdf", title = 
   link.href = URL.createObjectURL(result.blob);
   link.download = filename;
   link.click();
-  URL.revokeObjectURL(link.href);
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
 export function generateEmailPDF({ element, title = "Response" }) {

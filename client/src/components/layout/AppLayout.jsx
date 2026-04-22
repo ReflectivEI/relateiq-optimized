@@ -83,13 +83,20 @@ export default function AppLayout() {
     support: true,
   });
   const [mobileGroupOpen, setMobileGroupOpen] = useState({
-    core: true,
-    intelligence: true,
+    core: false,
+    intelligence: false,
     support: false,
   });
 
   const toggleGroup = (groupId) => {
     setOpenGroups((current) => ({
+      ...current,
+      [groupId]: !current[groupId],
+    }));
+  };
+
+  const toggleMobileGroup = (groupId) => {
+    setMobileGroupOpen((current) => ({
       ...current,
       [groupId]: !current[groupId],
     }));
@@ -282,9 +289,3 @@ export default function AppLayout() {
     </div>
   );
 }
-  const toggleMobileGroup = (groupId) => {
-    setMobileGroupOpen((current) => ({
-      ...current,
-      [groupId]: !current[groupId],
-    }));
-  };

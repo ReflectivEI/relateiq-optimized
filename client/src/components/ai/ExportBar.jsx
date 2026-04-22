@@ -26,7 +26,7 @@ export default function ExportBar({ ctx, content, className }) {
     a.href = url;
     a.download = `RelateIQ-${ctx.sectionTitle?.replace(/\s+/g, "-") || "export"}-${new Date().toISOString().slice(0, 10)}.txt`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     toast.success("Downloaded as text file");
   };
 

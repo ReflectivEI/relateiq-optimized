@@ -5,7 +5,6 @@
  */
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   AlertTriangle,
   AlertCircle,
@@ -63,8 +62,8 @@ const CATEGORY_ICONS = {
   reciprocity: Users,
 };
 
-function MicroRepairCollapsible({ repair, index }) {
-  const [expanded, setExpanded] = useState(index === 0);
+function MicroRepairCollapsible({ repair }) {
+  const [expanded, setExpanded] = useState(false);
   const Icon = CATEGORY_ICONS[repair.category] || Lightbulb;
 
   return (
@@ -168,7 +167,7 @@ export default function EarlyWarningCard({ riskSummary }) {
           >
             <button
               type="button"
-              className="flex shrink-0 flex-col items-center justify-center rounded-2xl border border-[#0e6f72]/35 bg-white px-5 py-4 text-center transition-all hover:bg-[#e8f7f6] hover:shadow-sm"
+              className="enterprise-hover-raise flex shrink-0 flex-col items-center justify-center rounded-2xl border border-[#0e6f72]/35 bg-white px-5 py-4 text-center transition-all hover:bg-[#e8f7f6] hover:shadow-sm"
             >
               <div className="text-4xl font-bold text-foreground">{riskPercent}%</div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Risk Score</p>
@@ -191,7 +190,7 @@ export default function EarlyWarningCard({ riskSummary }) {
                 <div
                   key={signal.id}
                   className={cn(
-                    "flex items-start gap-2 rounded-2xl border p-4 text-xs shadow-[0_1px_0_rgba(14,111,114,0.03)]",
+                    "enterprise-hover-raise flex items-start gap-2 rounded-2xl border p-4 text-xs shadow-[0_1px_0_rgba(14,111,114,0.03)]",
                     signal.severity === "high"
                       ? "border-red-200 bg-white text-red-700"
                       : "border-[#0e6f72]/35 bg-white text-[#14263f]"
@@ -223,8 +222,8 @@ export default function EarlyWarningCard({ riskSummary }) {
               Preventative Micro-Repairs
             </p>
             <div className="space-y-2">
-              {riskSummary.repairs.map((repair, i) => (
-                <MicroRepairCollapsible key={repair.risk_id} repair={repair} index={i} />
+              {riskSummary.repairs.map((repair) => (
+                <MicroRepairCollapsible key={repair.risk_id} repair={repair} />
               ))}
             </div>
             <p className="text-[11px] text-muted-foreground/70 pt-1">
