@@ -97,6 +97,10 @@ export async function createPlayLabSession(payload) {
   return api.playLab.createSession(payload);
 }
 
+export async function refreshPlayLabPrompt(payload) {
+  return api.playLab.refreshPrompt(payload);
+}
+
 export async function submitPlayLabAnswer(payload) {
   return api.playLab.submitAnswer(payload);
 }
@@ -167,4 +171,3 @@ export function buildPlayLabExportContent(result, moduleTitle) {
       : null,
   };
 }
-

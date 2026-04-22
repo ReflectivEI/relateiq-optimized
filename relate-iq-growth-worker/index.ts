@@ -864,7 +864,7 @@ async function getLatestRelationshipDynamic(env: Env) {
 }
 
 async function buildPlayLabMemory(env: Env, scope: string) {
-  const [profiles, sessions, checkIns, triggers, repairs, outcomes, insightEntries, relationshipDynamic] =
+  const [profiles, sessions, checkIns, triggers, repairs, outcomes, insightEntries, relationshipDynamic, playLabSessions, playLabResults] =
     await Promise.all([
       listEntityRecords(env, "UserProfile"),
       listEntityRecords(env, "CoachSession"),
@@ -874,6 +874,8 @@ async function buildPlayLabMemory(env: Env, scope: string) {
       listEntityRecords(env, "OutcomeLog"),
       listEntityRecords(env, "InsightEntry"),
       getLatestRelationshipDynamic(env),
+      listEntityRecords(env, "PlayLabSession"),
+      listEntityRecords(env, "PlayLabResult"),
     ]);
 
   const tonyQuestionnaire = await loadUploadedQuestionnaire(env, "Tony");
@@ -888,6 +890,8 @@ async function buildPlayLabMemory(env: Env, scope: string) {
     repairs: sortRecords(repairs, "-updated_date").slice(0, 12),
     outcomes: sortRecords(outcomes, "-updated_date").slice(0, 12),
     insights: sortRecords(insightEntries, "-updated_date").slice(0, 12),
+    playLabSessions: sortRecords(playLabSessions, "-updated_date").slice(0, 20),
+    playLabResults: sortRecords(playLabResults, "-updated_date").slice(0, 20),
     relationshipDynamic,
     questionnaireCounts: {
       Tony: tonyQuestionnaire?.responses.length || 0,
@@ -898,6 +902,87 @@ async function buildPlayLabMemory(env: Env, scope: string) {
       buildQuestionnaireContext(drewQuestionnaire, "Drew"),
     ].join("\n\n"),
   };
+}
+
+function normalizePromptTokens(value: string) {
+  return extractKeywordsFromText(value).slice(0, 10);
+}
+
+function computePromptSimilarity(left: string, right: string) {
+  const leftTokens = new Set(normalizePromptTokens(left));
+  const rightTokens = new Set(normalizePromptTokens(right));
+  if (leftTokens.size === 0 || rightTokens.size === 0) return 0;
+  let overlap = 0;
+  leftTokens.forEach((token) => {
+    if (rightTokens.has(token)) overlap += 1;
+  });
+  const union = new Set([...leftTokens, ...rightTokens]).size || 1;
+  return overlap / union;
+}
+
+function inferPlayLabThemesFromMemory(memory: Awaited<ReturnType<typeof buildPlayLabMemory>>) {
+  const lowConfidenceTags = (memory.playLabResults || [])
+    .filter((item) => ["emerging", "low"].includes(normalizeText(item.confidence_level)))
+    .flatMap((item) => toStringArray(item.inferred_tags, []));
+  const mismatchTags = (memory.playLabResults || [])
+    .filter((item) => ["blind_spot", "partial_alignment"].includes(normalizeText(item.mismatch_type)))
+    .flatMap((item) => toStringArray(item.inferred_tags, []));
+  const outcomeTags = (memory.outcomes || [])
+    .filter((item) => Number(item.connection_change || 0) > 0 || Number(item.tension_change || 0) > 0)
+    .flatMap((item) => extractKeywordsFromText(normalizeText(item.notes), normalizeText(item.source_type)));
+
+  return {
+    lowConfidenceTags,
+    mismatchTags,
+    outcomeTags,
+  };
+}
+
+function scorePromptCandidate(
+  prompt: string,
+  recentPrompts: string[],
+  themeSignals: ReturnType<typeof inferPlayLabThemesFromMemory>,
+) {
+  const promptTokens = normalizePromptTokens(prompt);
+  let score = 10;
+
+  const recentExact = recentPrompts.some((recent) => normalizeText(recent) === normalizeText(prompt));
+  if (recentExact) return -1000;
+
+  const similarRecent = recentPrompts.some((recent) => computePromptSimilarity(recent, prompt) > 0.55);
+  if (similarRecent) score -= 8;
+
+  const lowConfidenceHit = promptTokens.filter((token) => themeSignals.lowConfidenceTags.includes(token)).length;
+  const mismatchHit = promptTokens.filter((token) => themeSignals.mismatchTags.includes(token)).length;
+  const outcomeHit = promptTokens.filter((token) => themeSignals.outcomeTags.includes(token)).length;
+
+  score += lowConfidenceHit * 5;
+  score += mismatchHit * 4;
+  score += outcomeHit * 2;
+
+  return score;
+}
+
+function pickAdaptivePlayLabPrompt(
+  moduleType: PlayLabModuleType,
+  memory: Awaited<ReturnType<typeof buildPlayLabMemory>>,
+  scope: string,
+) {
+  const promptBank = PLAY_LAB_PROMPTS[moduleType] || PLAY_LAB_PROMPTS.guess_my_inner_world;
+  const recentPrompts = (memory.playLabSessions || [])
+    .filter((session) => normalizeText(session.scope).includes(scope) || normalizeText(session.initiated_by) === scope)
+    .filter((session) => normalizeText(session.module_type) === moduleType)
+    .slice(0, 8)
+    .map((session) => normalizeText(session.prompt_text))
+    .filter(Boolean);
+
+  const themeSignals = inferPlayLabThemesFromMemory(memory);
+
+  const scored = promptBank
+    .map((prompt) => ({ prompt, score: scorePromptCandidate(prompt, recentPrompts, themeSignals) }))
+    .sort((left, right) => right.score - left.score);
+
+  return scored[0]?.prompt || promptBank[0] || PLAY_LAB_MODULE_LABELS[moduleType];
 }
 
 function buildPlayLabContextObject({
@@ -1082,9 +1167,16 @@ async function buildPlayLabAiResult(
     unresolved?: string;
     stressSource?: string;
     currentNeed?: string;
+    currentNeedType?: string;
     predictedNeed?: string;
+    predictedNeedType?: string;
     initiatedBy: PersonId;
     scope: string;
+    answerConfidence?: number;
+    guessConfidence?: number;
+    emotionalState?: string;
+    unresolvedTag?: string;
+    selectedMisreadWhy?: string;
   },
   memory: Awaited<ReturnType<typeof buildPlayLabMemory>>,
 ) {
@@ -1105,11 +1197,18 @@ async function buildPlayLabAiResult(
         input.actualAnswer ? `Actual answer: ${input.actualAnswer}` : "",
         input.guessedAnswer ? `Guessed answer: ${input.guessedAnswer}` : "",
         input.currentNeed ? `Actual need: ${input.currentNeed}` : "",
+        input.currentNeedType ? `Actual need type: ${input.currentNeedType}` : "",
         input.predictedNeed ? `Predicted need: ${input.predictedNeed}` : "",
+        input.predictedNeedType ? `Predicted need type: ${input.predictedNeedType}` : "",
         input.situation ? `Situation: ${input.situation}` : "",
         input.unresolved ? `Still unresolved: ${input.unresolved}` : "",
+        input.unresolvedTag ? `Unresolved tag: ${input.unresolvedTag}` : "",
+        input.emotionalState ? `Current emotional state: ${input.emotionalState}` : "",
         input.selectedMisread ? `Selected likely misread: ${input.selectedMisread}` : "",
+        input.selectedMisreadWhy ? `Why selected: ${input.selectedMisreadWhy}` : "",
         input.stressSource ? `Stress source: ${input.stressSource}` : "",
+        typeof input.answerConfidence === "number" ? `Answer confidence: ${input.answerConfidence}/5` : "",
+        typeof input.guessConfidence === "number" ? `Guess confidence: ${input.guessConfidence}/5` : "",
         `Recent memory counts: ${JSON.stringify(memory.questionnaireCounts)}`,
         `Recent sessions: ${(memory.sessions || []).length}`,
         `Recent check-ins: ${(memory.checkIns || []).length}`,
@@ -1727,6 +1826,53 @@ export default {
       );
     }
 
+    if (url.pathname === "/api/play-lab/refresh" && request.method === "POST") {
+      const body = await readJson(request);
+      if (!isObject(body)) {
+        return json({ error: "invalid_payload" }, request, env, 400);
+      }
+
+      const moduleType = normalizeText(body.moduleType) as PlayLabModuleType;
+      if (!PLAY_LAB_MODULE_LABELS[moduleType]) {
+        return json({ error: "invalid_module_type" }, request, env, 400);
+      }
+
+      const scope = normalizeText(body.scope) || "Tony+Drew";
+      const initiatedBy = toPersonId(body.initiatedBy);
+      const answeringPerson = toPersonId(body.answeringPerson, initiatedBy);
+      const currentContextObject = isObject(body.currentContextObject) ? body.currentContextObject : null;
+      const memory = await buildPlayLabMemory(env, scope);
+      const promptText = pickAdaptivePlayLabPrompt(moduleType, memory, scope);
+
+      const record = await createEntityRecord(env, "PlayLabSession", {
+        module_type: moduleType,
+        module_label: PLAY_LAB_MODULE_LABELS[moduleType],
+        scope,
+        initiated_by: initiatedBy,
+        answering_person: answeringPerson,
+        status: "awaiting_input",
+        prompt_text: promptText,
+        source_context: {
+          page: "Play Lab",
+          createdFrom: "play_lab_refresh",
+          previousContext: currentContextObject,
+        },
+        related_session_id: normalizeText(body.relatedSessionId) || null,
+      });
+
+      return json(
+        {
+          ok: true,
+          session: record,
+          promptText,
+          adaptiveSignals: inferPlayLabThemesFromMemory(memory),
+        },
+        request,
+        env,
+        201,
+      );
+    }
+
     if (url.pathname === "/api/play-lab/submit" && request.method === "POST") {
       const body = await readJson(request);
       if (!isObject(body) || !normalizeText(body.sessionId) || !normalizeText(body.responseValue)) {
@@ -1739,6 +1885,15 @@ export default {
         role_in_session: normalizeText(body.roleInSession) || "participant",
         response_type: normalizeText(body.responseType) || "text",
         response_value: normalizeText(body.responseValue),
+        response_label: normalizeText(body.responseLabel),
+        confidence: typeof body.confidence === "number" ? body.confidence : null,
+        tags: Array.isArray(body.tags) ? body.tags.filter(Boolean).map((tag) => normalizeText(tag)) : [],
+        metadata: isObject(body.metadata) ? body.metadata : null,
+      });
+
+      await updateEntityRecord(env, "PlayLabSession", normalizeText(body.sessionId), {
+        status: "in_progress",
+        last_input_at: nowIso(),
       });
 
       return json({ ok: true, response: responseRecord }, request, env, 201);
@@ -1772,11 +1927,18 @@ export default {
         actualAnswer: normalizeText(body.actualAnswer),
         guessedAnswer: normalizeText(body.guessedAnswer),
         currentNeed: normalizeText(body.currentNeed),
+        currentNeedType: normalizeText(body.currentNeedType),
         predictedNeed: normalizeText(body.predictedNeed),
+        predictedNeedType: normalizeText(body.predictedNeedType),
         stressSource: normalizeText(body.stressSource),
         situation: normalizeText(body.situation),
         unresolved: normalizeText(body.unresolved),
+        unresolvedTag: normalizeText(body.unresolvedTag),
+        emotionalState: normalizeText(body.emotionalState),
         selectedMisread: normalizeText(body.selectedMisread),
+        selectedMisreadWhy: normalizeText(body.selectedMisreadWhy),
+        answerConfidence: typeof body.answerConfidence === "number" ? body.answerConfidence : undefined,
+        guessConfidence: typeof body.guessConfidence === "number" ? body.guessConfidence : undefined,
       };
 
       const resultCore = await buildPlayLabAiResult(
@@ -1787,11 +1949,18 @@ export default {
           actualAnswer: sourceInputs.actualAnswer,
           guessedAnswer: sourceInputs.guessedAnswer,
           currentNeed: sourceInputs.currentNeed,
+          currentNeedType: sourceInputs.currentNeedType,
           predictedNeed: sourceInputs.predictedNeed,
+          predictedNeedType: sourceInputs.predictedNeedType,
           stressSource: sourceInputs.stressSource,
           situation: sourceInputs.situation,
           unresolved: sourceInputs.unresolved,
+          unresolvedTag: sourceInputs.unresolvedTag,
+          emotionalState: sourceInputs.emotionalState,
           selectedMisread: sourceInputs.selectedMisread,
+          selectedMisreadWhy: sourceInputs.selectedMisreadWhy,
+          answerConfidence: sourceInputs.answerConfidence,
+          guessConfidence: sourceInputs.guessConfidence,
           initiatedBy,
           scope,
         },

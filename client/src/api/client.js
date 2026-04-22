@@ -171,6 +171,12 @@ export const api = {
         body: payload,
       });
     },
+    refreshPrompt(payload) {
+      return request("/api/play-lab/refresh", {
+        method: "POST",
+        body: payload,
+      });
+    },
     submitAnswer(payload) {
       return request("/api/play-lab/submit", {
         method: "POST",
