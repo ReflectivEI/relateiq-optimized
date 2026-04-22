@@ -14,6 +14,8 @@ import {
   Zap,
   HeartHandshake,
   Expand,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AskAIButton from "@/components/askAI/AskAIButton";
@@ -74,6 +76,10 @@ export default function Home() {
   const [repairDismissed, setRepairDismissed] = useState(false);
   const [riskSummary, setRiskSummary] = useState(null);
   const [expandedProfile, setExpandedProfile] = useState(null);
+  const [expandedProfileCards, setExpandedProfileCards] = useState({
+    Tony: false,
+    Drew: false,
+  });
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-home"],
@@ -165,6 +171,13 @@ export default function Home() {
     }).finally(() => setRepairLoading(false));
   };
 
+  const toggleProfileCard = (name) => {
+    setExpandedProfileCards((current) => ({
+      ...current,
+      [name]: !current[name],
+    }));
+  };
+
   return (
     <div className="space-y-12">
       {/* Hero */}
@@ -211,6 +224,8 @@ export default function Home() {
         {["Tony", "Drew"].map((name) => {
           const profile = name === "Tony" ? (tonyProfile || fallbackTony) : (drewProfile || fallbackDrew);
           const hasProfileData = Boolean(profile);
+          const isExpanded = expandedProfileCards[name];
+          const previewText = profile?.communication_style || `${name}'s profile preview`;
           return (
             <motion.div
               key={name}
@@ -224,8 +239,8 @@ export default function Home() {
                     <div className="min-w-0 flex-1">
                       <h3 className="font-display text-[2rem] font-semibold leading-none text-foreground">{name}</h3>
                       <p className="mt-2 text-sm text-muted-foreground">
-                          {profile?.communication_style || `${name}'s profile preview`}
-                        </p>
+                        {previewText}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -247,25 +262,53 @@ export default function Home() {
                   </div>
                   {profile?.ai_behavioral_summary ? (
                     <div className="flex-1 space-y-4">
-                      <p className="min-h-[132px] text-base leading-8 text-muted-foreground">
-                        {profile.ai_behavioral_summary}
+                      <p className="text-base leading-8 text-muted-foreground">
+                        {isExpanded ? profile.ai_behavioral_summary : previewText}
                       </p>
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        <div className="rounded-2xl border border-primary/15 bg-primary/5 px-3 py-2">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Needs</p>
-                          <p className="mt-1 text-xs leading-5 text-foreground">
-                            {profile.needs_during_conflict || "Clear reassurance and steadier communication."}
-                          </p>
+
+                      {!isExpanded ? (
+                        <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+                          Expand this section to view the full profile summary, needs, and watch-for patterns.
                         </div>
-                        <div className="rounded-2xl border border-primary/15 bg-primary/5 px-3 py-2">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Watch For</p>
-                          <p className="mt-1 text-xs leading-5 text-foreground">
-                            {Array.isArray(profile.emotional_triggers)
-                              ? profile.emotional_triggers.slice(0, 2).join(", ")
-                              : profile.emotional_triggers || "Moments of distance, mismatch, or unspoken tension."}
-                          </p>
-                        </div>
-                      </div>
+                      ) : null}
+
+                      <AnimatePresence initial={false}>
+                        {isExpanded ? (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-2">
+                              <div className="rounded-2xl border border-primary/15 bg-primary/5 px-3 py-2">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Needs</p>
+                                <p className="mt-1 text-xs leading-5 text-foreground">
+                                  {profile.needs_during_conflict || "Clear reassurance and steadier communication."}
+                                </p>
+                              </div>
+                              <div className="rounded-2xl border border-primary/15 bg-primary/5 px-3 py-2">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Watch For</p>
+                                <p className="mt-1 text-xs leading-5 text-foreground">
+                                  {Array.isArray(profile.emotional_triggers)
+                                    ? profile.emotional_triggers.slice(0, 2).join(", ")
+                                    : profile.emotional_triggers || "Moments of distance, mismatch, or unspoken tension."}
+                                </p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ) : null}
+                      </AnimatePresence>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => toggleProfileCard(name)}
+                        className="w-full justify-between rounded-full border-primary/20 bg-primary/5 text-foreground hover:bg-primary/10"
+                      >
+                        <span>{isExpanded ? "Collapse details" : "Expand details"}</span>
+                        {isExpanded ? <ChevronUp className="h-4 w-4 text-primary" /> : <ChevronDown className="h-4 w-4 text-primary" />}
+                      </Button>
                     </div>
                   ) : (
                     <div className="mt-auto">

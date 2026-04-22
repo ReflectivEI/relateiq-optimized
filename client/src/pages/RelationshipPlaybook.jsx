@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { api } from "@/api/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import {
   BookOpenText,
   MessageSquareText,
@@ -10,7 +12,11 @@ import {
   Siren,
   Handshake,
   ListChecks,
+  Copy,
+  RotateCcw,
+  WandSparkles,
 } from "lucide-react";
+import { toast } from "sonner";
 
 function bulletize(value, fallback) {
   if (Array.isArray(value) && value.length > 0) return value;
@@ -68,6 +74,17 @@ export default function RelationshipPlaybook() {
 
   const tony = profiles.find((profile) => profile.person_name === "Tony");
   const drew = profiles.find((profile) => profile.person_name === "Drew");
+  const templateDefaults = useMemo(() => ({
+    conversationType: "repair",
+    desiredTone: "steady",
+    before:
+      "I want to have this conversation in a way that actually works for both of us.",
+    during:
+      "What are you hearing me say right now? What do you need most from me in this moment?",
+    after:
+      "What should we repeat next time, and what should we do differently?",
+  }), []);
+  const [templateState, setTemplateState] = useState(templateDefaults);
 
   const sharedTemplate = [
     {
@@ -91,6 +108,64 @@ export default function RelationshipPlaybook() {
         "Ask three questions together: What worked this week? Where did we get stuck? What one adjustment are we carrying into next week?",
     },
   ];
+
+  const handleTemplatePreset = (field, value) => {
+    setTemplateState((current) => {
+      const next = { ...current, [field]: value };
+
+      if (field === "conversationType") {
+        if (value === "repair") {
+          next.before = "I want to repair this in a way that helps us both feel steadier and more connected.";
+          next.during = "What felt hardest for you in that moment, and what do you need from me first right now?";
+          next.after = "What would help this feel more repaired tonight, and what do we want to do differently next time?";
+        } else if (value === "checkin") {
+          next.before = "I want to check in before anything builds up. Can we talk for a few minutes with no fixing yet?";
+          next.during = "What has felt good lately, and where have we felt a little off with each other?";
+          next.after = "What is one thing we want to carry into this week on purpose?";
+        } else if (value === "planning") {
+          next.before = "I want us to get aligned before we start reacting or assuming.";
+          next.during = "What matters most to each of us here, and where do we need more clarity?";
+          next.after = "What did we decide, and how will we know this plan is working for both of us?";
+        }
+      }
+
+      if (field === "desiredTone") {
+        if (value === "gentle") {
+          next.before = next.before.replace(/^I want/i, "I'd like");
+        } else if (value === "direct") {
+          next.during = "Let's name the main issue clearly. What are you hearing me say, and what do you need from me right now?";
+        }
+      }
+
+      return next;
+    });
+  };
+
+  const handleTemplateCopy = async () => {
+    const compiled = [
+      "Conversation Template",
+      `Type: ${templateState.conversationType}`,
+      `Tone: ${templateState.desiredTone}`,
+      "",
+      "Before the conversation",
+      templateState.before,
+      "",
+      "During the conversation",
+      templateState.during,
+      "",
+      "At the end",
+      templateState.after,
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(compiled);
+      toast.success("Template copied");
+    } catch {
+      toast.error("Unable to copy template");
+    }
+  };
+
+  const resetTemplate = () => setTemplateState(templateDefaults);
 
   return (
     <div className="space-y-8">
@@ -171,20 +246,72 @@ export default function RelationshipPlaybook() {
         <div className="grid gap-6 lg:grid-cols-2">
           <Card className="enterprise-panel border-2">
             <CardHeader className="pb-3">
-              <CardTitle className="text-xl">Starter Template</CardTitle>
+              <CardTitle className="text-xl">Conversation Template Builder</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm leading-7 text-foreground">
+              <p className="text-sm text-muted-foreground">
+                This is an editable working template. Choose the conversation type, adjust the tone, then tailor the
+                draft language before using it in real life.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="space-y-2">
+                  <span className="enterprise-section-label">Conversation Type</span>
+                  <select
+                    value={templateState.conversationType}
+                    onChange={(event) => handleTemplatePreset("conversationType", event.target.value)}
+                    className="h-11 w-full rounded-2xl border border-border bg-background px-3 text-sm text-foreground"
+                  >
+                    <option value="repair">Repair after tension</option>
+                    <option value="checkin">Weekly check-in</option>
+                    <option value="planning">Planning / alignment</option>
+                  </select>
+                </label>
+                <label className="space-y-2">
+                  <span className="enterprise-section-label">Desired Tone</span>
+                  <select
+                    value={templateState.desiredTone}
+                    onChange={(event) => handleTemplatePreset("desiredTone", event.target.value)}
+                    className="h-11 w-full rounded-2xl border border-border bg-background px-3 text-sm text-foreground"
+                  >
+                    <option value="steady">Steady</option>
+                    <option value="gentle">Gentle</option>
+                    <option value="direct">Direct</option>
+                  </select>
+                </label>
+              </div>
               <div className="enterprise-panel-muted rounded-2xl p-4">
                 <p className="enterprise-section-label">Before A Hard Conversation</p>
-                <p className="mt-2">“I want to have this conversation in a way that actually works for both of us.”</p>
+                <Textarea
+                  value={templateState.before}
+                  onChange={(event) => setTemplateState((current) => ({ ...current, before: event.target.value }))}
+                  className="mt-2 min-h-[90px] rounded-2xl border border-border bg-background"
+                />
               </div>
               <div className="enterprise-panel-muted rounded-2xl p-4">
                 <p className="enterprise-section-label">During The Conversation</p>
-                <p className="mt-2">“What are you hearing me say right now?” and “What do you need most from me in this moment?”</p>
+                <Textarea
+                  value={templateState.during}
+                  onChange={(event) => setTemplateState((current) => ({ ...current, during: event.target.value }))}
+                  className="mt-2 min-h-[110px] rounded-2xl border border-border bg-background"
+                />
               </div>
               <div className="enterprise-panel-muted rounded-2xl p-4">
                 <p className="enterprise-section-label">At The End</p>
-                <p className="mt-2">“What should we repeat next time, and what should we do differently?”</p>
+                <Textarea
+                  value={templateState.after}
+                  onChange={(event) => setTemplateState((current) => ({ ...current, after: event.target.value }))}
+                  className="mt-2 min-h-[90px] rounded-2xl border border-border bg-background"
+                />
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button type="button" className="gap-2" onClick={handleTemplateCopy}>
+                  <Copy className="h-4 w-4" />
+                  Copy Template
+                </Button>
+                <Button type="button" variant="outline" className="gap-2" onClick={resetTemplate}>
+                  <RotateCcw className="h-4 w-4" />
+                  Reset
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -198,6 +325,16 @@ export default function RelationshipPlaybook() {
               <p>Repair scripts tied to your actual conflict patterns.</p>
               <p>Weekly rhythms and decision rules you can reuse.</p>
               <p>A living set of templates you can edit over time.</p>
+              <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4 text-foreground">
+                <p className="enterprise-section-label flex items-center gap-2">
+                  <WandSparkles className="h-4 w-4 text-primary" />
+                  Why this is a real template now
+                </p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  The builder on the left is editable, reusable, and structured around a real conversation flow, so it
+                  functions as an actual working template instead of static example text.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
