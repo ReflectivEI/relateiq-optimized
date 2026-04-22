@@ -651,6 +651,47 @@ function selectFields(records: StoredRecord[], fieldsValue?: string | null) {
   });
 }
 
+function dedupeMetricStateRecords(entity: string, records: StoredRecord[]) {
+  if (entity !== "UserMetricState" && entity !== "CoupleMetricState") return records;
+
+  const deduped = new Map<string, StoredRecord>();
+  for (const record of records) {
+    const ownerKey =
+      entity === "UserMetricState"
+        ? normalizeText(record.user_id)
+        : normalizeText(record.couple_id);
+    const metricKey = normalizeText(record.metric_name);
+    if (!ownerKey || !metricKey) continue;
+
+    const stableId =
+      entity === "UserMetricState"
+        ? `usermetricstate_${ownerKey}_${metricKey}`
+        : `couplemetricstate_${ownerKey}_${metricKey}`;
+    const compositeKey = `${ownerKey}:${metricKey}`;
+    const current = deduped.get(compositeKey);
+    if (!current) {
+      deduped.set(compositeKey, record);
+      continue;
+    }
+
+    const currentIsStable = normalizeText(current.id) === stableId;
+    const nextIsStable = normalizeText(record.id) === stableId;
+    if (nextIsStable && !currentIsStable) {
+      deduped.set(compositeKey, record);
+      continue;
+    }
+    if (nextIsStable === currentIsStable) {
+      const currentUpdated = normalizeText(current.updated_date || current.created_date);
+      const nextUpdated = normalizeText(record.updated_date || record.created_date);
+      if (nextUpdated > currentUpdated) {
+        deduped.set(compositeKey, record);
+      }
+    }
+  }
+
+  return [...deduped.values()];
+}
+
 async function queryEntityCollection(
   env: Env,
   entity: string,
@@ -662,7 +703,7 @@ async function queryEntityCollection(
       : await listEntityRecords(env, entity);
 
   const queryValue = requestUrl.searchParams.get("q");
-  let filtered = records;
+  let filtered = dedupeMetricStateRecords(entity, records);
   if (queryValue) {
     try {
       const parsed = JSON.parse(queryValue) as Record<string, unknown>;
@@ -1523,14 +1564,31 @@ async function getMetricStateRecord(
   lookupKey: string,
   metricName: MetricName,
 ) {
-  const records = await listEntityRecords(env, entity);
-  return (
+  const stableId =
+    entity === "UserMetricState"
+      ? `usermetricstate_${lookupKey.toLowerCase()}_${metricName}`
+      : `couplemetricstate_${lookupKey.toLowerCase()}_${metricName}`;
+
+  const direct = await getEntityRecord(env, entity, stableId);
+  if (direct) return direct;
+
+  const records = sortRecords(await listEntityRecords(env, entity), "-updated_date");
+  const legacy =
     records.find(
       (record) =>
         normalizeText(entity === "UserMetricState" ? record.user_id : record.couple_id) === lookupKey &&
         normalizeText(record.metric_name) === metricName,
-    ) || null
-  );
+    ) || null;
+
+  if (!legacy) return null;
+
+  return createEntityRecord(env, entity, {
+    ...legacy,
+    id: stableId,
+    user_id: entity === "UserMetricState" ? lookupKey : undefined,
+    couple_id: entity === "CoupleMetricState" ? lookupKey : undefined,
+    metric_name: metricName,
+  });
 }
 
 async function applyMetricSignal(env: Env, signal: MetricSignal) {
@@ -1540,6 +1598,7 @@ async function applyMetricSignal(env: Env, signal: MetricSignal) {
   const userRecord =
     (await getMetricStateRecord(env, "UserMetricState", signal.userId, signal.metricName)) ||
     (await createEntityRecord(env, "UserMetricState", {
+      id: `usermetricstate_${signal.userId.toLowerCase()}_${signal.metricName}`,
       user_id: signal.userId,
       metric_name: signal.metricName,
       value: 0.5,
@@ -1551,6 +1610,7 @@ async function applyMetricSignal(env: Env, signal: MetricSignal) {
   const coupleRecord =
     (await getMetricStateRecord(env, "CoupleMetricState", signal.coupleId, signal.metricName)) ||
     (await createEntityRecord(env, "CoupleMetricState", {
+      id: `couplemetricstate_${signal.coupleId.toLowerCase()}_${signal.metricName}`,
       couple_id: signal.coupleId,
       metric_name: signal.metricName,
       value: 0.5,
