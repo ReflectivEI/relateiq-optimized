@@ -262,9 +262,11 @@ export default function Home() {
                   </div>
                   {profile?.ai_behavioral_summary ? (
                     <div className="flex-1 space-y-4">
-                      <p className="text-base leading-8 text-muted-foreground">
-                        {isExpanded ? profile.ai_behavioral_summary : previewText}
-                      </p>
+                      {isExpanded ? (
+                        <p className="text-base leading-8 text-muted-foreground">
+                          {profile.ai_behavioral_summary}
+                        </p>
+                      ) : null}
 
                       {!isExpanded ? (
                         <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
