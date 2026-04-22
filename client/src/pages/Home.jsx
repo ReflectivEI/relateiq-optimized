@@ -11,6 +11,7 @@ import {
   CalendarCheck,
   ArrowRight,
   Star,
+  Zap,
   Gamepad2,
   HeartHandshake,
   Expand,
