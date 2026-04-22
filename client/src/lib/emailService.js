@@ -25,7 +25,7 @@ export function openEmailWithPDF({
   
   // User needs to attach PDF manually, but we can download it first
   link.click();
-  URL.revokeObjectURL(link.href);
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   
   // Then open email client
   setTimeout(() => {

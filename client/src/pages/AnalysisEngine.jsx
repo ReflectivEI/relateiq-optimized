@@ -282,6 +282,19 @@ export default function AnalysisEngine() {
             <div className="space-y-3">
               <ResponseExportBar
                 contentRef={analysisRef}
+                content={{
+                  perspective,
+                  mode,
+                  scenario: scenario.trim() || null,
+                  coreInsight: displayAnalysis.core_insight,
+                  behavioralPatterns: displayAnalysis.behavioral_patterns || [],
+                  relationshipDynamics: displayAnalysis.relationship_dynamics || [],
+                  riskFlags: displayAnalysis.risk_flags || [],
+                  strengths: displayAnalysis.strengths || [],
+                  recommendedActions: displayAnalysis.recommended_actions || [],
+                  confidenceScore: displayAnalysis.confidence_score,
+                  frameworksUsed: displayAnalysis.frameworks_used || [],
+                }}
                 filename={`analysis-${perspective.replace(/\\s+/g, "-")}.pdf`}
                 title={`${perspective} Analysis`}
                 showEmail={false}

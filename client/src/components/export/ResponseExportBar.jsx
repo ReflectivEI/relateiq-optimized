@@ -38,7 +38,7 @@ export default function ResponseExportBar({
         link.href = URL.createObjectURL(result.blob);
         link.download = filename;
         link.click();
-        URL.revokeObjectURL(link.href);
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
       } else {
         await downloadPDF({
           element: contentRef.current,
