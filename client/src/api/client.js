@@ -144,6 +144,7 @@ function entityClient(entity) {
 export const api = {
   request,
   entities: {
+    AhaCard: entityClient("AhaCard"),
     CheckIn: entityClient("CheckIn"),
     CoachSession: entityClient("CoachSession"),
     DailyQuestion: entityClient("DailyQuestion"),
@@ -152,12 +153,87 @@ export const api = {
     JournalEntry: entityClient("JournalEntry"),
     Note: entityClient("Note"),
     OutcomeLog: entityClient("OutcomeLog"),
+    PlayLabResponse: entityClient("PlayLabResponse"),
+    PlayLabResult: entityClient("PlayLabResult"),
+    PlayLabSession: entityClient("PlayLabSession"),
     QuestionnaireResponse: entityClient("QuestionnaireResponse"),
     RelationshipDynamic: entityClient("RelationshipDynamic"),
     RepairEntry: entityClient("RepairEntry"),
+    SideQuest: entityClient("SideQuest"),
     TriggerEntry: entityClient("TriggerEntry"),
     UserProfile: entityClient("UserProfile"),
     VisionPin: entityClient("VisionPin"),
+  },
+  playLab: {
+    createSession(payload) {
+      return request("/api/play-lab/session", {
+        method: "POST",
+        body: payload,
+      });
+    },
+    submitAnswer(payload) {
+      return request("/api/play-lab/submit", {
+        method: "POST",
+        body: payload,
+      });
+    },
+    evaluate(payload) {
+      return request("/api/play-lab/evaluate", {
+        method: "POST",
+        body: payload,
+      });
+    },
+    generateRepairPlan(payload) {
+      return request("/api/play-lab/repair-plan", {
+        method: "POST",
+        body: payload,
+      });
+    },
+    generateAhaCard(payload) {
+      return request("/api/play-lab/aha", {
+        method: "POST",
+        body: payload,
+      });
+    },
+    assignSideQuest(payload) {
+      return request("/api/play-lab/side-quest", {
+        method: "POST",
+        body: payload,
+      });
+    },
+    logOutcome(payload) {
+      return request("/api/play-lab/outcome", {
+        method: "POST",
+        body: payload,
+      });
+    },
+    fetchHistory(params) {
+      return request("/api/play-lab/history", { params });
+    },
+    fetchAhaCards(params) {
+      return request("/api/play-lab/aha-cards", { params });
+    },
+    fetchSideQuests(params) {
+      return request("/api/play-lab/side-quests", { params });
+    },
+    explain(payload) {
+      return request("/api/play-lab/explain", {
+        method: "POST",
+        body: payload,
+      });
+    },
+    elaborate(payload) {
+      return request("/api/play-lab/elaborate", {
+        method: "POST",
+        body: payload,
+      });
+    },
+    exportSummary(payload) {
+      return request("/api/play-lab/export", {
+        method: "POST",
+        body: payload,
+      });
+    },
   },
   integrations: {
     Core: {

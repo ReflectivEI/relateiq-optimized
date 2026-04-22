@@ -18,6 +18,7 @@ import {
   BookOpenText,
   TrendingUp,
   Handshake,
+  Gamepad2,
   NotebookPen,
   Telescope,
   ActivitySquare,
@@ -42,6 +43,7 @@ const navGroups = [
       { path: "/health-report", label: "Health Report", icon: ActivitySquare },
       { path: "/vision", label: "Vision Board", icon: Telescope },
       { path: "/playbook", label: "Playbook", icon: BookOpenText },
+      { path: "/play-lab", label: "Play Lab", icon: Gamepad2 },
     ],
   },
   {

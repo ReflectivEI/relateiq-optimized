@@ -11,7 +11,7 @@ import {
   CalendarCheck,
   ArrowRight,
   Star,
-  Zap,
+  Gamepad2,
   HeartHandshake,
   Expand,
   ChevronDown,
@@ -66,6 +66,13 @@ const quickActions = [
     description: "Get a script to repair tension or reconnect after conflict",
     icon: HeartHandshake,
     path: "/repair",
+    color: "bg-primary/10 text-primary",
+  },
+  {
+    title: "Play Lab",
+    description: "Learn more about each other through short interactive rounds",
+    icon: Gamepad2,
+    path: "/play-lab",
     color: "bg-primary/10 text-primary",
   },
 ];

@@ -22,6 +22,7 @@ import KnowledgeHub from './pages/KnowledgeHub.jsx';
 import RelationshipRoadmap from './pages/RelationshipRoadmap.jsx';
 import DailyConnections from './pages/DailyConnections.jsx';
 import RelationshipPlaybook from './pages/RelationshipPlaybook.jsx';
+import PlayLab from './pages/PlayLab.jsx';
 import RelationshipJournal from './pages/RelationshipJournal.jsx';
 import VisionBoard from './pages/VisionBoard.jsx';
 import HealthReport from './pages/HealthReport.jsx';
@@ -48,6 +49,7 @@ const ApplicationRoutes = () => {
         <Route path="/roadmap" element={<RelationshipRoadmap />} />
         <Route path="/daily" element={<DailyConnections />} />
         <Route path="/playbook" element={<RelationshipPlaybook />} />
+        <Route path="/play-lab" element={<PlayLab />} />
         <Route path="/journal" element={<RelationshipJournal />} />
         <Route path="/vision" element={<VisionBoard />} />
         <Route path="/health-report" element={<HealthReport />} />

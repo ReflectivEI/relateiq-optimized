@@ -47,6 +47,62 @@ type StoredRecord = Record<string, unknown> & {
   updated_date: string;
 };
 
+type PlayLabModuleType =
+  | "guess_my_inner_world"
+  | "repair_quest"
+  | "stress_decoder"
+  | "two_truths_and_a_misread"
+  | "aha_cards"
+  | "side_quest"
+  | "love_map_sprint";
+
+const PLAY_LAB_MODULE_LABELS: Record<PlayLabModuleType, string> = {
+  guess_my_inner_world: "Guess My Inner World",
+  repair_quest: "Repair Quest",
+  stress_decoder: "Stress Decoder",
+  two_truths_and_a_misread: "Two Truths and a Misread",
+  aha_cards: "Aha Cards",
+  side_quest: "One Degree of Change",
+  love_map_sprint: "Love Map Sprint",
+};
+
+const PLAY_LAB_PROMPTS: Record<PlayLabModuleType, string[]> = {
+  guess_my_inner_world: [
+    "What would make me feel most supported tonight?",
+    "If I go quiet after a hard day, what do I most want from you?",
+    "What makes an apology feel complete to me?",
+    "What usually helps me feel most understood?",
+    "What do I need first when I’m overwhelmed?",
+    "What tends to make me feel alone in the relationship?",
+  ],
+  repair_quest: [
+    "What still feels unresolved after this moment?",
+    "What repair move would matter most right now?",
+    "What part of the exchange still stings or feels unfinished?",
+  ],
+  stress_decoder: [
+    "What support would actually land best right now?",
+    "When stress is high, what helps most first?",
+    "What kind of support would lower pressure fastest today?",
+  ],
+  two_truths_and_a_misread: [
+    "Which part of this moment was probably misread?",
+    "What are two likely truths and one likely misinterpretation here?",
+  ],
+  aha_cards: [
+    "What pattern has the app learned lately that would help this couple most?",
+  ],
+  side_quest: [
+    "What is one tiny behavior experiment worth trying this week?",
+  ],
+  love_map_sprint: [
+    "What is draining your partner most this week?",
+    "What kind of support are they most likely to want right now?",
+    "What topic feels hardest for them right now?",
+    "What kind of repair would matter most to them this month?",
+  ],
+};
+
 function getGroqApiKeys(env: Env): string[] {
   return [
     env.GROQ_API_KEY_STANDALONE,
@@ -740,6 +796,420 @@ async function buildAiRepairResponse(
   }
 }
 
+function toPersonId(value: unknown, fallback: PersonId = "Tony"): PersonId {
+  return value === "Drew" ? "Drew" : fallback;
+}
+
+function resolvePlayLabPartner(person: PersonId): PersonId {
+  return person === "Tony" ? "Drew" : "Tony";
+}
+
+function humanizeValue(value: string): string {
+  return value
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (match) => match.toUpperCase())
+    .trim();
+}
+
+function pickPrompt(moduleType: PlayLabModuleType, seedSource: string): string {
+  const prompts = PLAY_LAB_PROMPTS[moduleType] || PLAY_LAB_PROMPTS.guess_my_inner_world;
+  const seed = Array.from(seedSource).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return prompts[Math.abs(seed) % prompts.length];
+}
+
+function extractKeywordsFromText(...values: Array<string | undefined>): string[] {
+  const stopWords = new Set([
+    "the", "and", "for", "with", "that", "this", "from", "they", "them", "your", "have", "feel", "most", "what",
+    "when", "will", "been", "about", "into", "after", "before", "just", "need", "want", "like",
+  ]);
+
+  const counts = new Map<string, number>();
+  values
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word.length > 3 && !stopWords.has(word))
+    .forEach((word) => {
+      counts.set(word, (counts.get(word) || 0) + 1);
+    });
+
+  return [...counts.entries()]
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 6)
+    .map(([word]) => word);
+}
+
+function computeMatchScore(answer: string, guess: string) {
+  const answerTokens = new Set(extractKeywordsFromText(answer));
+  const guessTokens = new Set(extractKeywordsFromText(guess));
+  if (answerTokens.size === 0 && guessTokens.size === 0) return 50;
+
+  let overlap = 0;
+  answerTokens.forEach((token) => {
+    if (guessTokens.has(token)) overlap += 1;
+  });
+
+  const denominator = Math.max(answerTokens.size, guessTokens.size, 1);
+  return Math.max(18, Math.min(96, Math.round((overlap / denominator) * 100)));
+}
+
+function getPlayLabPromptLine(moduleType: PlayLabModuleType, promptText: string) {
+  return promptText || PLAY_LAB_MODULE_LABELS[moduleType];
+}
+
+async function getLatestRelationshipDynamic(env: Env) {
+  const records = await listEntityRecords(env, "RelationshipDynamic");
+  return sortRecords(records, "-updated_date")[0] || null;
+}
+
+async function buildPlayLabMemory(env: Env, scope: string) {
+  const [profiles, sessions, checkIns, triggers, repairs, outcomes, insightEntries, relationshipDynamic] =
+    await Promise.all([
+      listEntityRecords(env, "UserProfile"),
+      listEntityRecords(env, "CoachSession"),
+      listEntityRecords(env, "CheckIn"),
+      listEntityRecords(env, "TriggerEntry"),
+      listEntityRecords(env, "RepairEntry"),
+      listEntityRecords(env, "OutcomeLog"),
+      listEntityRecords(env, "InsightEntry"),
+      getLatestRelationshipDynamic(env),
+    ]);
+
+  const tonyQuestionnaire = await loadUploadedQuestionnaire(env, "Tony");
+  const drewQuestionnaire = await loadUploadedQuestionnaire(env, "Drew");
+
+  return {
+    scope,
+    profiles,
+    sessions: sortRecords(sessions, "-updated_date").slice(0, 12),
+    checkIns: sortRecords(checkIns, "-updated_date").slice(0, 12),
+    triggers: sortRecords(triggers, "-updated_date").slice(0, 12),
+    repairs: sortRecords(repairs, "-updated_date").slice(0, 12),
+    outcomes: sortRecords(outcomes, "-updated_date").slice(0, 12),
+    insights: sortRecords(insightEntries, "-updated_date").slice(0, 12),
+    relationshipDynamic,
+    questionnaireCounts: {
+      Tony: tonyQuestionnaire?.responses.length || 0,
+      Drew: drewQuestionnaire?.responses.length || 0,
+    },
+    questionnaireContext: [
+      buildQuestionnaireContext(tonyQuestionnaire, "Tony"),
+      buildQuestionnaireContext(drewQuestionnaire, "Drew"),
+    ].join("\n\n"),
+  };
+}
+
+function buildPlayLabContextObject({
+  moduleType,
+  scope,
+  sourceInputs,
+  memory,
+  sessionId,
+  originalOutput,
+}: {
+  moduleType: PlayLabModuleType;
+  scope: string;
+  sourceInputs: Record<string, unknown>;
+  memory: Record<string, unknown>;
+  sessionId: string;
+  originalOutput: Record<string, unknown>;
+}) {
+  return {
+    page: "Play Lab",
+    moduleType,
+    scope,
+    sourceInputs,
+    relevantMemoryRetrieved: {
+      profileCount: Array.isArray(memory.profiles) ? memory.profiles.length : 0,
+      sessionCount: Array.isArray(memory.sessions) ? memory.sessions.length : 0,
+      checkInCount: Array.isArray(memory.checkIns) ? memory.checkIns.length : 0,
+      triggerCount: Array.isArray(memory.triggers) ? memory.triggers.length : 0,
+      repairCount: Array.isArray(memory.repairs) ? memory.repairs.length : 0,
+      outcomeCount: Array.isArray(memory.outcomes) ? memory.outcomes.length : 0,
+      questionnaireCounts: memory.questionnaireCounts,
+    },
+    originalOutput,
+    timestamp: nowIso(),
+    relatedSessionId: sessionId,
+    relatedGameRunId: createId("playlabrun"),
+  };
+}
+
+function buildPlayLabDeterministicResult(input: {
+  moduleType: PlayLabModuleType;
+  promptText: string;
+  actualAnswer?: string;
+  guessedAnswer?: string;
+  selectedMisread?: string;
+  situation?: string;
+  unresolved?: string;
+  stressSource?: string;
+  currentNeed?: string;
+  predictedNeed?: string;
+  initiatedBy: PersonId;
+  scope: string;
+}) {
+  const moduleLabel = PLAY_LAB_MODULE_LABELS[input.moduleType];
+  const actualAnswer = normalizeText(input.actualAnswer);
+  const guessedAnswer = normalizeText(input.guessedAnswer);
+  const currentNeed = normalizeText(input.currentNeed);
+  const predictedNeed = normalizeText(input.predictedNeed);
+  const situation = normalizeText(input.situation);
+  const unresolved = normalizeText(input.unresolved);
+  const selectedMisread = normalizeText(input.selectedMisread);
+  const stressSource = normalizeText(input.stressSource);
+  const partner = resolvePlayLabPartner(input.initiatedBy);
+
+  const matchScore = computeMatchScore(actualAnswer || currentNeed || situation, guessedAnswer || predictedNeed || selectedMisread);
+  const mismatchType =
+    matchScore >= 75
+      ? "high_alignment"
+      : matchScore >= 45
+      ? "partial_alignment"
+      : "blind_spot";
+
+  const headline =
+    input.moduleType === "repair_quest"
+      ? `Repair is more likely to land when ${input.initiatedBy} feels the impact is acknowledged before the explanation.`
+      : input.moduleType === "stress_decoder"
+      ? `${partner}'s prediction captured part of the need, but the support move still needs sharpening.`
+      : input.moduleType === "two_truths_and_a_misread"
+      ? `The biggest risk here is misreading overwhelm as indifference.`
+      : input.moduleType === "side_quest"
+      ? `A one-degree shift will work best if it is small enough to try under real life pressure.`
+      : input.moduleType === "aha_cards"
+      ? `A repeatable pattern is starting to become visible, and that gives the couple something specific to work with.`
+      : `This round highlights how accurately ${partner} is reading ${input.initiatedBy}'s inner world right now.`;
+
+  const reveal =
+    input.moduleType === "repair_quest"
+      ? `What still feels unresolved is "${unresolved || "the emotional impact"}". Repair will land better if the first move lowers defensiveness instead of clarifying intent.`
+      : input.moduleType === "stress_decoder"
+      ? `${input.initiatedBy} is carrying stress from "${stressSource || "multiple demands"}" and most needs ${currentNeed || "listening without pressure"} first.`
+      : input.moduleType === "two_truths_and_a_misread"
+      ? `The misread is likely happening around "${selectedMisread || "what the silence means"}", not around whether either person cares.`
+      : input.moduleType === "side_quest"
+      ? `The next useful change is not a personality overhaul; it is one visible behavior that reduces confusion in the moments that matter.`
+      : input.moduleType === "aha_cards"
+      ? `The strongest pattern right now is that clarity, low pressure, and emotional reflection tend to help more than speed or problem-solving.`
+      : `The real answer "${actualAnswer || currentNeed || getPlayLabPromptLine(input.moduleType, input.promptText)}" and the guess "${guessedAnswer || predictedNeed || "no guess recorded"}" show how the couple is doing with emotional accuracy.`;
+
+  const suggestedActionTitle =
+    input.moduleType === "repair_quest"
+      ? "Best Repair Move Right Now"
+      : input.moduleType === "side_quest"
+      ? "This Week’s Tiny Shift"
+      : "Most Useful Next Step";
+
+  const suggestedActionDescription =
+    input.moduleType === "repair_quest"
+      ? `Lead with a brief acknowledgment of impact, then offer one concrete do-over instead of a long explanation.`
+      : input.moduleType === "stress_decoder"
+      ? `Before helping, ask whether ${input.initiatedBy} wants listening, reassurance, or one concrete action.`
+      : input.moduleType === "two_truths_and_a_misread"
+      ? `Name one alternative explanation out loud before reacting to the original interpretation.`
+      : input.moduleType === "side_quest"
+      ? `${input.initiatedBy}: before the next hard moment, say one sentence that reduces ambiguity for ${partner}.`
+      : `Reflect back the need in one sentence and let that land before moving into solutions.`;
+
+  const backupOptions = [
+    "Use one gentle check-in question instead of a rapid series of questions.",
+    "Offer a clear return time if space is needed so silence does not feel like rejection.",
+    "Pair any apology or reassurance with one visible follow-through action.",
+  ];
+
+  const sections = [
+    { title: "What This Reveals", body: headline },
+    { title: "Why It Matters", body: reveal },
+    { title: suggestedActionTitle, body: suggestedActionDescription },
+  ];
+
+  const ahaTitle =
+    input.moduleType === "repair_quest"
+      ? "Repair works better when impact is acknowledged first"
+      : input.moduleType === "stress_decoder"
+      ? "Support accuracy improves when the need is named directly"
+      : input.moduleType === "two_truths_and_a_misread"
+      ? "Overwhelm is being read as disconnection"
+      : input.moduleType === "side_quest"
+      ? "Small behavioral signals can change the whole tone"
+      : input.moduleType === "aha_cards"
+      ? "A stable support pattern is emerging"
+      : "Emotional accuracy is getting more specific";
+
+  const ahaBody = `${headline} ${suggestedActionDescription}`;
+  const tags = extractKeywordsFromText(headline, reveal, actualAnswer, guessedAnswer, currentNeed, predictedNeed);
+
+  return {
+    moduleLabel,
+    matchScore,
+    mismatchType,
+    confidenceLevel: matchScore >= 75 ? "high" : matchScore >= 45 ? "medium" : "emerging",
+    summary: headline,
+    interpretation: reveal,
+    sections,
+    suggestedAction: {
+      title: suggestedActionTitle,
+      description: suggestedActionDescription,
+      backups: backupOptions,
+    },
+    ahaCard: {
+      title: ahaTitle,
+      body: ahaBody,
+    },
+    inferredTags: tags,
+    statements:
+      input.moduleType === "two_truths_and_a_misread"
+        ? [
+            { label: "Likely True", body: `${input.initiatedBy} was trying to protect bandwidth, not shut the relationship out.` },
+            { label: "Likely True", body: `${partner} reacted strongly because the moment landed as emotional distance.` },
+            { label: "Likely Misread", body: `${input.initiatedBy}'s quieter response meant they cared less about the relationship.` },
+          ]
+        : [],
+  };
+}
+
+async function buildPlayLabAiResult(
+  env: Env,
+  input: {
+    moduleType: PlayLabModuleType;
+    promptText: string;
+    actualAnswer?: string;
+    guessedAnswer?: string;
+    selectedMisread?: string;
+    situation?: string;
+    unresolved?: string;
+    stressSource?: string;
+    currentNeed?: string;
+    predictedNeed?: string;
+    initiatedBy: PersonId;
+    scope: string;
+  },
+  memory: Awaited<ReturnType<typeof buildPlayLabMemory>>,
+) {
+  const fallback = buildPlayLabDeterministicResult(input);
+  const messages: GroqMessage[] = [
+    {
+      role: "system",
+      content:
+        "You are RelateIQ's Play Lab interpreter. Use only the provided relationship memory and current module inputs. Return strict JSON with keys: summary (string), interpretation (string), confidenceLevel (string), mismatchType (string), matchScore (number), inferredTags (string[]), sections (array of objects with title and body), suggestedAction (object with title, description, backups), ahaCard (object with title and body), statements (array of objects with label and body). Keep it adult, emotionally safe, concise, and specific.",
+    },
+    {
+      role: "user",
+      content: [
+        `Module: ${PLAY_LAB_MODULE_LABELS[input.moduleType]}`,
+        `Scope: ${input.scope}`,
+        `Prompt: ${getPlayLabPromptLine(input.moduleType, input.promptText)}`,
+        `Initiated by: ${input.initiatedBy}`,
+        input.actualAnswer ? `Actual answer: ${input.actualAnswer}` : "",
+        input.guessedAnswer ? `Guessed answer: ${input.guessedAnswer}` : "",
+        input.currentNeed ? `Actual need: ${input.currentNeed}` : "",
+        input.predictedNeed ? `Predicted need: ${input.predictedNeed}` : "",
+        input.situation ? `Situation: ${input.situation}` : "",
+        input.unresolved ? `Still unresolved: ${input.unresolved}` : "",
+        input.selectedMisread ? `Selected likely misread: ${input.selectedMisread}` : "",
+        input.stressSource ? `Stress source: ${input.stressSource}` : "",
+        `Recent memory counts: ${JSON.stringify(memory.questionnaireCounts)}`,
+        `Recent sessions: ${(memory.sessions || []).length}`,
+        `Recent check-ins: ${(memory.checkIns || []).length}`,
+        `Recent triggers: ${(memory.triggers || []).length}`,
+        `Recent repairs: ${(memory.repairs || []).length}`,
+        memory.questionnaireContext,
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+    },
+  ];
+
+  try {
+    const groq = await callGroq(env, messages, JSON.stringify(input).length + JSON.stringify(memory.questionnaireCounts).length, {
+      jsonMode: true,
+    });
+    const parsed = parseJsonObject(groq.text);
+    if (!parsed) return { ...fallback, provider: "deterministic", fallback: true };
+    return {
+      summary: normalizeText(parsed.summary) || fallback.summary,
+      interpretation: normalizeText(parsed.interpretation) || fallback.interpretation,
+      confidenceLevel: normalizeText(parsed.confidenceLevel) || fallback.confidenceLevel,
+      mismatchType: normalizeText(parsed.mismatchType) || fallback.mismatchType,
+      matchScore: Number(parsed.matchScore || fallback.matchScore) || fallback.matchScore,
+      inferredTags: toStringArray(parsed.inferredTags, fallback.inferredTags),
+      sections:
+        Array.isArray(parsed.sections) && parsed.sections.length > 0
+          ? parsed.sections
+              .filter((section) => isObject(section))
+              .map((section) => ({
+                title: normalizeText(section.title) || "Insight",
+                body: normalizeText(section.body) || fallback.interpretation,
+              }))
+          : fallback.sections,
+      suggestedAction: isObject(parsed.suggestedAction)
+        ? {
+            title: normalizeText(parsed.suggestedAction.title) || fallback.suggestedAction.title,
+            description:
+              normalizeText(parsed.suggestedAction.description) || fallback.suggestedAction.description,
+            backups: toStringArray(parsed.suggestedAction.backups, fallback.suggestedAction.backups),
+          }
+        : fallback.suggestedAction,
+      ahaCard: isObject(parsed.ahaCard)
+        ? {
+            title: normalizeText(parsed.ahaCard.title) || fallback.ahaCard.title,
+            body: normalizeText(parsed.ahaCard.body) || fallback.ahaCard.body,
+          }
+        : fallback.ahaCard,
+      statements:
+        Array.isArray(parsed.statements) && parsed.statements.length > 0
+          ? parsed.statements
+              .filter((statement) => isObject(statement))
+              .map((statement) => ({
+                label: normalizeText(statement.label) || "Insight",
+                body: normalizeText(statement.body) || "",
+              }))
+          : fallback.statements,
+      provider: "groq",
+      model: groq.model,
+      keyIndex: groq.keyIndex,
+      fallback: false,
+    };
+  } catch {
+    return {
+      ...fallback,
+      provider: "deterministic",
+      fallback: true,
+    };
+  }
+}
+
+function buildPlayLabExportText(result: Record<string, unknown>) {
+  const sections = Array.isArray(result.sections) ? result.sections : [];
+  const action = isObject(result.suggestedAction) ? result.suggestedAction : null;
+  const lines = [
+    `${normalizeText(result.moduleLabel) || "Play Lab Result"}`,
+    `Generated: ${new Date().toLocaleString()}`,
+    `Scope: ${normalizeText(result.scope) || "Tony+Drew"}`,
+    "",
+    normalizeText(result.summary),
+    "",
+    ...sections.flatMap((section) =>
+      isObject(section)
+        ? [`${normalizeText(section.title).toUpperCase()}`, normalizeText(section.body), ""]
+        : [],
+    ),
+  ];
+
+  if (action) {
+    lines.push("SUGGESTED NEXT STEP", normalizeText(action.title), normalizeText(action.description), "");
+    if (Array.isArray(action.backups) && action.backups.length > 0) {
+      lines.push("BACKUP OPTIONS");
+      action.backups.forEach((item) => lines.push(`- ${normalizeText(item)}`));
+      lines.push("");
+    }
+  }
+
+  return lines.join("\n");
+}
+
 async function handleLlmRequest(request: Request, env: Env): Promise<Response> {
   const body = await readJson(request);
   const prompt = normalizeText(body?.prompt);
@@ -1212,6 +1682,404 @@ export default {
         request,
         env,
       );
+    }
+
+    if (url.pathname === "/api/play-lab/session" && request.method === "POST") {
+      const body = await readJson(request);
+      if (!isObject(body)) {
+        return json({ error: "invalid_payload" }, request, env, 400);
+      }
+
+      const moduleType = normalizeText(body.moduleType) as PlayLabModuleType;
+      if (!PLAY_LAB_MODULE_LABELS[moduleType]) {
+        return json({ error: "invalid_module_type" }, request, env, 400);
+      }
+
+      const initiatedBy = toPersonId(body.initiatedBy);
+      const answeringPerson = toPersonId(body.answeringPerson, initiatedBy);
+      const scope = normalizeText(body.scope) || "Tony+Drew";
+      const promptText = pickPrompt(moduleType, `${moduleType}:${scope}:${initiatedBy}`);
+
+      const record = await createEntityRecord(env, "PlayLabSession", {
+        module_type: moduleType,
+        module_label: PLAY_LAB_MODULE_LABELS[moduleType],
+        scope,
+        initiated_by: initiatedBy,
+        answering_person: answeringPerson,
+        status: "awaiting_input",
+        prompt_text: promptText,
+        source_context: {
+          page: "Play Lab",
+          createdFrom: normalizeText(body.createdFrom) || "play_lab",
+        },
+        related_session_id: normalizeText(body.relatedSessionId) || null,
+      });
+
+      return json(
+        {
+          ok: true,
+          session: record,
+          promptText,
+        },
+        request,
+        env,
+        201,
+      );
+    }
+
+    if (url.pathname === "/api/play-lab/submit" && request.method === "POST") {
+      const body = await readJson(request);
+      if (!isObject(body) || !normalizeText(body.sessionId) || !normalizeText(body.responseValue)) {
+        return json({ error: "invalid_payload" }, request, env, 400);
+      }
+
+      const responseRecord = await createEntityRecord(env, "PlayLabResponse", {
+        session_id: normalizeText(body.sessionId),
+        user_id: normalizeText(body.userId) || toPersonId(body.userId || body.person || body.roleInSession).toString(),
+        role_in_session: normalizeText(body.roleInSession) || "participant",
+        response_type: normalizeText(body.responseType) || "text",
+        response_value: normalizeText(body.responseValue),
+      });
+
+      return json({ ok: true, response: responseRecord }, request, env, 201);
+    }
+
+    if (
+      (url.pathname === "/api/play-lab/evaluate" || url.pathname === "/api/play-lab/repair-plan") &&
+      request.method === "POST"
+    ) {
+      const body = await readJson(request);
+      if (!isObject(body) || !normalizeText(body.sessionId)) {
+        return json({ error: "invalid_payload" }, request, env, 400);
+      }
+
+      const sessionId = normalizeText(body.sessionId);
+      const session = await getEntityRecord(env, "PlayLabSession", sessionId);
+      if (!session) {
+        return json({ error: "session_not_found" }, request, env, 404);
+      }
+
+      const moduleType = (normalizeText(body.moduleType) || normalizeText(session.module_type)) as PlayLabModuleType;
+      if (!PLAY_LAB_MODULE_LABELS[moduleType]) {
+        return json({ error: "invalid_module_type" }, request, env, 400);
+      }
+
+      const initiatedBy = toPersonId(body.initiatedBy || session.initiated_by);
+      const scope = normalizeText(body.scope || session.scope) || "Tony+Drew";
+      const memory = await buildPlayLabMemory(env, scope);
+      const sourceInputs = {
+        promptText: normalizeText(body.promptText || session.prompt_text),
+        actualAnswer: normalizeText(body.actualAnswer),
+        guessedAnswer: normalizeText(body.guessedAnswer),
+        currentNeed: normalizeText(body.currentNeed),
+        predictedNeed: normalizeText(body.predictedNeed),
+        stressSource: normalizeText(body.stressSource),
+        situation: normalizeText(body.situation),
+        unresolved: normalizeText(body.unresolved),
+        selectedMisread: normalizeText(body.selectedMisread),
+      };
+
+      const resultCore = await buildPlayLabAiResult(
+        env,
+        {
+          moduleType,
+          promptText: sourceInputs.promptText,
+          actualAnswer: sourceInputs.actualAnswer,
+          guessedAnswer: sourceInputs.guessedAnswer,
+          currentNeed: sourceInputs.currentNeed,
+          predictedNeed: sourceInputs.predictedNeed,
+          stressSource: sourceInputs.stressSource,
+          situation: sourceInputs.situation,
+          unresolved: sourceInputs.unresolved,
+          selectedMisread: sourceInputs.selectedMisread,
+          initiatedBy,
+          scope,
+        },
+        memory,
+      );
+
+      const contextObject = buildPlayLabContextObject({
+        moduleType,
+        scope,
+        sourceInputs,
+        memory,
+        sessionId,
+        originalOutput: resultCore,
+      });
+
+      const resultRecord = await createEntityRecord(env, "PlayLabResult", {
+        session_id: sessionId,
+        module_type: moduleType,
+        scope,
+        match_score: resultCore.matchScore,
+        mismatch_type: resultCore.mismatchType,
+        ai_summary: resultCore.summary,
+        suggested_action: resultCore.suggestedAction,
+        inferred_tags: resultCore.inferredTags,
+        confidence_level: resultCore.confidenceLevel,
+        context_object: contextObject,
+        sections: resultCore.sections,
+        statements: resultCore.statements,
+        interpretation: resultCore.interpretation,
+        provider: resultCore.provider,
+        model: resultCore.model || null,
+        key_index: resultCore.keyIndex ?? null,
+      });
+
+      const ahaRecord = await createEntityRecord(env, "AhaCard", {
+        title: resultCore.ahaCard.title,
+        body: resultCore.ahaCard.body,
+        scope,
+        source_type: moduleType,
+        related_session_id: sessionId,
+        inferred_tags: resultCore.inferredTags,
+        saved_by_user: initiatedBy,
+      });
+
+      await createEntityRecord(env, "InsightEntry", {
+        perspective: scope === "Tony+Drew" ? `${initiatedBy}→${resolvePlayLabPartner(initiatedBy)}` : scope,
+        mode: "play-lab",
+        core_insight: resultCore.summary,
+        behavioral_patterns: (resultCore.sections || []).slice(0, 2).map((section) => normalizeText(section.body)),
+        risk_flags: [normalizeText(resultCore.interpretation)].filter(Boolean),
+        strengths: [normalizeText(resultCore.suggestedAction?.description)].filter(Boolean),
+        scenario: normalizeText(sourceInputs.promptText || sourceInputs.situation),
+        confidence_score: Math.max(0.2, Math.min(0.95, (Number(resultCore.matchScore) || 50) / 100)),
+        frameworks_used:
+          moduleType === "repair_quest"
+            ? ["Gottman Method", "Emotionally Focused Therapy"]
+            : moduleType === "stress_decoder"
+            ? ["Support Matching", "Attachment Lens"]
+            : ["Perspective Taking"],
+        note: "",
+        source_type: "play_lab",
+        related_session_id: sessionId,
+      });
+
+      await updateEntityRecord(env, "PlayLabSession", sessionId, {
+        status: "completed",
+        result_id: resultRecord.id,
+        aha_card_id: ahaRecord.id,
+        context_object: contextObject,
+      });
+
+      return json(
+        {
+          ok: true,
+          session,
+          result: {
+            ...resultRecord,
+            moduleLabel: PLAY_LAB_MODULE_LABELS[moduleType],
+            suggestedAction: resultCore.suggestedAction,
+            sections: resultCore.sections,
+            statements: resultCore.statements,
+            summary: resultCore.summary,
+            interpretation: resultCore.interpretation,
+          },
+          ahaCard: ahaRecord,
+        },
+        request,
+        env,
+      );
+    }
+
+    if (url.pathname === "/api/play-lab/aha" && request.method === "POST") {
+      const body = await readJson(request);
+      if (!isObject(body)) {
+        return json({ error: "invalid_payload" }, request, env, 400);
+      }
+
+      const scope = normalizeText(body.scope) || "Tony+Drew";
+      const relatedSessionId = normalizeText(body.relatedSessionId);
+      const result =
+        relatedSessionId
+          ? (await queryEntityCollection(env, "PlayLabResult", new URL(`${url.origin}/?q=${encodeURIComponent(JSON.stringify({ session_id: relatedSessionId }))}`)))[0]
+          : sortRecords(await listEntityRecords(env, "PlayLabResult"), "-updated_date")[0];
+
+      const resultSummary = isObject(result) ? normalizeText(result.ai_summary) : "A new pattern is becoming clearer.";
+      const ahaRecord = await createEntityRecord(env, "AhaCard", {
+        title: normalizeText(body.title) || "Aha unlocked",
+        body: normalizeText(body.body) || resultSummary,
+        scope,
+        source_type: normalizeText(body.sourceType) || "play_lab",
+        related_session_id: relatedSessionId || normalizeText(result?.session_id),
+        inferred_tags: Array.isArray(body.inferredTags) ? body.inferredTags : result?.inferred_tags || [],
+        saved_by_user: normalizeText(body.savedByUser) || "Tony",
+      });
+
+      return json({ ok: true, ahaCard: ahaRecord }, request, env, 201);
+    }
+
+    if (url.pathname === "/api/play-lab/side-quest" && request.method === "POST") {
+      const body = await readJson(request);
+      if (!isObject(body)) {
+        return json({ error: "invalid_payload" }, request, env, 400);
+      }
+
+      const scope = normalizeText(body.scope) || "Tony";
+      const userId = normalizeText(body.userId) || (scope.includes("Drew") && !scope.includes("Tony") ? "Drew" : "Tony");
+      const memory = await buildPlayLabMemory(env, scope);
+      const topTag =
+        Array.isArray(body.focusTags) && body.focusTags.length > 0
+          ? normalizeText(body.focusTags[0])
+          : extractKeywordsFromText(
+              ...sortRecords(await listEntityRecords(env, "PlayLabResult"), "-updated_date")
+                .slice(0, 5)
+                .map((item) => normalizeText(item.ai_summary)),
+            )[0] || "clarity";
+
+      const quest = await createEntityRecord(env, "SideQuest", {
+        user_id: userId,
+        scope,
+        title: normalizeText(body.title) || `One Degree of Change: ${humanizeValue(topTag)}`,
+        description:
+          normalizeText(body.description) ||
+          `Try one small behavior that makes ${userId === "Tony" ? "Drew" : "Tony"} feel more understood when pressure is high.`,
+        why_chosen:
+          normalizeText(body.whyChosen) ||
+          `Chosen because recent Play Lab results suggest ${humanizeValue(topTag)} is a high-leverage area right now.`,
+        success_definition:
+          normalizeText(body.successDefinition) ||
+          "You tried it once in a real moment and it slightly improved clarity, safety, or connection.",
+        status: "assigned",
+        context_object: {
+          page: "Play Lab",
+          moduleType: "side_quest",
+          scope,
+          relevantMemoryRetrieved: {
+            resultCount: (await listEntityRecords(env, "PlayLabResult")).length,
+            questionnaireCounts: memory.questionnaireCounts,
+          },
+        },
+      });
+
+      return json({ ok: true, sideQuest: quest }, request, env, 201);
+    }
+
+    if (url.pathname === "/api/play-lab/outcome" && request.method === "POST") {
+      const body = await readJson(request);
+      if (!isObject(body)) {
+        return json({ error: "invalid_payload" }, request, env, 400);
+      }
+
+      const outcome = await createEntityRecord(env, "OutcomeLog", {
+        source_type: normalizeText(body.sourceType) || "play_lab",
+        related_id: normalizeText(body.relatedId),
+        scope: normalizeText(body.scope) || "Tony+Drew",
+        attempted: Boolean(body.attempted),
+        helped: Boolean(body.helped),
+        tension_change: Number(body.tensionChange || 0),
+        connection_change: Number(body.connectionChange || 0),
+        felt_natural: Boolean(body.feltNatural),
+        notes: normalizeText(body.notes),
+      });
+
+      return json({ ok: true, outcome }, request, env, 201);
+    }
+
+    if (url.pathname === "/api/play-lab/history" && request.method === "GET") {
+      const scope = normalizeText(url.searchParams.get("scope")) || "";
+      const limit = Number(url.searchParams.get("limit") || 24) || 24;
+      const sessions = sortRecords(await listEntityRecords(env, "PlayLabSession"), "-updated_date")
+        .filter((record) => !scope || normalizeText(record.scope).includes(scope) || normalizeText(record.initiated_by) === scope)
+        .slice(0, limit);
+      const results = sortRecords(await listEntityRecords(env, "PlayLabResult"), "-updated_date").slice(0, limit);
+      return json({ sessions, results }, request, env);
+    }
+
+    if (url.pathname === "/api/play-lab/aha-cards" && request.method === "GET") {
+      const scope = normalizeText(url.searchParams.get("scope")) || "";
+      const cards = sortRecords(await listEntityRecords(env, "AhaCard"), "-updated_date").filter(
+        (record) => !scope || normalizeText(record.scope).includes(scope) || normalizeText(record.saved_by_user) === scope,
+      );
+      return json({ cards }, request, env);
+    }
+
+    if (url.pathname === "/api/play-lab/side-quests" && request.method === "GET") {
+      const scope = normalizeText(url.searchParams.get("scope")) || "";
+      const quests = sortRecords(await listEntityRecords(env, "SideQuest"), "-updated_date").filter(
+        (record) => !scope || normalizeText(record.scope).includes(scope) || normalizeText(record.user_id) === scope,
+      );
+      return json({ quests }, request, env);
+    }
+
+    if (
+      (url.pathname === "/api/play-lab/explain" || url.pathname === "/api/play-lab/elaborate" || url.pathname === "/api/play-lab/export") &&
+      request.method === "POST"
+    ) {
+      const body = await readJson(request);
+      if (!isObject(body)) {
+        return json({ error: "invalid_payload" }, request, env, 400);
+      }
+
+      const resultRecord = normalizeText(body.resultId)
+        ? await getEntityRecord(env, "PlayLabResult", normalizeText(body.resultId))
+        : null;
+      const contextObject = isObject(body.contextObject)
+        ? body.contextObject
+        : isObject(resultRecord?.context_object)
+        ? resultRecord.context_object
+        : null;
+
+      if (!contextObject || !isObject(contextObject)) {
+        return json({ error: "context_required" }, request, env, 400);
+      }
+
+      const originalOutput = isObject(contextObject.originalOutput)
+        ? contextObject.originalOutput
+        : resultRecord || {};
+      const resultPayload = {
+        moduleLabel: PLAY_LAB_MODULE_LABELS[(normalizeText(originalOutput.module_type || contextObject.moduleType) as PlayLabModuleType) || "guess_my_inner_world"] || "Play Lab",
+        scope: normalizeText(originalOutput.scope || contextObject.scope) || "Tony+Drew",
+        summary: normalizeText(originalOutput.summary || originalOutput.ai_summary),
+        sections: Array.isArray(originalOutput.sections) ? originalOutput.sections : [],
+        suggestedAction: isObject(originalOutput.suggestedAction || originalOutput.suggested_action)
+          ? (originalOutput.suggestedAction || originalOutput.suggested_action)
+          : null,
+      };
+
+      if (url.pathname === "/api/play-lab/export") {
+        return json(
+          {
+            ok: true,
+            title: `${resultPayload.moduleLabel} — ${resultPayload.scope}`,
+            text: buildPlayLabExportText(resultPayload),
+          },
+          request,
+          env,
+        );
+      }
+
+      const mode = url.pathname.endsWith("/elaborate") ? "elaborate" : "explain";
+      const fallbackText =
+        mode === "elaborate"
+          ? `Expanded interpretation: ${resultPayload.summary}\n\n${buildPlayLabExportText(resultPayload)}`
+          : `What this means: ${resultPayload.summary}\n\nNext step: ${normalizeText(resultPayload.suggestedAction?.description) || "Reflect the need before moving into solutions."}`;
+
+      try {
+        const groq = await callGroq(
+          env,
+          [
+            {
+              role: "system",
+              content: `You are RelateIQ's Play Lab ${mode} helper. Use only the provided context and return a clear readable response.`,
+            },
+            {
+              role: "user",
+              content: [
+                `Mode: ${mode}`,
+                `Context: ${JSON.stringify(contextObject, null, 2)}`,
+                `Result: ${JSON.stringify(resultPayload, null, 2)}`,
+              ].join("\n\n"),
+            },
+          ],
+          JSON.stringify(contextObject).length,
+        );
+
+        return json({ ok: true, text: groq.text, provider: "groq", model: groq.model }, request, env);
+      } catch {
+        return json({ ok: true, text: fallbackText, provider: "deterministic", fallback: true }, request, env);
+      }
     }
 
     if (url.pathname.startsWith("/api/data/")) {
