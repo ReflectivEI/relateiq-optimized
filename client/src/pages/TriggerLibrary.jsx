@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { api } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -147,7 +147,6 @@ function dedupeTriggers(items = []) {
 
 function TriggerCard({ trigger, onConfirm, onEdit, onDelete }) {
   const [expanded, setExpanded] = useState(false);
-  const isStarter = String(trigger.id).startsWith("starter-");
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
@@ -178,16 +177,12 @@ function TriggerCard({ trigger, onConfirm, onEdit, onDelete }) {
               <button onClick={() => setExpanded(!expanded)} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
                 {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
-              {!isStarter && (
-                <>
-                  <button onClick={() => onEdit(trigger)} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                  <button onClick={() => onDelete(trigger.id)} className="p-1 text-muted-foreground hover:text-destructive transition-colors">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </>
-              )}
+              <button onClick={() => onEdit(trigger)} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={() => onDelete(trigger.id)} className="delete-action-button p-1 transition-colors">
+                <Trash2 className="delete-action-icon w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
 
@@ -228,7 +223,7 @@ function TriggerCard({ trigger, onConfirm, onEdit, onDelete }) {
             )}
           </AnimatePresence>
 
-          {!trigger.confirmed && !isStarter && (
+          {!trigger.confirmed && (
             <div className="flex items-center gap-2 pt-1">
               <Button
                 size="sm"
@@ -256,7 +251,7 @@ function TriggerForm({ initial, onSave, onCancel, person }) {
 
   const handleSave = async () => {
     if (!form.title.trim()) return;
-    if (initial?.id) {
+    if (initial?.id && !initial?._starterTemplate) {
       await api.entities.TriggerEntry.update(initial.id, { ...form, confirmed: true });
     } else {
       await api.entities.TriggerEntry.create({ ...form, owner: person, source: "manual", confirmed: true });
@@ -340,6 +335,19 @@ export default function TriggerLibrary() {
   const [showForm, setShowForm] = useState(false);
   const [editingTrigger, setEditingTrigger] = useState(null);
   const queryClient = useQueryClient();
+  const [dismissedStarterIds, setDismissedStarterIds] = useState(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(window.localStorage.getItem("relateiq-dismissed-starters") || "[]");
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("relateiq-dismissed-starters", JSON.stringify(dismissedStarterIds));
+  }, [dismissedStarterIds]);
 
   const { data: triggers = [] } = useQuery({
     queryKey: ["triggers", person],
@@ -355,21 +363,36 @@ export default function TriggerLibrary() {
   };
 
   const handleDelete = async (id) => {
+    if (String(id).startsWith("starter-")) {
+      setDismissedStarterIds((prev) => Array.from(new Set([...prev, id])));
+      toast.success("Starter example removed");
+      return;
+    }
     await api.entities.TriggerEntry.delete(id);
     toast.success("Trigger removed");
     invalidate();
   };
 
   const handleEdit = (trigger) => {
-    setEditingTrigger(trigger);
+    setEditingTrigger(
+      String(trigger.id).startsWith("starter-")
+        ? { ...trigger, _starterTemplate: true }
+        : trigger
+    );
     setShowForm(false);
   };
 
   const unconfirmed = dedupeTriggers(triggers.filter((t) => !t.confirmed));
   const confirmedBase = dedupeTriggers(triggers.filter((t) => t.confirmed));
   const confirmedTitles = new Set(confirmedBase.map((trigger) => trigger.title.trim().toLowerCase()));
-  const starterConfirmed = (STARTER_TRIGGERS[person] || []).filter(
-    (trigger) => !confirmedTitles.has(trigger.title.trim().toLowerCase())
+  const starterConfirmed = useMemo(
+    () =>
+      (STARTER_TRIGGERS[person] || []).filter(
+        (trigger) =>
+          !confirmedTitles.has(trigger.title.trim().toLowerCase()) &&
+          !dismissedStarterIds.includes(trigger.id)
+      ),
+    [person, confirmedTitles, dismissedStarterIds]
   );
   const confirmed = [...confirmedBase, ...starterConfirmed];
 
@@ -412,7 +435,14 @@ export default function TriggerLibrary() {
             <TriggerForm
               initial={editingTrigger}
               person={person}
-              onSave={() => { setEditingTrigger(null); invalidate(); toast.success("Trigger updated"); }}
+              onSave={() => {
+                if (editingTrigger?._starterTemplate && editingTrigger?.id) {
+                  setDismissedStarterIds((prev) => Array.from(new Set([...prev, editingTrigger.id])));
+                }
+                setEditingTrigger(null);
+                invalidate();
+                toast.success("Trigger updated");
+              }}
               onCancel={() => setEditingTrigger(null)}
             />
           </motion.div>

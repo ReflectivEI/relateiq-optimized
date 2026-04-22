@@ -257,7 +257,7 @@ ${transcriptSeed}`,
                   className="p-1.5 hover:bg-blue-100 rounded transition-colors"
                   title="Clear"
                 >
-                  <Trash2 className="w-3.5 h-3.5 text-blue-700" />
+                  <Trash2 className="delete-action-icon w-3.5 h-3.5" />
                 </button>
               </div>
             </div>

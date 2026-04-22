@@ -5,51 +5,141 @@ import { drewData } from "@/lib/exportData/drewQuestionnaire";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Loader2, Sparkles, RotateCcw, Heart } from "lucide-react";
+import {
+  Send,
+  Loader2,
+  Sparkles,
+  RotateCcw,
+  Heart,
+  MessageSquareText,
+  Scale,
+  BrainCircuit,
+  HeartHandshake,
+  ShieldAlert,
+  Ear,
+  Clock3,
+  MessageCircleQuestion,
+  Lightbulb,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
 
-const SUGGESTED_PROMPTS = [
-  "Why does Tony shut down during conflict?",
-  "How should Drew approach Tony when he's stressed?",
-  "What triggers Drew most in arguments?",
-  "How do Tony and Drew each process being hurt?",
-  "What does Tony need to feel heard?",
-  "What is Drew's biggest fear in this relationship?",
-  "How can Tony and Drew reconnect after a fight?",
-  "What communication style works best for Drew?",
+const CATEGORY_LABELS = {
+  surface: "Surface Pattern",
+  behavioral: "Behavioral Pattern",
+  communication: "Communication Style",
+  emotional_triggers: "Emotional Trigger",
+  conflict_style: "Conflict Style",
+  energy_social: "Energy and Social Needs",
+  deep_reflection: "Deep Reflection",
+  family_upbringing: "Family and Upbringing",
+  partner_perception: "Partner Perception",
+  needs_vulnerability: "Needs and Vulnerability",
+  then_vs_now: "Then vs. Now",
+};
+
+const SECTION_PROMPTS = [
+  {
+    title: "Conflict Style",
+    description: "How each of you tends to enter, pace, and experience conflict.",
+    icon: Scale,
+    prompt: "How do Tony and Drew each approach conflict, and where do their styles clash most?",
+    summaryPrompt: "Summarize Tony and Drew's conflict style differences in 4 concise bullets.",
+  },
+  {
+    title: "Triggers",
+    description: "What tends to activate each person emotionally during hard moments.",
+    icon: ShieldAlert,
+    prompt: "What triggers Tony most, what triggers Drew most, and what usually happens next?",
+    summaryPrompt: "Summarize Tony and Drew's biggest triggers and how to avoid escalating them.",
+  },
+  {
+    title: "Communication",
+    description: "What tone, pacing, and communication style each person responds to best.",
+    icon: MessageSquareText,
+    prompt: "What communication style works best for Tony and what communication style works best for Drew?",
+    summaryPrompt: "Summarize the communication style that works best for Tony and Drew.",
+  },
+  {
+    title: "Emotional Processing",
+    description: "How each person handles hurt, overwhelm, and emotional intensity.",
+    icon: BrainCircuit,
+    prompt: "How do Tony and Drew each process hurt, stress, and emotional overwhelm?",
+    summaryPrompt: "Summarize how Tony and Drew each process hurt and overwhelm.",
+  },
+  {
+    title: "What Helps Repair",
+    description: "What tends to help each of you feel reconnected after distance or friction.",
+    icon: HeartHandshake,
+    prompt: "How can Tony and Drew reconnect after a fight or tense moment in a way that actually lands?",
+    summaryPrompt: "Summarize what helps Tony and Drew repair and reconnect.",
+  },
+  {
+    title: "Feeling Heard",
+    description: "What each person needs in order to feel understood and emotionally received.",
+    icon: Ear,
+    prompt: "What does Tony need to feel heard, and what does Drew need to feel heard?",
+    summaryPrompt: "Summarize what helps Tony and Drew feel heard and emotionally understood.",
+  },
+  {
+    title: "Stress Response",
+    description: "How outside stress tends to show up between the two of you.",
+    icon: Clock3,
+    prompt: "How should Drew approach Tony when he's stressed, and how should Tony approach Drew when he's stressed?",
+    summaryPrompt: "Summarize how each person should be approached during stress.",
+  },
+  {
+    title: "What To Do Next",
+    description: "Actionable next-step coaching grounded in your actual questionnaire patterns.",
+    icon: Lightbulb,
+    prompt: "Given everything you know about Tony and Drew, what are the 5 most useful relationship moves to focus on next?",
+    summaryPrompt: "Summarize the 5 highest-priority next steps for Tony and Drew.",
+  },
 ];
+
+function formatCategoryName(value) {
+  return CATEGORY_LABELS[value] || value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
 
 function buildSystemPrompt(scope) {
   const tonyContext = tonyData
-    .map(q => `[${q.category.toUpperCase()}] Q: ${q.question_text}\nTony: ${q.answer}`)
+    .map((q) => `Category: ${formatCategoryName(q.category)}\nQuestion: ${q.question_text}\nTony: ${q.answer}`)
     .join("\n\n");
 
   const drewContext = drewData
-    .map(q => `[${q.category.toUpperCase()}] Q: ${q.question_text}\nDrew: ${q.answer}`)
+    .map((q) => `Category: ${formatCategoryName(q.category)}\nQuestion: ${q.question_text}\nDrew: ${q.answer}`)
     .join("\n\n");
 
   return `You are an expert Relationship Coach with deep knowledge of Tony and Drew's relationship. You have studied their full questionnaire responses and can give highly personalized, specific advice. You never give generic advice — you always reference what Tony and Drew have actually said.
 
 IMPORTANT RULES:
-- Always cite specific answers from their questionnaires when relevant (e.g. "Tony said: '...'")
-- Be warm, direct, and empathetic — like a trusted therapist who knows them well
-- Never take sides — hold both perspectives with equal care
-- Give actionable, specific guidance
-- When discussing one person's behavior, connect it to what you know from their questionnaire
+- Always cite specific answers from their questionnaires when relevant.
+- Never expose internal raw category keys like [CONFLICT_STYLE] or [BEHAVIORAL] in your response.
+- If you reference a category, write it in clean human language such as "Conflict Style" or "Behavioral Pattern".
+- Use clear section headers, concise paragraphs, and practical guidance.
+- Be warm, direct, and empathetic.
+- Never take sides — hold both perspectives with equal care.
 - Current scope: ${scope === "both" ? "Tony & Drew (couple view)" : scope === "Tony" ? "Tony's perspective" : "Drew's perspective"}
 
----
 TONY'S FULL QUESTIONNAIRE RESPONSES:
 ${tonyContext}
 
----
 DREW'S FULL QUESTIONNAIRE RESPONSES:
 ${drewContext}
 
----
-You are now ready to answer questions about Tony, Drew, and their relationship with full context of who they are.`;
+You are ready to answer questions about Tony, Drew, and their relationship with full context.`;
+}
+
+function prettifyResponseText(text) {
+  if (!text) return "";
+
+  return text
+    .replace(/\[([A-Z_]+)\]/g, (_, label) => formatCategoryName(label.toLowerCase()))
+    .replace(/\(([\w_]+)\)\s*Q:/g, (_, label) => `${formatCategoryName(label.toLowerCase())}:`)
+    .replace(/\s{3,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 export default function RelationshipChat() {
@@ -76,38 +166,36 @@ export default function RelationshipChat() {
     setMessages(newMessages);
     setLoading(true);
 
-    // Build conversation history for the LLM
     const conversationHistory = newMessages
-      .map(m => `${m.role === "user" ? "User" : "Coach"}: ${m.content}`)
+      .map((message) => `${message.role === "user" ? "User" : "Coach"}: ${message.content}`)
       .join("\n\n");
 
     const prompt = `${buildSystemPrompt(scope)}
 
----
 CONVERSATION SO FAR:
 ${conversationHistory}
 
----
-Now respond as the Relationship Coach. Be thorough, warm, and specific. Reference Tony and Drew's actual questionnaire answers when relevant.`;
+Respond as the Relationship Coach. Use clean headers and human-readable section names.`;
 
     try {
       const result = await api.integrations.Core.InvokeLLM({ prompt, model: "claude_sonnet_4_6" });
-      const aiText = typeof result === "string" ? result : result?.response || "I wasn't able to generate a response. Please try again.";
-      setMessages(prev => [...prev, { role: "assistant", content: aiText }]);
+      const rawText = typeof result === "string" ? result : result?.response || "I wasn't able to generate a response. Please try again.";
+      const aiText = prettifyResponseText(rawText);
+      setMessages((prev) => [...prev, { role: "assistant", content: aiText }]);
     } catch (err) {
       if (err?.response?.status === 402 || err?.message?.includes("402") || err?.message?.includes("credit")) {
         setCreditError(true);
       } else {
-        setMessages(prev => [...prev, { role: "assistant", content: "Something went wrong. Please try again." }]);
+        setMessages((prev) => [...prev, { role: "assistant", content: "Something went wrong. Please try again." }]);
       }
     }
 
     setLoading(false);
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
       sendMessage();
     }
   };
@@ -118,31 +206,30 @@ Now respond as the Relationship Coach. Be thorough, warm, and specific. Referenc
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] max-h-[900px]">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-border/50 shrink-0">
+    <div className="flex h-[calc(100vh-5rem)] max-h-[960px] flex-col gap-4">
+      <div className="enterprise-panel flex shrink-0 items-center justify-between border-2 border-[#0e6f72]/20 bg-[#f4fbfa] px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Heart className="w-5 h-5 text-primary" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-white">
+            <Heart className="h-5 w-5 text-[#0e6f72]" />
           </div>
           <div>
             <h1 className="font-display text-xl font-bold text-foreground">Relationship Coach</h1>
-            <p className="text-xs text-muted-foreground">Powered by Tony & Drew's full questionnaire data</p>
+            <p className="text-xs text-muted-foreground">Powered by Tony &amp; Drew&apos;s full questionnaire data</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Select value={scope} onValueChange={setScope}>
-            <SelectTrigger className="h-8 text-xs w-40">
+            <SelectTrigger className="h-9 w-40 rounded-full border-[#0e6f72]/20 bg-white text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="both">Tony & Drew</SelectItem>
-              <SelectItem value="Tony">Tony's perspective</SelectItem>
-              <SelectItem value="Drew">Drew's perspective</SelectItem>
+              <SelectItem value="both">Tony &amp; Drew</SelectItem>
+              <SelectItem value="Tony">Tony&apos;s perspective</SelectItem>
+              <SelectItem value="Drew">Drew&apos;s perspective</SelectItem>
             </SelectContent>
           </Select>
           {messages.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={clearChat} className="h-8 gap-1.5 text-xs">
+            <Button variant="ghost" size="sm" onClick={clearChat} className="h-9 gap-1.5 rounded-full border border-[#0e6f72]/15 bg-white text-xs text-[#14263f] hover:bg-[#eef8f7]">
               <RotateCcw className="w-3 h-3" /> Clear
             </Button>
           )}
@@ -150,62 +237,78 @@ Now respond as the Relationship Coach. Be thorough, warm, and specific. Referenc
       </div>
 
       {creditError && (
-        <div className="pt-3 shrink-0">
+        <div className="shrink-0">
           <CreditLimitBanner />
         </div>
       )}
 
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto py-4 space-y-4 min-h-0">
+      <div className="flex-1 overflow-y-auto space-y-4 min-h-0 pr-1">
         {messages.length === 0 && (
           <div className="space-y-6">
-            {/* Welcome state */}
-            <div className="text-center py-8 space-y-2">
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-                <Sparkles className="w-7 h-7 text-primary" />
+            <div className="enterprise-panel border-2 border-[#0e6f72]/15 bg-[#f8fbfd] py-8 text-center space-y-2">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-white">
+                <Sparkles className="h-7 w-7 text-[#0e6f72]" />
               </div>
-              <h2 className="font-display text-lg font-semibold text-foreground">Ask me anything</h2>
-              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                I've read every answer Tony and Drew gave in their questionnaires. Ask about conflicts, triggers, communication, or anything about their dynamic.
+              <h2 className="font-display text-lg font-semibold text-foreground">Choose a section to explore</h2>
+              <p className="mx-auto max-w-2xl text-sm text-muted-foreground">
+                Each section below is grounded in Tony and Drew&apos;s actual questionnaire answers. Use the main action for a deeper answer or the summarize pill for a faster read.
               </p>
             </div>
 
-            {/* Suggested prompts */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {SUGGESTED_PROMPTS.map((prompt) => (
-                <button
-                  key={prompt}
-                  onClick={() => sendMessage(prompt)}
-                  className="text-left px-4 py-3 rounded-xl border border-border/60 bg-card hover:bg-accent/30 hover:border-primary/30 transition-all text-sm text-foreground/80 hover:text-foreground"
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {SECTION_PROMPTS.map((section) => (
+                <div
+                  key={section.title}
+                  className="enterprise-hover-raise rounded-2xl border border-[#0e6f72]/20 bg-white p-4 shadow-sm"
                 >
-                  {prompt}
-                </button>
+                  <div className="mb-3 flex items-start justify-between gap-2">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-[#eef8f7]">
+                      <section.icon className="h-4 w-4 text-[#0e6f72]" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => sendMessage(section.summaryPrompt)}
+                      className="enterprise-icon-pill px-3 py-1.5 text-xs"
+                    >
+                      Summarize
+                    </button>
+                  </div>
+                  <h3 className="text-base font-semibold text-[#14263f]">{section.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[#4e6077]">{section.description}</p>
+                  <button
+                    type="button"
+                    onClick={() => sendMessage(section.prompt)}
+                    className="mt-4 inline-flex w-full items-center justify-center rounded-full border-2 border-teal-500 bg-[#14263f] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#0f1d31]"
+                  >
+                    Ask About This
+                  </button>
+                </div>
               ))}
             </div>
           </div>
         )}
 
-        {messages.map((msg, i) => (
-          <div key={i} className={cn("flex gap-3", msg.role === "user" ? "justify-end" : "justify-start")}>
-            {msg.role === "assistant" && (
-              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                <Heart className="w-4 h-4 text-primary" />
+        {messages.map((message, index) => (
+          <div key={index} className={cn("flex gap-3", message.role === "user" ? "justify-end" : "justify-start")}>
+            {message.role === "assistant" && (
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-[#eef8f7]">
+                <MessageCircleQuestion className="h-4 w-4 text-[#0e6f72]" />
               </div>
             )}
             <div
               className={cn(
-                "max-w-[80%] rounded-2xl px-4 py-3 text-sm",
-                msg.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card border border-border/60 text-foreground"
+                "max-w-[82%] rounded-2xl px-4 py-3 text-sm shadow-sm",
+                message.role === "user"
+                  ? "border border-[#0e6f72] bg-[#0e6f72] text-white"
+                  : "border border-[#0e6f72]/15 bg-white text-foreground"
               )}
             >
-              {msg.role === "assistant" ? (
-                <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-strong:text-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+              {message.role === "assistant" ? (
+                <div className="prose prose-sm max-w-none text-foreground prose-headings:text-[#14263f] prose-strong:text-[#14263f] [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                  <ReactMarkdown>{message.content}</ReactMarkdown>
                 </div>
               ) : (
-                <p>{msg.content}</p>
+                <p>{message.content}</p>
               )}
             </div>
           </div>
@@ -213,11 +316,11 @@ Now respond as the Relationship Coach. Be thorough, warm, and specific. Referenc
 
         {loading && (
           <div className="flex gap-3 justify-start">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-              <Heart className="w-4 h-4 text-primary" />
+            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-[#eef8f7]">
+              <MessageCircleQuestion className="h-4 w-4 text-[#0e6f72]" />
             </div>
-            <div className="bg-card border border-border/60 rounded-2xl px-4 py-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            <div className="flex items-center gap-2 rounded-2xl border border-[#0e6f72]/15 bg-white px-4 py-3 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin text-[#0e6f72]" />
               Thinking with full context...
             </div>
           </div>
@@ -226,29 +329,28 @@ Now respond as the Relationship Coach. Be thorough, warm, and specific. Referenc
         <div ref={bottomRef} />
       </div>
 
-      {/* Input area */}
-      <div className="border-t border-border/50 pt-4 shrink-0">
+      <div className="enterprise-panel shrink-0 border-2 border-[#0e6f72]/15 bg-[#f8fbfd] pt-4">
         <div className="flex gap-2 items-end">
           <Textarea
             ref={textareaRef}
             placeholder="Ask about Tony, Drew, or their relationship..."
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
-            className="min-h-[48px] max-h-[140px] resize-none bg-background/60 text-sm py-3"
+            className="min-h-[48px] max-h-[140px] resize-none rounded-2xl border-2 bg-white text-sm py-3"
             rows={1}
             disabled={loading}
           />
           <Button
             onClick={() => sendMessage()}
             disabled={loading || !input.trim()}
-            className="h-12 w-12 shrink-0 p-0"
+            className="h-12 w-12 shrink-0 rounded-full border-2 border-teal-500 bg-[#14263f] p-0 text-white hover:bg-[#0f1d31]"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </Button>
         </div>
-        <p className="text-[10px] text-muted-foreground/50 mt-1.5 text-center">
-          References Tony & Drew's full questionnaire responses · Press Enter to send
+        <p className="mt-1.5 text-center text-[10px] text-muted-foreground/60">
+          References Tony &amp; Drew&apos;s full questionnaire responses · Press Enter to send
         </p>
       </div>
     </div>

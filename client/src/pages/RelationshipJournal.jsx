@@ -317,11 +317,11 @@ export default function RelationshipJournal() {
                             event.stopPropagation();
                             handleDelete(entry.id);
                           }}
-                          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/15 bg-white text-muted-foreground transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                          className="delete-action-button inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#c03b3b]/15 bg-[#fff6f6] transition-colors hover:bg-[#fff1f1]"
                           title="Delete journal entry"
                           aria-label={`Delete ${entry.title || `${entry.person_name}'s journal entry`}`}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="delete-action-icon h-4 w-4" />
                         </button>
                       </div>
                     </div>

@@ -22,6 +22,7 @@ import {
   MapPin,
   Search,
   Pencil,
+  Trash2,
   Waves,
   RefreshCw,
   MessageSquare,
@@ -113,6 +114,7 @@ export default function Coach() {
   const [selectedPill, setSelectedPill] = useState(null);
   const [pipelineTrace, setPipelineTrace] = useState(null);
   const [error, setError] = useState(null);
+  const [editingSessionId, setEditingSessionId] = useState(null);
   const responseRef = useRef(null);
   const queryClient = useQueryClient();
 
@@ -299,6 +301,31 @@ export default function Coach() {
     if (!response) return;
     navigator.clipboard.writeText(response);
     toast.success("Response copied to clipboard");
+  };
+
+  const loadSessionIntoComposer = (session) => {
+    const cleanedSituation = cleanSituationText(session.situation);
+    setSpeaker(session.speaker);
+    setSpeakingTo(session.speaking_to);
+    setSituation(cleanedSituation);
+    const structured = enforceCoachStructure(session.ai_response, cleanedSituation);
+    const modes = deriveCoachModes(structured);
+    setBaseResponse(session.ai_response);
+    setCoachModes(modes);
+    setOutputMode("full");
+    setResponse(modes.full);
+    setEditingSessionId(session.id);
+    setSessionId(session.id);
+  };
+
+  const handleDeleteSession = async (targetId) => {
+    await api.entities.CoachSession.delete(targetId);
+    if (editingSessionId === targetId || sessionId === targetId) {
+      setEditingSessionId(null);
+      setSessionId(null);
+    }
+    queryClient.invalidateQueries({ queryKey: ["coach-sessions"] });
+    toast.success("Conversation deleted");
   };
 
   return (
@@ -494,17 +521,7 @@ export default function Coach() {
                 <Card
                   key={session.id}
                   className="cursor-pointer border-2 border-primary/15 bg-white transition-all hover:border-primary/30 hover:shadow-sm"
-                  onClick={() => {
-                    setSpeaker(session.speaker);
-                    setSpeakingTo(session.speaking_to);
-                    setSituation(cleanSituationText(session.situation));
-                    const structured = enforceCoachStructure(session.ai_response, cleanSituationText(session.situation));
-                    const modes = deriveCoachModes(structured);
-                    setBaseResponse(session.ai_response);
-                    setCoachModes(modes);
-                    setOutputMode("full");
-                    setResponse(modes.full);
-                  }}
+                  onClick={() => loadSessionIntoComposer(session)}
                 >
                   <CardContent className="p-4 flex items-start gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-[#eef7f8]">
@@ -530,6 +547,32 @@ export default function Coach() {
                       <p className="mt-1 text-sm text-[#14263f]">
                         {summary.description}
                       </p>
+                    </div>
+                    <div className="ml-auto flex shrink-0 items-center gap-1">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 rounded-full border border-[#0e6f72]/15 bg-[#eef8f7] text-[#0e6f72] hover:bg-[#d9f4f1]"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          loadSessionIntoComposer(session);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="delete-action-button h-8 w-8 rounded-full border border-[#c03b3b]/15 bg-[#fff6f6]"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDeleteSession(session.id);
+                        }}
+                      >
+                        <Trash2 className="delete-action-icon h-4 w-4" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

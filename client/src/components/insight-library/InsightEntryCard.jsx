@@ -6,7 +6,7 @@ import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Pencil, Check } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil, Check, Trash2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
@@ -19,7 +19,7 @@ const PERSPECTIVE_COLORS = {
   "Drew→Tony": "bg-orange-100 text-orange-700 border-orange-200",
 };
 
-export default function InsightEntryCard({ entry, onNoteUpdate }) {
+export default function InsightEntryCard({ entry, onNoteUpdate, onDelete }) {
   const [expanded, setExpanded] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
   const [note, setNote] = useState(entry.note || "");
@@ -59,7 +59,25 @@ export default function InsightEntryCard({ entry, onNoteUpdate }) {
               />
             )}
           </div>
-          <span className="text-[11px] text-muted-foreground shrink-0">{dateLabel}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-muted-foreground shrink-0">{dateLabel}</span>
+            <button
+              type="button"
+              onClick={() => setEditingNote(true)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#0e6f72]/15 bg-[#eef8f7] text-[#0e6f72] transition-colors hover:bg-[#d9f4f1]"
+              title="Edit note"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete?.(entry.id)}
+              className="delete-action-button inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#c03b3b]/15 bg-[#fff6f6] transition-colors"
+              title="Delete insight entry"
+            >
+              <Trash2 className="delete-action-icon h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
 
         {/* Core insight */}

@@ -176,12 +176,12 @@ export default function SmartTools() {
       {/* Auto-trigger suggestions */}
       {autoSuggestions.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="border-2 border-teal-400/30 bg-teal-500/10">
+          <Card className="enterprise-panel border-2 border-[#0e6f72]/25 bg-[#eef8f7]">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
-                <Lightbulb className="w-5 h-5 text-teal-300 shrink-0 mt-0.5" />
+                <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-[#0e6f72]" />
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-teal-200 mb-2">Suggested for you:</p>
+                  <p className="mb-2 text-sm font-semibold text-[#14263f]">Suggested for you:</p>
                   <div className="space-y-1.5">
                     {autoSuggestions.map((sugg) => (
                       <button
@@ -195,10 +195,10 @@ export default function SmartTools() {
                           }[sugg.tool];
                           if (toolId) setActiveTool(toolId);
                         }}
-                        className="block w-full text-left p-2 rounded-lg bg-card border border-teal-400/30 hover:border-teal-400/60 transition-all"
+                        className="block w-full rounded-xl border border-[#0e6f72]/20 bg-white p-3 text-left transition-all hover:border-[#0e6f72]/55 hover:bg-[#f5fbfb]"
                       >
-                        <p className="text-sm font-medium text-foreground">{sugg.tool}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{sugg.reason}</p>
+                        <p className="text-sm font-medium text-[#14263f]">{sugg.tool}</p>
+                        <p className="mt-0.5 text-xs text-[#4e6077]">{sugg.reason}</p>
                       </button>
                     ))}
                   </div>

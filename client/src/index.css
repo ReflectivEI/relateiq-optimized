@@ -208,4 +208,16 @@
   .enterprise-icon-pill {
     @apply inline-flex items-center gap-2 rounded-full border border-[#0e6f72]/35 bg-[#eef8f7] px-4 py-2 text-sm font-medium text-[#2b3445] transition-all duration-200 hover:border-[#0e6f72] hover:bg-[#d9f4f1] hover:shadow-[0_0_0_3px_rgba(14,111,114,0.10)];
   }
+
+  .delete-action-button {
+    @apply text-[#c03b3b] transition-colors duration-200 hover:bg-[#fff1f1] hover:text-[#a62c2c];
+  }
+
+  .delete-action-icon {
+    @apply text-[#c03b3b];
+  }
+
+  .enterprise-hover-raise {
+    @apply transition-all duration-200 hover:-translate-y-1 hover:shadow-md;
+  }
 }

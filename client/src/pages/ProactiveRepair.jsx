@@ -380,7 +380,7 @@ export default function ProactiveRepair() {
       {creditError && <CreditLimitBanner />}
 
       {/* Input card */}
-      <Card className="border border-border/60">
+      <Card className="enterprise-panel border-2 border-[#0e6f72]/20 bg-[#f4fbfa]">
         <CardContent className="p-6 space-y-5">
           {/* Who is repairing */}
           <div className="space-y-2">
@@ -402,10 +402,10 @@ export default function ProactiveRepair() {
                   key={tag}
                   onClick={() => toggleTag(tag)}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg border text-sm transition-all",
+                    "px-3 py-1.5 rounded-full border text-sm transition-all",
                     tags.includes(tag)
-                      ? "border-primary/40 bg-primary/10 text-foreground font-medium"
-                      : "border-border/50 text-muted-foreground hover:border-border hover:bg-muted/20"
+                      ? "border-[#0e6f72] bg-[#dff3f1] text-[#14263f] font-medium"
+                      : "border-[#0e6f72]/25 bg-white text-muted-foreground hover:border-[#0e6f72] hover:bg-[#eef8f7]"
                   )}
                 >
                   {tag}
@@ -501,9 +501,9 @@ export default function ProactiveRepair() {
           <h2 className="font-display text-lg font-semibold text-muted-foreground">Past Repair Sessions</h2>
           <div className="space-y-2">
             {visibleRepairHistory.map((entry) => (
-              <Card key={entry.id} className="border border-border/40">
+              <Card key={entry.id} className="border border-[#0e6f72]/20 bg-[#f4fbfa]">
                 <CardContent className="p-4 flex items-start gap-3">
-                  <HeartHandshake className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <HeartHandshake className="w-4 h-4 text-[#0e6f72] shrink-0 mt-0.5" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground">{entry.owner}</p>
                     <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">{entry.what_happened}</p>
@@ -512,11 +512,11 @@ export default function ProactiveRepair() {
                     )}
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEditEntry(entry)}>
+                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8 rounded-full border border-[#0e6f72]/15 bg-white text-[#0e6f72] hover:bg-[#d9f4f1]" onClick={() => handleEditEntry(entry)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDeleteEntry(entry.id)}>
-                      <Trash2 className="h-4 w-4" />
+                    <Button type="button" size="icon" variant="ghost" className="delete-action-button h-8 w-8 rounded-full border border-[#c03b3b]/15 bg-[#fff6f6]" onClick={() => handleDeleteEntry(entry.id)}>
+                      <Trash2 className="delete-action-icon h-4 w-4" />
                     </Button>
                   </div>
                 </CardContent>

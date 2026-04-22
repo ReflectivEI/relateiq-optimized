@@ -53,6 +53,11 @@ export default function InsightLibrary() {
     queryClient.invalidateQueries({ queryKey: ["insight-entries"] });
   };
 
+  const handleDeleteEntry = async (id) => {
+    await api.entities.InsightEntry.delete(id);
+    queryClient.invalidateQueries({ queryKey: ["insight-entries"] });
+  };
+
   // Filter pipeline
   const filtered = useMemo(() => {
     let result = [...entries];
@@ -264,7 +269,7 @@ export default function InsightLibrary() {
 
           <div className="space-y-3">
             {filtered.map((entry) => (
-              <InsightEntryCard key={entry.id} entry={entry} onNoteUpdate={handleNoteUpdate} />
+              <InsightEntryCard key={entry.id} entry={entry} onNoteUpdate={handleNoteUpdate} onDelete={handleDeleteEntry} />
             ))}
           </div>
         </TabsContent>
@@ -299,7 +304,7 @@ export default function InsightLibrary() {
                 </div>
                 <div className="space-y-2">
                   {perspEntries.slice(0, 5).map((entry) => (
-                    <InsightEntryCard key={entry.id} entry={entry} onNoteUpdate={handleNoteUpdate} />
+                    <InsightEntryCard key={entry.id} entry={entry} onNoteUpdate={handleNoteUpdate} onDelete={handleDeleteEntry} />
                   ))}
                   {perspEntries.length > 5 && (
                     <p className="text-xs text-muted-foreground text-center">+{perspEntries.length - 5} more — switch to Browse All to see them</p>
