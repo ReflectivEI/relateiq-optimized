@@ -56,6 +56,43 @@ type PlayLabModuleType =
   | "side_quest"
   | "love_map_sprint";
 
+type ProfileDimensionKey =
+  | "seeks_understanding"
+  | "seeks_acknowledgment"
+  | "seeks_reassurance"
+  | "seeks_affection"
+  | "seeks_space"
+  | "seeks_problem_solving"
+  | "internal_processor"
+  | "external_processor"
+  | "shutdown_when_overwhelmed"
+  | "asks_questions_to_connect"
+  | "asks_questions_perceived_as_pressure"
+  | "sensitive_to_tone"
+  | "sensitive_to_follow_through"
+  | "apology_needs_behavior_change"
+  | "needs_emotional_reflection"
+  | "prefers_directness"
+  | "prefers_soft_start"
+  | "conflict_repair_speed"
+  | "loneliness_when_misunderstood"
+  | "defensiveness_when_cornered";
+
+type DimensionMap = Record<ProfileDimensionKey, number>;
+
+type InterpretationInput = {
+  sourceType: string;
+  moduleContext: string;
+  scope: string;
+  speaker: PersonId;
+  partner: PersonId;
+  rawInput: string;
+  desiredOutcome?: string;
+  relatedId?: string | null;
+  relatedSessionId?: string | null;
+  contextObject?: Record<string, unknown> | null;
+};
+
 const PLAY_LAB_MODULE_LABELS: Record<PlayLabModuleType, string> = {
   guess_my_inner_world: "Guess My Inner World",
   repair_quest: "Repair Quest",
@@ -101,6 +138,54 @@ const PLAY_LAB_PROMPTS: Record<PlayLabModuleType, string[]> = {
     "What topic feels hardest for them right now?",
     "What kind of repair would matter most to them this month?",
   ],
+};
+
+const PROFILE_DIMENSION_KEYS: ProfileDimensionKey[] = [
+  "seeks_understanding",
+  "seeks_acknowledgment",
+  "seeks_reassurance",
+  "seeks_affection",
+  "seeks_space",
+  "seeks_problem_solving",
+  "internal_processor",
+  "external_processor",
+  "shutdown_when_overwhelmed",
+  "asks_questions_to_connect",
+  "asks_questions_perceived_as_pressure",
+  "sensitive_to_tone",
+  "sensitive_to_follow_through",
+  "apology_needs_behavior_change",
+  "needs_emotional_reflection",
+  "prefers_directness",
+  "prefers_soft_start",
+  "conflict_repair_speed",
+  "loneliness_when_misunderstood",
+  "defensiveness_when_cornered",
+];
+
+const SEEDED_PROFILE_DIMENSIONS: Record<PersonId, Partial<DimensionMap>> = {
+  Tony: {
+    seeks_understanding: 0.86,
+    loneliness_when_misunderstood: 0.84,
+    asks_questions_to_connect: 0.79,
+    needs_emotional_reflection: 0.8,
+    apology_needs_behavior_change: 0.72,
+    internal_processor: 0.71,
+    seeks_problem_solving: 0.64,
+    prefers_directness: 0.61,
+    sensitive_to_follow_through: 0.7,
+  },
+  Drew: {
+    seeks_affection: 0.76,
+    seeks_acknowledgment: 0.82,
+    seeks_reassurance: 0.7,
+    shutdown_when_overwhelmed: 0.73,
+    asks_questions_perceived_as_pressure: 0.67,
+    sensitive_to_tone: 0.82,
+    prefers_soft_start: 0.79,
+    conflict_repair_speed: 0.63,
+    external_processor: 0.62,
+  },
 };
 
 function getGroqApiKeys(env: Env): string[] {
@@ -657,6 +742,15 @@ async function buildAiCoachResponse(
   const partner = speaker === "Tony" ? "Drew" : "Tony";
   const partnerQuestionnaire = await loadUploadedQuestionnaire(env, partner);
   const fallback = buildCoachResponse({ speaker, topic, goal });
+  const sharedInterpretation = await runSharedInterpretation(env, {
+    sourceType: "ai_coach",
+    moduleContext: "AI Coach",
+    scope: `${speaker}+${partner}`,
+    speaker,
+    partner,
+    rawInput: [topic, goal].filter(Boolean).join("\n"),
+    desiredOutcome: goal,
+  }).catch(() => null);
 
   const messages: GroqMessage[] = [
     {
@@ -670,6 +764,9 @@ async function buildAiCoachResponse(
         `Speaker: ${speaker}`,
         `Topic: ${topic || "Not provided"}`,
         `Goal: ${goal || "Not provided"}`,
+        sharedInterpretation
+          ? `Shared interpretation: ${sharedInterpretation.finalInterpretation.whatThisLikelyMeans}\nWhy: ${sharedInterpretation.finalInterpretation.whyAiThinksThat}\nMisread risk: ${sharedInterpretation.finalInterpretation.whatThePartnerMayBeMisreading}\nNext: ${sharedInterpretation.finalInterpretation.whatToDoNext}`
+          : "",
         buildQuestionnaireContext(speakerQuestionnaire, speaker),
         buildQuestionnaireContext(partnerQuestionnaire, partner),
       ].join("\n\n"),
@@ -687,6 +784,8 @@ async function buildAiCoachResponse(
       suggestedOpeners: toStringArray(parsed.suggestedOpeners, fallback.suggestedOpeners),
       avoid: toStringArray(parsed.avoid, fallback.avoid),
       lens: isObject(parsed.lens) ? parsed.lens : fallback.lens,
+      interpretation: sharedInterpretation?.finalInterpretation || null,
+      interpretationLogId: sharedInterpretation?.interpretationLog?.id || null,
       provider: "groq",
       model: groq.model,
       keyIndex: groq.keyIndex,
@@ -707,6 +806,14 @@ async function buildAiCheckInResponse(
   const partner = speaker === "Tony" ? "Drew" : "Tony";
   const partnerQuestionnaire = await loadUploadedQuestionnaire(env, partner);
   const fallback = buildCheckInResponse({ speaker, mood, notes });
+  const sharedInterpretation = await runSharedInterpretation(env, {
+    sourceType: "check_in",
+    moduleContext: "Check-In",
+    scope: `${speaker}+${partner}`,
+    speaker,
+    partner,
+    rawInput: [mood, notes].filter(Boolean).join("\n"),
+  }).catch(() => null);
 
   const messages: GroqMessage[] = [
     {
@@ -720,6 +827,9 @@ async function buildAiCheckInResponse(
         `Speaker: ${speaker}`,
         `Mood / energy: ${mood || "Not provided"}`,
         `Current notes: ${notes || "Not provided"}`,
+        sharedInterpretation
+          ? `Shared interpretation: ${sharedInterpretation.finalInterpretation.whatThisLikelyMeans}\nNext: ${sharedInterpretation.finalInterpretation.whatToDoNext}`
+          : "",
         buildQuestionnaireContext(speakerQuestionnaire, speaker),
         buildQuestionnaireContext(partnerQuestionnaire, partner),
       ].join("\n\n"),
@@ -736,6 +846,8 @@ async function buildAiCheckInResponse(
       summary: normalizeText(parsed.summary) || fallback.summary,
       nextStep: normalizeText(parsed.nextStep) || fallback.nextStep,
       notesEcho: normalizeText(parsed.notesEcho) || fallback.notesEcho,
+      interpretation: sharedInterpretation?.finalInterpretation || null,
+      interpretationLogId: sharedInterpretation?.interpretationLog?.id || null,
       provider: "groq",
       model: groq.model,
       keyIndex: groq.keyIndex,
@@ -756,6 +868,15 @@ async function buildAiRepairResponse(
   const partner = speaker === "Tony" ? "Drew" : "Tony";
   const partnerQuestionnaire = await loadUploadedQuestionnaire(env, partner);
   const fallback = buildRepairResponse({ speaker, issue, desiredOutcome });
+  const sharedInterpretation = await runSharedInterpretation(env, {
+    sourceType: "repair",
+    moduleContext: "Repair",
+    scope: `${speaker}+${partner}`,
+    speaker,
+    partner,
+    rawInput: issue,
+    desiredOutcome,
+  }).catch(() => null);
 
   const messages: GroqMessage[] = [
     {
@@ -769,6 +890,9 @@ async function buildAiRepairResponse(
         `Speaker: ${speaker}`,
         `Issue: ${issue || "Not provided"}`,
         `Desired outcome: ${desiredOutcome || "Not provided"}`,
+        sharedInterpretation
+          ? `Shared interpretation: ${sharedInterpretation.finalInterpretation.whatThisLikelyMeans}\nMisread risk: ${sharedInterpretation.finalInterpretation.whatThePartnerMayBeMisreading}\nNext: ${sharedInterpretation.finalInterpretation.whatToDoNext}`
+          : "",
         buildQuestionnaireContext(speakerQuestionnaire, speaker),
         buildQuestionnaireContext(partnerQuestionnaire, partner),
       ].join("\n\n"),
@@ -786,6 +910,8 @@ async function buildAiRepairResponse(
       scripts: toStringArray(parsed.scripts, fallback.scripts),
       avoid: toStringArray(parsed.avoid, fallback.avoid),
       desiredOutcome: normalizeText(parsed.desiredOutcome) || fallback.desiredOutcome,
+      interpretation: sharedInterpretation?.finalInterpretation || null,
+      interpretationLogId: sharedInterpretation?.interpretationLog?.id || null,
       provider: "groq",
       model: groq.model,
       keyIndex: groq.keyIndex,
@@ -809,6 +935,542 @@ function humanizeValue(value: string): string {
     .replace(/[_-]+/g, " ")
     .replace(/\b\w/g, (match) => match.toUpperCase())
     .trim();
+}
+
+function createEmptyDimensionMap(): DimensionMap {
+  return PROFILE_DIMENSION_KEYS.reduce((accumulator, key) => {
+    accumulator[key] = 0.32;
+    return accumulator;
+  }, {} as DimensionMap);
+}
+
+function clampDimensionValue(value: number) {
+  return Math.max(0.05, Math.min(0.98, Math.round(value * 100) / 100));
+}
+
+function applyDimensionSignal(target: DimensionMap, key: ProfileDimensionKey, delta: number) {
+  target[key] = clampDimensionValue((target[key] || 0.32) + delta);
+}
+
+function mergeDimensionSignals(target: DimensionMap, source: Partial<DimensionMap>, weight = 1) {
+  PROFILE_DIMENSION_KEYS.forEach((key) => {
+    const value = source[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      const baseline = target[key] || 0.32;
+      target[key] = clampDimensionValue(baseline + (value - 0.32) * weight);
+    }
+  });
+}
+
+function buildDimensionProfileSummary(dimensions: DimensionMap) {
+  return PROFILE_DIMENSION_KEYS.map((key) => ({ key, value: dimensions[key] || 0 }))
+    .sort((left, right) => right.value - left.value)
+    .slice(0, 6)
+    .map(({ key, value }) => `${humanizeValue(key)} (${Math.round(value * 100)}%)`)
+    .join(", ");
+}
+
+function deriveQuestionnaireDimensionSignals(questionnaire: UploadedQuestionnaire | null): {
+  dimensions: DimensionMap;
+  inferredTags: string[];
+} {
+  const dimensions = createEmptyDimensionMap();
+  const inferredTags = new Set<string>();
+  const responses = questionnaire?.responses || [];
+
+  responses.forEach((response) => {
+    const answerText = [
+      normalizeText(response.answer),
+      Array.isArray(response.selected_options)
+        ? response.selected_options.map((item) => normalizeText(item)).join(" ")
+        : "",
+      Array.isArray(response.tags) ? response.tags.map((item) => normalizeText(item)).join(" ") : "",
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    const tags = Array.isArray(response.tags)
+      ? response.tags.map((item) => normalizeText(item).toLowerCase()).filter(Boolean)
+      : [];
+    tags.forEach((tag) => inferredTags.add(tag));
+
+    if (answerText.includes("space") || answerText.includes("pause") || answerText.includes("quiet")) {
+      applyDimensionSignal(dimensions, "seeks_space", 0.05);
+      applyDimensionSignal(dimensions, "internal_processor", 0.04);
+    }
+    if (answerText.includes("listen") || answerText.includes("heard") || answerText.includes("understood")) {
+      applyDimensionSignal(dimensions, "seeks_understanding", 0.05);
+      applyDimensionSignal(dimensions, "needs_emotional_reflection", 0.04);
+    }
+    if (answerText.includes("reassur")) {
+      applyDimensionSignal(dimensions, "seeks_reassurance", 0.05);
+    }
+    if (answerText.includes("affection") || answerText.includes("hug") || answerText.includes("touch")) {
+      applyDimensionSignal(dimensions, "seeks_affection", 0.05);
+    }
+    if (answerText.includes("tone") || answerText.includes("harsh")) {
+      applyDimensionSignal(dimensions, "sensitive_to_tone", 0.06);
+    }
+    if (answerText.includes("follow through") || answerText.includes("follow-through") || answerText.includes("behavior change")) {
+      applyDimensionSignal(dimensions, "sensitive_to_follow_through", 0.05);
+      applyDimensionSignal(dimensions, "apology_needs_behavior_change", 0.05);
+    }
+    if (answerText.includes("direct")) {
+      applyDimensionSignal(dimensions, "prefers_directness", 0.04);
+    }
+    if (answerText.includes("soft") || answerText.includes("gentle")) {
+      applyDimensionSignal(dimensions, "prefers_soft_start", 0.04);
+    }
+    if (answerText.includes("question")) {
+      applyDimensionSignal(dimensions, "asks_questions_to_connect", 0.04);
+    }
+    if (answerText.includes("pressure") || answerText.includes("cornered")) {
+      applyDimensionSignal(dimensions, "defensiveness_when_cornered", 0.05);
+      applyDimensionSignal(dimensions, "asks_questions_perceived_as_pressure", 0.04);
+    }
+    if (answerText.includes("shut down") || answerText.includes("withdraw")) {
+      applyDimensionSignal(dimensions, "shutdown_when_overwhelmed", 0.05);
+    }
+    if (answerText.includes("problem") || answerText.includes("solution")) {
+      applyDimensionSignal(dimensions, "seeks_problem_solving", 0.04);
+    }
+    if (answerText.includes("alone") || answerText.includes("misunderstood")) {
+      applyDimensionSignal(dimensions, "loneliness_when_misunderstood", 0.05);
+    }
+  });
+
+  return {
+    dimensions,
+    inferredTags: [...inferredTags],
+  };
+}
+
+function deriveMemoryDimensionSignals(memory: Awaited<ReturnType<typeof buildPlayLabMemory>>, person: PersonId) {
+  const dimensions = createEmptyDimensionMap();
+  const personLabel = person.toLowerCase();
+  const relevantTriggers = (memory.triggers || []).filter(
+    (item) => normalizeText(item.owner || item.person || item.person_name).toLowerCase() === personLabel,
+  );
+  const relevantOutcomes = (memory.outcomes || []).filter((item) => normalizeText(item.scope).includes(person));
+  const relevantPlayLab = (memory.playLabResults || []).filter((item) => normalizeText(item.scope).includes(person));
+
+  if (relevantTriggers.some((item) => normalizeText(item.title || item.trigger || item.label).toLowerCase().includes("tone"))) {
+    applyDimensionSignal(dimensions, "sensitive_to_tone", 0.05);
+  }
+  if (relevantTriggers.some((item) => normalizeText(item.title || item.trigger || item.label).toLowerCase().includes("question"))) {
+    applyDimensionSignal(dimensions, "asks_questions_perceived_as_pressure", 0.05);
+  }
+  if (relevantOutcomes.some((item) => Number(item.connection_change || 0) > 0)) {
+    applyDimensionSignal(dimensions, "conflict_repair_speed", 0.03);
+  }
+  if (relevantOutcomes.some((item) => Number(item.tension_change || 0) < 0)) {
+    applyDimensionSignal(dimensions, "shutdown_when_overwhelmed", 0.03);
+  }
+  if (relevantPlayLab.some((item) => normalizeText(item.mismatch_type) === "blind_spot")) {
+    applyDimensionSignal(dimensions, "needs_emotional_reflection", 0.03);
+    applyDimensionSignal(dimensions, "seeks_understanding", 0.03);
+  }
+
+  return dimensions;
+}
+
+async function getOrCreateProfileDimensionState(
+  env: Env,
+  person: PersonId,
+  memory?: Awaited<ReturnType<typeof buildPlayLabMemory>>,
+) {
+  const existing = sortRecords(
+    (await listEntityRecords(env, "ProfileDimensionState")).filter(
+      (record) => normalizeText(record.person_id) === person,
+    ),
+    "-updated_date",
+  )[0];
+
+  if (existing && isObject(existing.dimensions)) {
+    const normalized = createEmptyDimensionMap();
+    PROFILE_DIMENSION_KEYS.forEach((key) => {
+      normalized[key] = clampDimensionValue(Number(existing.dimensions?.[key] || normalized[key]));
+    });
+    return { record: existing, dimensions: normalized };
+  }
+
+  const questionnaire = await loadUploadedQuestionnaire(env, person);
+  const derived = deriveQuestionnaireDimensionSignals(questionnaire);
+  const seeded = SEEDED_PROFILE_DIMENSIONS[person] || {};
+  const dimensions = createEmptyDimensionMap();
+  mergeDimensionSignals(dimensions, seeded, 1);
+  mergeDimensionSignals(dimensions, derived.dimensions, 0.75);
+  if (memory) {
+    mergeDimensionSignals(dimensions, deriveMemoryDimensionSignals(memory, person), 0.65);
+  }
+
+  const created = await createEntityRecord(env, "ProfileDimensionState", {
+    id: `profile_dimensions_${person.toLowerCase()}`,
+    person_id: person,
+    dimensions,
+    inferred_tags: derived.inferredTags,
+    source: "seeded+questionnaire",
+  });
+
+  return { record: created, dimensions };
+}
+
+function parseInterpretationInput(rawInput: string, desiredOutcome?: string) {
+  const text = normalizeText(rawInput);
+  const lower = text.toLowerCase();
+  const desired = normalizeText(desiredOutcome);
+
+  const emotion =
+    (["hurt", "angry", "frustrated", "overwhelmed", "anxious", "lonely", "dismissed", "disconnected"].find((item) =>
+      lower.includes(item),
+    ) || "mixed") as string;
+
+  const need =
+    (lower.includes("space") && "space") ||
+    (lower.includes("listen") && "listening") ||
+    (lower.includes("reassur") && "reassurance") ||
+    (lower.includes("hug") && "affection") ||
+    (lower.includes("understood") && "understanding") ||
+    (lower.includes("solve") && "problem solving") ||
+    "clarity";
+
+  const complaint =
+    (lower.includes("didn't") || lower.includes("did not") || lower.includes("not")) && text
+      ? text
+      : `The speaker is naming strain around ${need}.`;
+
+  const trigger =
+    (lower.includes("tone") && "tone") ||
+    (lower.includes("question") && "questions") ||
+    (lower.includes("silent") && "silence") ||
+    (lower.includes("space") && "distance") ||
+    (lower.includes("apolog") && "repair") ||
+    "relationship stress";
+
+  const relationshipMeaning =
+    need === "understanding"
+      ? "The speaker is likely searching for emotional understanding before resolution."
+      : need === "space"
+      ? "The speaker is likely trying to regulate without disconnecting."
+      : need === "reassurance"
+      ? "The speaker is likely trying to confirm safety and care."
+      : `The speaker is trying to reduce friction around ${need}.`;
+
+  const behavior =
+    (lower.includes("question") && "questioning") ||
+    (lower.includes("shut down") && "shutdown") ||
+    (lower.includes("withdraw") && "withdrawal") ||
+    (lower.includes("apolog") && "repair attempt") ||
+    "emotionally loaded communication";
+
+  return {
+    emotion,
+    need,
+    complaint,
+    trigger,
+    relationshipMeaning,
+    behavior,
+    desiredOutcome: desired || "better understanding and lower friction",
+  };
+}
+
+function buildDeterministicInterpretation(
+  input: InterpretationInput,
+  speakerDimensions: DimensionMap,
+  partnerDimensions: DimensionMap,
+  coupleDynamic: StoredRecord | null,
+) {
+  const parsed = parseInterpretationInput(input.rawInput, input.desiredOutcome);
+  const candidates = [
+    {
+      label: "support_need",
+      score:
+        parsed.need === "understanding"
+          ? speakerDimensions.seeks_understanding + speakerDimensions.needs_emotional_reflection
+          : speakerDimensions.seeks_space + speakerDimensions.shutdown_when_overwhelmed,
+      meaning:
+        parsed.need === "space"
+          ? `${input.speaker} is likely trying to regulate first, not detach.`
+          : `${input.speaker} is likely asking to be understood before anything gets fixed.`,
+    },
+    {
+      label: "misread_risk",
+      score:
+        partnerDimensions.sensitive_to_tone +
+        partnerDimensions.asks_questions_perceived_as_pressure +
+        speakerDimensions.loneliness_when_misunderstood,
+      meaning: `${input.partner} may misread the moment as pressure, rejection, or criticism unless the need is made explicit.`,
+    },
+    {
+      label: "repair_signal",
+      score:
+        speakerDimensions.apology_needs_behavior_change +
+        partnerDimensions.prefers_soft_start +
+        partnerDimensions.seeks_acknowledgment,
+      meaning: `What helps most next is a low-pressure repair move with acknowledgment before explanation.`,
+    },
+  ].sort((left, right) => right.score - left.score);
+
+  const primary = candidates[0];
+  const confidenceValue =
+    (speakerDimensions.seeks_understanding +
+      speakerDimensions.needs_emotional_reflection +
+      partnerDimensions.sensitive_to_tone +
+      (coupleDynamic ? 0.15 : 0)) /
+    4;
+
+  const confidenceLevel =
+    confidenceValue >= 0.72 ? "High confidence" : confidenceValue >= 0.5 ? "Moderate confidence" : "Early signal";
+
+  const dimensionsAffected = [
+    parsed.need === "space" ? "seeks_space" : "seeks_understanding",
+    parsed.trigger === "tone" ? "sensitive_to_tone" : "needs_emotional_reflection",
+    primary.label === "repair_signal" ? "apology_needs_behavior_change" : "asks_questions_perceived_as_pressure",
+  ].filter(Boolean);
+
+  const inferredTags = [
+    parsed.emotion,
+    parsed.need.replace(/\s+/g, "_"),
+    parsed.trigger.replace(/\s+/g, "_"),
+    primary.label,
+    normalizeText(input.sourceType),
+  ].filter(Boolean);
+
+  return {
+    parsedInput: parsed,
+    interpretationCandidates: candidates,
+    finalInterpretation: {
+      whatThisLikelyMeans: primary.meaning,
+      whyAiThinksThat: `${input.speaker}'s profile emphasizes ${buildDimensionProfileSummary(speakerDimensions)}, while ${input.partner}'s profile emphasizes ${buildDimensionProfileSummary(partnerDimensions)}.`,
+      whatThePartnerMayBeMisreading: candidates.find((item) => item.label === "misread_risk")?.meaning || "",
+      whatToDoNext:
+        parsed.need === "space"
+          ? `Have ${input.speaker} name a return time so space does not read as disconnection.`
+          : `Have ${input.partner} reflect the emotion first, then ask one grounded follow-up question.`,
+      confidenceLevel,
+      dimensionsAffected,
+      inferredTags,
+    },
+  };
+}
+
+function normalizeInterpretationPayload(payload: Record<string, unknown>, fallback: ReturnType<typeof buildDeterministicInterpretation>) {
+  const candidates =
+    Array.isArray(payload.interpretationCandidates) && payload.interpretationCandidates.length > 0
+      ? payload.interpretationCandidates
+          .filter((item) => isObject(item))
+          .map((item) => ({
+            label: normalizeText(item.label) || "candidate",
+            score: Number(item.score || 0),
+            meaning: normalizeText(item.meaning),
+          }))
+      : fallback.interpretationCandidates;
+
+  return {
+    parsedInput: isObject(payload.parsedInput)
+      ? {
+          ...fallback.parsedInput,
+          emotion: normalizeText(payload.parsedInput.emotion) || fallback.parsedInput.emotion,
+          need: normalizeText(payload.parsedInput.need) || fallback.parsedInput.need,
+          complaint: normalizeText(payload.parsedInput.complaint) || fallback.parsedInput.complaint,
+          trigger: normalizeText(payload.parsedInput.trigger) || fallback.parsedInput.trigger,
+          relationshipMeaning:
+            normalizeText(payload.parsedInput.relationshipMeaning) || fallback.parsedInput.relationshipMeaning,
+          behavior: normalizeText(payload.parsedInput.behavior) || fallback.parsedInput.behavior,
+          desiredOutcome: normalizeText(payload.parsedInput.desiredOutcome) || fallback.parsedInput.desiredOutcome,
+        }
+      : fallback.parsedInput,
+    interpretationCandidates: candidates,
+    finalInterpretation: isObject(payload.finalInterpretation)
+      ? {
+          whatThisLikelyMeans:
+            normalizeText(payload.finalInterpretation.whatThisLikelyMeans) ||
+            fallback.finalInterpretation.whatThisLikelyMeans,
+          whyAiThinksThat:
+            normalizeText(payload.finalInterpretation.whyAiThinksThat) ||
+            fallback.finalInterpretation.whyAiThinksThat,
+          whatThePartnerMayBeMisreading:
+            normalizeText(payload.finalInterpretation.whatThePartnerMayBeMisreading) ||
+            fallback.finalInterpretation.whatThePartnerMayBeMisreading,
+          whatToDoNext:
+            normalizeText(payload.finalInterpretation.whatToDoNext) ||
+            fallback.finalInterpretation.whatToDoNext,
+          confidenceLevel:
+            normalizeText(payload.finalInterpretation.confidenceLevel) ||
+            fallback.finalInterpretation.confidenceLevel,
+          dimensionsAffected: toStringArray(
+            payload.finalInterpretation.dimensionsAffected,
+            fallback.finalInterpretation.dimensionsAffected,
+          ),
+          inferredTags: toStringArray(
+            payload.finalInterpretation.inferredTags,
+            fallback.finalInterpretation.inferredTags,
+          ),
+        }
+      : fallback.finalInterpretation,
+  };
+}
+
+async function runSharedInterpretation(
+  env: Env,
+  input: InterpretationInput,
+  memory?: Awaited<ReturnType<typeof buildPlayLabMemory>>,
+) {
+  const interpretationMemory = memory || (await buildPlayLabMemory(env, input.scope || `${input.speaker}+${input.partner}`));
+  const speakerState = await getOrCreateProfileDimensionState(env, input.speaker, interpretationMemory);
+  const partnerState = await getOrCreateProfileDimensionState(env, input.partner, interpretationMemory);
+  const coupleDynamic = interpretationMemory.relationshipDynamic;
+  const fallback = buildDeterministicInterpretation(input, speakerState.dimensions, partnerState.dimensions, coupleDynamic);
+
+  let normalized = fallback;
+  let provider = "deterministic";
+  let model: string | null = null;
+  let keyIndex: number | null = null;
+
+  try {
+    const groq = await callGroq(
+      env,
+      [
+        {
+          role: "system",
+          content:
+            "You are RelateIQ's centralized interpretation layer. Interpret the input through speaker identity, partner identity, profile dimensions, couple dynamic, module context, recent memory, and prior outcomes. Return strict JSON with keys parsedInput, interpretationCandidates, finalInterpretation. finalInterpretation must include whatThisLikelyMeans, whyAiThinksThat, whatThePartnerMayBeMisreading, whatToDoNext, confidenceLevel, dimensionsAffected, inferredTags.",
+        },
+        {
+          role: "user",
+          content: [
+            `Source type: ${input.sourceType}`,
+            `Module context: ${input.moduleContext}`,
+            `Scope: ${input.scope}`,
+            `Speaker: ${input.speaker}`,
+            `Partner: ${input.partner}`,
+            `Raw input: ${input.rawInput}`,
+            input.desiredOutcome ? `Desired outcome: ${input.desiredOutcome}` : "",
+            `Speaker dimensions: ${JSON.stringify(speakerState.dimensions)}`,
+            `Partner dimensions: ${JSON.stringify(partnerState.dimensions)}`,
+            `Recent memory counts: ${JSON.stringify(interpretationMemory.questionnaireCounts)}`,
+            `Recent sessions: ${(interpretationMemory.sessions || []).length}`,
+            `Recent triggers: ${(interpretationMemory.triggers || []).length}`,
+            `Recent repairs: ${(interpretationMemory.repairs || []).length}`,
+            `Recent outcomes: ${(interpretationMemory.outcomes || []).length}`,
+            coupleDynamic ? `Couple dynamic: ${JSON.stringify(coupleDynamic)}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n\n"),
+        },
+      ],
+      JSON.stringify(input).length + JSON.stringify(speakerState.dimensions).length + JSON.stringify(partnerState.dimensions).length,
+      { jsonMode: true },
+    );
+    const parsed = parseJsonObject(groq.text);
+    if (parsed) {
+      normalized = normalizeInterpretationPayload(parsed, fallback);
+      provider = "groq";
+      model = groq.model;
+      keyIndex = groq.keyIndex;
+    }
+  } catch {
+    normalized = fallback;
+  }
+
+  const dimensionsAffected = toStringArray(normalized.finalInterpretation.dimensionsAffected);
+  const inferredTags = toStringArray(normalized.finalInterpretation.inferredTags);
+  const now = nowIso();
+
+  const interpretationLog = await createEntityRecord(env, "InterpretationLog", {
+    source_type: input.sourceType,
+    module_context: input.moduleContext,
+    scope: input.scope,
+    speaker: input.speaker,
+    partner: input.partner,
+    raw_input: input.rawInput,
+    desired_outcome: input.desiredOutcome || "",
+    parsed_input: normalized.parsedInput,
+    interpretation_candidates: normalized.interpretationCandidates,
+    final_interpretation: normalized.finalInterpretation,
+    confidence_level: normalized.finalInterpretation.confidenceLevel,
+    dimensions_affected: dimensionsAffected,
+    inferred_tags: inferredTags,
+    related_id: input.relatedId || null,
+    related_session_id: input.relatedSessionId || null,
+    context_object: {
+      ...(input.contextObject || {}),
+      sourceType: input.sourceType,
+      moduleContext: input.moduleContext,
+      timestamp: now,
+    },
+    provider,
+    model,
+    key_index: keyIndex,
+  });
+
+  const speakerDelta = createEmptyDimensionMap();
+  dimensionsAffected.forEach((key) => {
+    if ((PROFILE_DIMENSION_KEYS as string[]).includes(key)) {
+      applyDimensionSignal(speakerDelta, key as ProfileDimensionKey, 0.02);
+    }
+  });
+
+  const updatedSpeakerDimensions = { ...speakerState.dimensions };
+  PROFILE_DIMENSION_KEYS.forEach((key) => {
+    const delta = speakerDelta[key] - 0.32;
+    if (Math.abs(delta) > 0.001) {
+      applyDimensionSignal(updatedSpeakerDimensions, key, delta);
+    }
+  });
+
+  await updateEntityRecord(env, "ProfileDimensionState", normalizeText(speakerState.record.id), {
+    dimensions: updatedSpeakerDimensions,
+    inferred_tags: Array.from(new Set([...(toStringArray(speakerState.record.inferred_tags, [])), ...inferredTags])),
+    last_interpreted_at: now,
+    last_interpretation_log_id: interpretationLog.id,
+  });
+
+  return {
+    ...normalized,
+    provider,
+    model,
+    keyIndex,
+    interpretationLog,
+    speakerDimensions: updatedSpeakerDimensions,
+    partnerDimensions: partnerState.dimensions,
+  };
+}
+
+async function maybeInterpretEntityWrite(env: Env, entity: string, record: StoredRecord) {
+  const normalizedEntity = normalizeText(entity);
+  if (!["CoachSession", "CheckIn", "TriggerEntry", "OutcomeLog", "RelationshipDynamic", "InsightEntry"].includes(normalizedEntity)) {
+    return null;
+  }
+
+  const speaker = toPersonId(record.speaker || record.owner || record.person || record.saved_by_user || (normalizeText(record.scope).includes("Drew") ? "Drew" : "Tony"));
+  const partner = resolvePlayLabPartner(speaker);
+  const rawInput = [
+    normalizeText(record.title),
+    normalizeText(record.topic),
+    normalizeText(record.situation),
+    normalizeText(record.issue),
+    normalizeText(record.note),
+    normalizeText(record.notes),
+    normalizeText(record.core_insight),
+    normalizeText(record.trigger),
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  if (!rawInput) return null;
+
+  return runSharedInterpretation(env, {
+    sourceType: normalizedEntity,
+    moduleContext: humanizeValue(normalizedEntity),
+    scope: normalizeText(record.scope) || `${speaker}+${partner}`,
+    speaker,
+    partner,
+    rawInput,
+    desiredOutcome: normalizeText(record.desired_outcome || record.desiredOutcome || record.next_step),
+    relatedId: normalizeText(record.id),
+    contextObject: isObject(record.context_object) ? (record.context_object as Record<string, unknown>) : null,
+  });
 }
 
 function pickPrompt(moduleType: PlayLabModuleType, seedSource: string): string {
@@ -1180,6 +1842,36 @@ async function buildPlayLabAiResult(
   },
   memory: Awaited<ReturnType<typeof buildPlayLabMemory>>,
 ) {
+  const partner = resolvePlayLabPartner(input.initiatedBy);
+  const sharedInterpretation = await runSharedInterpretation(
+    env,
+    {
+      sourceType: "play_lab",
+      moduleContext: PLAY_LAB_MODULE_LABELS[input.moduleType],
+      scope: input.scope,
+      speaker: input.initiatedBy,
+      partner,
+      rawInput: [
+        input.promptText,
+        input.actualAnswer,
+        input.guessedAnswer,
+        input.currentNeed,
+        input.predictedNeed,
+        input.situation,
+        input.unresolved,
+        input.selectedMisread,
+        input.stressSource,
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      desiredOutcome:
+        input.moduleType === "repair_quest"
+          ? "repair the tension and reduce defensiveness"
+          : "improve mutual understanding",
+    },
+    memory,
+  ).catch(() => null);
+
   const fallback = buildPlayLabDeterministicResult(input);
   const messages: GroqMessage[] = [
     {
@@ -1209,6 +1901,9 @@ async function buildPlayLabAiResult(
         input.stressSource ? `Stress source: ${input.stressSource}` : "",
         typeof input.answerConfidence === "number" ? `Answer confidence: ${input.answerConfidence}/5` : "",
         typeof input.guessConfidence === "number" ? `Guess confidence: ${input.guessConfidence}/5` : "",
+        sharedInterpretation
+          ? `Central interpretation: ${sharedInterpretation.finalInterpretation.whatThisLikelyMeans}\nMisread risk: ${sharedInterpretation.finalInterpretation.whatThePartnerMayBeMisreading}\nNext step: ${sharedInterpretation.finalInterpretation.whatToDoNext}`
+          : "",
         `Recent memory counts: ${JSON.stringify(memory.questionnaireCounts)}`,
         `Recent sessions: ${(memory.sessions || []).length}`,
         `Recent check-ins: ${(memory.checkIns || []).length}`,
@@ -1269,11 +1964,13 @@ async function buildPlayLabAiResult(
       provider: "groq",
       model: groq.model,
       keyIndex: groq.keyIndex,
+      interpretationLogId: sharedInterpretation?.interpretationLog?.id || null,
       fallback: false,
     };
   } catch {
     return {
       ...fallback,
+      interpretationLogId: sharedInterpretation?.interpretationLog?.id || null,
       provider: "deterministic",
       fallback: true,
     };
@@ -1704,6 +2401,44 @@ export default {
       }
     }
 
+    if (url.pathname === "/api/interpret" && request.method === "POST") {
+      const body = await readJson(request);
+      if (!isObject(body) || !normalizeText(body.rawInput)) {
+        return json({ error: "invalid_payload" }, request, env, 400);
+      }
+
+      const speaker = toPersonId(body.speaker);
+      const partner = toPersonId(body.partner, resolvePlayLabPartner(speaker));
+      const result = await runSharedInterpretation(env, {
+        sourceType: normalizeText(body.sourceType) || "manual",
+        moduleContext: normalizeText(body.moduleContext) || "Shared Interpretation",
+        scope: normalizeText(body.scope) || `${speaker}+${partner}`,
+        speaker,
+        partner,
+        rawInput: normalizeText(body.rawInput),
+        desiredOutcome: normalizeText(body.desiredOutcome),
+        relatedId: normalizeText(body.relatedId) || null,
+        relatedSessionId: normalizeText(body.relatedSessionId) || null,
+        contextObject: isObject(body.contextObject) ? body.contextObject : null,
+      });
+
+      return json(
+        {
+          ok: true,
+          interpretation: result.finalInterpretation,
+          parsedInput: result.parsedInput,
+          interpretationCandidates: result.interpretationCandidates,
+          interpretationLogId: result.interpretationLog.id,
+          speakerDimensions: result.speakerDimensions,
+          partnerDimensions: result.partnerDimensions,
+          provider: result.provider,
+          model: result.model,
+        },
+        request,
+        env,
+      );
+    }
+
     if ((url.pathname === "/api/coach" || url.pathname === "/coach") && request.method === "POST") {
       const body = await readJson(request);
       const speaker = body?.speaker === "Drew" ? "Drew" : "Tony";
@@ -1990,6 +2725,7 @@ export default {
         sections: resultCore.sections,
         statements: resultCore.statements,
         interpretation: resultCore.interpretation,
+        interpretation_log_id: resultCore.interpretationLogId || null,
         provider: resultCore.provider,
         model: resultCore.model || null,
         key_index: resultCore.keyIndex ?? null,
@@ -2143,6 +2879,28 @@ export default {
         notes: normalizeText(body.notes),
       });
 
+      const scope = normalizeText(body.scope) || "Tony+Drew";
+      const speaker = scope.includes("Drew") && !scope.includes("Tony") ? "Drew" : "Tony";
+      await runSharedInterpretation(env, {
+        sourceType: "outcome_tracking",
+        moduleContext: "Outcome Tracking",
+        scope,
+        speaker,
+        partner: resolvePlayLabPartner(speaker),
+        rawInput: [
+          `Attempted: ${Boolean(body.attempted)}`,
+          `Helped: ${Boolean(body.helped)}`,
+          `Tension change: ${Number(body.tensionChange || 0)}`,
+          `Connection change: ${Number(body.connectionChange || 0)}`,
+          `Felt natural: ${Boolean(body.feltNatural)}`,
+          normalizeText(body.notes),
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        desiredOutcome: "learn what helps and what to try again",
+        relatedId: outcome.id,
+      }).catch(() => null);
+
       return json({ ok: true, outcome }, request, env, 201);
     }
 
@@ -2271,13 +3029,18 @@ export default {
       if (request.method === "POST" && !id) {
         const body = await readJson(request);
         if (!isObject(body)) return json({ error: "invalid_payload" }, request, env, 400);
-        return json(await createEntityRecord(env, entity, body), request, env, 201);
+        const created = await createEntityRecord(env, entity, body);
+        await maybeInterpretEntityWrite(env, entity, created).catch(() => null);
+        return json(created, request, env, 201);
       }
 
       if (request.method === "PUT" && id) {
         const body = await readJson(request);
         if (!isObject(body)) return json({ error: "invalid_payload" }, request, env, 400);
         const updated = await updateEntityRecord(env, entity, id, body);
+        if (updated) {
+          await maybeInterpretEntityWrite(env, entity, updated).catch(() => null);
+        }
         return updated
           ? json(updated, request, env)
           : json({ error: "not_found" }, request, env, 404);
