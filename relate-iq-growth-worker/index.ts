@@ -93,6 +93,29 @@ type InterpretationInput = {
   contextObject?: Record<string, unknown> | null;
 };
 
+type MetricName =
+  | "emotional_attunement"
+  | "support_accuracy"
+  | "trigger_sensitivity"
+  | "repair_effectiveness"
+  | "communication_alignment"
+  | "response_flexibility"
+  | "follow_through_consistency"
+  | "emotional_safety_index";
+
+type MetricSignal = {
+  userId: PersonId;
+  coupleId: string;
+  metricName: MetricName;
+  delta: number;
+  weight: number;
+  reason: string;
+  sourceModule: string;
+  contextObjectId?: string | null;
+  relatedId?: string | null;
+  relatedSessionId?: string | null;
+};
+
 const PLAY_LAB_MODULE_LABELS: Record<PlayLabModuleType, string> = {
   guess_my_inner_world: "Guess My Inner World",
   repair_quest: "Repair Quest",
@@ -187,6 +210,17 @@ const SEEDED_PROFILE_DIMENSIONS: Record<PersonId, Partial<DimensionMap>> = {
     external_processor: 0.62,
   },
 };
+
+const METRIC_NAMES: MetricName[] = [
+  "emotional_attunement",
+  "support_accuracy",
+  "trigger_sensitivity",
+  "repair_effectiveness",
+  "communication_alignment",
+  "response_flexibility",
+  "follow_through_consistency",
+  "emotional_safety_index",
+];
 
 function getGroqApiKeys(env: Env): string[] {
   return [
@@ -948,6 +982,16 @@ function clampDimensionValue(value: number) {
   return Math.max(0.05, Math.min(0.98, Math.round(value * 100) / 100));
 }
 
+function clampMetricValue(value: number) {
+  return Math.max(0, Math.min(1, Math.round(value * 1000) / 1000));
+}
+
+function normalizeCoupleId(scope?: string | null) {
+  const normalized = normalizeText(scope || "Tony+Drew");
+  if (!normalized) return "tony_drew";
+  return normalized.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+}
+
 function applyDimensionSignal(target: DimensionMap, key: ProfileDimensionKey, delta: number) {
   target[key] = clampDimensionValue((target[key] || 0.32) + delta);
 }
@@ -1471,6 +1515,297 @@ async function maybeInterpretEntityWrite(env: Env, entity: string, record: Store
     relatedId: normalizeText(record.id),
     contextObject: isObject(record.context_object) ? (record.context_object as Record<string, unknown>) : null,
   });
+}
+
+async function getMetricStateRecord(
+  env: Env,
+  entity: "UserMetricState" | "CoupleMetricState",
+  lookupKey: string,
+  metricName: MetricName,
+) {
+  const records = await listEntityRecords(env, entity);
+  return (
+    records.find(
+      (record) =>
+        normalizeText(entity === "UserMetricState" ? record.user_id : record.couple_id) === lookupKey &&
+        normalizeText(record.metric_name) === metricName,
+    ) || null
+  );
+}
+
+async function applyMetricSignal(env: Env, signal: MetricSignal) {
+  const weightedDelta = signal.delta * signal.weight;
+  if (!Number.isFinite(weightedDelta) || weightedDelta === 0) return;
+
+  const userRecord =
+    (await getMetricStateRecord(env, "UserMetricState", signal.userId, signal.metricName)) ||
+    (await createEntityRecord(env, "UserMetricState", {
+      user_id: signal.userId,
+      metric_name: signal.metricName,
+      value: 0.5,
+      confidence: 0.25,
+      last_updated: nowIso(),
+      history: [],
+    }));
+
+  const coupleRecord =
+    (await getMetricStateRecord(env, "CoupleMetricState", signal.coupleId, signal.metricName)) ||
+    (await createEntityRecord(env, "CoupleMetricState", {
+      couple_id: signal.coupleId,
+      metric_name: signal.metricName,
+      value: 0.5,
+      confidence: 0.25,
+      last_updated: nowIso(),
+    }));
+
+  const userValue = clampMetricValue(Number(userRecord.value || 0.5) * 0.94 + clampMetricValue(Number(userRecord.value || 0.5) + weightedDelta) * 0.06);
+  const coupleValue = clampMetricValue(Number(coupleRecord.value || 0.5) * 0.95 + clampMetricValue(Number(coupleRecord.value || 0.5) + weightedDelta * 0.7) * 0.05);
+  const nextConfidence = clampMetricValue((Number(userRecord.confidence || 0.25) * 0.92) + Math.min(0.18, Math.abs(weightedDelta)) * 0.08 + 0.01);
+
+  const history = Array.isArray(userRecord.history) ? userRecord.history : [];
+  const nextHistory = [
+    ...history.slice(-19),
+    {
+      timestamp: nowIso(),
+      delta: weightedDelta,
+      reason: signal.reason,
+      source_module: signal.sourceModule,
+    },
+  ];
+
+  const event = await createEntityRecord(env, "MetricEventLog", {
+    user_id: signal.userId,
+    couple_id: signal.coupleId,
+    source_module: signal.sourceModule,
+    metric_name: signal.metricName,
+    delta: signal.delta,
+    weight: signal.weight,
+    reason: signal.reason,
+    context_object_id: normalizeText(signal.contextObjectId),
+    related_id: normalizeText(signal.relatedId),
+    related_session_id: normalizeText(signal.relatedSessionId),
+    timestamp: nowIso(),
+  });
+
+  await updateEntityRecord(env, "UserMetricState", normalizeText(userRecord.id), {
+    value: userValue,
+    confidence: nextConfidence,
+    last_updated: nowIso(),
+    history: nextHistory,
+  });
+
+  await updateEntityRecord(env, "CoupleMetricState", normalizeText(coupleRecord.id), {
+    value: coupleValue,
+    confidence: clampMetricValue((Number(coupleRecord.confidence || 0.25) * 0.94) + Math.min(0.16, Math.abs(weightedDelta)) * 0.06 + 0.01),
+    last_updated: nowIso(),
+  });
+
+  return event;
+}
+
+function buildPlayLabMetricSignals(resultRecord: StoredRecord): MetricSignal[] {
+  const scope = normalizeText(resultRecord.scope) || "Tony+Drew";
+  const coupleId = normalizeCoupleId(scope);
+  const sessionScopeIncludesTony = scope.includes("Tony");
+  const sessionScopeIncludesDrew = scope.includes("Drew");
+  const seededUsers: PersonId[] = [
+    sessionScopeIncludesTony ? "Tony" : null,
+    sessionScopeIncludesDrew ? "Drew" : null,
+  ].filter(Boolean) as PersonId[];
+  const inferredUsers = seededUsers.length > 0 ? seededUsers : ["Tony", "Drew"];
+
+  const matchScore = clampMetricValue((Number(resultRecord.match_score || 50) || 50) / 100);
+  const mismatchType = normalizeText(resultRecord.mismatch_type);
+  const signals: MetricSignal[] = [];
+
+  inferredUsers.forEach((userId) => {
+    signals.push({
+      userId,
+      coupleId,
+      metricName: "support_accuracy",
+      delta: (matchScore - 0.5) * 0.18,
+      weight: 0.7,
+      reason: mismatchType || "play_lab_match_score",
+      sourceModule: normalizeText(resultRecord.module_type) || "play_lab",
+      contextObjectId: normalizeText((resultRecord.context_object as Record<string, unknown> | undefined)?.relatedGameRunId),
+      relatedId: normalizeText(resultRecord.id),
+      relatedSessionId: normalizeText(resultRecord.session_id),
+    });
+    signals.push({
+      userId,
+      coupleId,
+      metricName: "emotional_attunement",
+      delta: (matchScore - 0.5) * 0.15,
+      weight: 0.65,
+      reason: mismatchType || "play_lab_attunement",
+      sourceModule: normalizeText(resultRecord.module_type) || "play_lab",
+      contextObjectId: normalizeText((resultRecord.context_object as Record<string, unknown> | undefined)?.relatedGameRunId),
+      relatedId: normalizeText(resultRecord.id),
+      relatedSessionId: normalizeText(resultRecord.session_id),
+    });
+  });
+
+  if (mismatchType === "blind_spot") {
+    inferredUsers.forEach((userId) => {
+      signals.push({
+        userId,
+        coupleId,
+        metricName: "communication_alignment",
+        delta: -0.08,
+        weight: 0.65,
+        reason: "blind_spot_detected",
+        sourceModule: normalizeText(resultRecord.module_type) || "play_lab",
+        contextObjectId: normalizeText((resultRecord.context_object as Record<string, unknown> | undefined)?.relatedGameRunId),
+        relatedId: normalizeText(resultRecord.id),
+        relatedSessionId: normalizeText(resultRecord.session_id),
+      });
+    });
+  }
+
+  return signals;
+}
+
+function buildOutcomeMetricSignals(outcome: StoredRecord): MetricSignal[] {
+  const scope = normalizeText(outcome.scope) || "Tony+Drew";
+  const coupleId = normalizeCoupleId(scope);
+  const users: PersonId[] = scope.includes("Tony") && scope.includes("Drew")
+    ? ["Tony", "Drew"]
+    : [scope.includes("Drew") ? "Drew" : "Tony"];
+  const attempted = Boolean(outcome.attempted || outcome.action_attempted);
+  const helped = Boolean(outcome.helped);
+  const tensionChangeRaw = Number(outcome.tension_change || 0);
+  const connectionChangeRaw = Number(outcome.connection_change || 0);
+  const sourceModule = normalizeText(outcome.source_type) || "outcome";
+  const signals: MetricSignal[] = [];
+
+  users.forEach((userId) => {
+    if (attempted) {
+      signals.push({
+        userId,
+        coupleId,
+        metricName: "response_flexibility",
+        delta: helped ? 0.06 : 0.02,
+        weight: 0.6,
+        reason: helped ? "attempted_and_helped" : "attempted",
+        sourceModule,
+        relatedId: normalizeText(outcome.id),
+        relatedSessionId: normalizeText(outcome.related_session_id),
+      });
+    }
+    signals.push({
+      userId,
+      coupleId,
+      metricName: "repair_effectiveness",
+      delta: helped ? 0.09 : -0.04,
+      weight: 0.75,
+      reason: helped ? "positive_outcome" : "negative_outcome",
+      sourceModule,
+      relatedId: normalizeText(outcome.id),
+      relatedSessionId: normalizeText(outcome.related_session_id),
+    });
+    signals.push({
+      userId,
+      coupleId,
+      metricName: "emotional_safety_index",
+      delta: clampMetricValue(connectionChangeRaw * 0.08 - tensionChangeRaw * 0.04) - 0.5,
+      weight: 0.45,
+      reason: "outcome_shift",
+      sourceModule,
+      relatedId: normalizeText(outcome.id),
+      relatedSessionId: normalizeText(outcome.related_session_id),
+    });
+  });
+
+  return signals;
+}
+
+function buildEntityMetricSignals(entity: string, record: StoredRecord): MetricSignal[] {
+  const normalizedEntity = normalizeText(entity);
+  const speaker = toPersonId(record.speaker || record.owner || record.person_name || record.person || (normalizeText(record.scope).includes("Drew") && !normalizeText(record.scope).includes("Tony") ? "Drew" : "Tony"));
+  const scope = normalizeText(record.scope) || `${speaker}+${resolvePlayLabPartner(speaker)}`;
+  const coupleId = normalizeCoupleId(scope);
+  const relatedId = normalizeText(record.id);
+  const relatedSessionId = normalizeText(record.related_session_id || record.session_id);
+
+  if (normalizedEntity === "TriggerEntry") {
+    return [{
+      userId: speaker,
+      coupleId,
+      metricName: "trigger_sensitivity",
+      delta: 0.04,
+      weight: 0.55,
+      reason: "trigger_logged",
+      sourceModule: "TriggerEntry",
+      relatedId,
+      relatedSessionId,
+    }];
+  }
+
+  if (normalizedEntity === "CoachSession") {
+    return [{
+      userId: speaker,
+      coupleId,
+      metricName: "communication_alignment",
+      delta: 0.02,
+      weight: 0.35,
+      reason: "coach_reflection_logged",
+      sourceModule: normalizeText(record.tool_type) || "CoachSession",
+      relatedId,
+      relatedSessionId,
+    }];
+  }
+
+  if (normalizedEntity === "CheckIn") {
+    return [{
+      userId: speaker,
+      coupleId,
+      metricName: "emotional_attunement",
+      delta: 0.02,
+      weight: 0.3,
+      reason: "check_in_logged",
+      sourceModule: "CheckIn",
+      relatedId,
+      relatedSessionId,
+    }];
+  }
+
+  if (normalizedEntity === "RepairEntry") {
+    return [{
+      userId: speaker,
+      coupleId,
+      metricName: "repair_effectiveness",
+      delta: 0.03,
+      weight: 0.4,
+      reason: "repair_attempt_logged",
+      sourceModule: "RepairEntry",
+      relatedId,
+      relatedSessionId,
+    }];
+  }
+
+  if (normalizedEntity === "OutcomeLog") {
+    return buildOutcomeMetricSignals(record);
+  }
+
+  return [];
+}
+
+async function captureMetricSignals(env: Env, signals: MetricSignal[]) {
+  for (const signal of signals) {
+    try {
+      await applyMetricSignal(env, signal);
+    } catch {
+      // Passive layer must never affect live behavior.
+    }
+  }
+}
+
+async function safelyCaptureMetricSignals(env: Env, signals: MetricSignal[]) {
+  try {
+    await captureMetricSignals(env, signals);
+  } catch {
+    // Passive layer must never affect live behavior.
+  }
 }
 
 function pickPrompt(moduleType: PlayLabModuleType, seedSource: string): string {
@@ -2731,6 +3066,8 @@ export default {
         key_index: resultCore.keyIndex ?? null,
       });
 
+      await safelyCaptureMetricSignals(env, buildPlayLabMetricSignals(resultRecord));
+
       const ahaRecord = await createEntityRecord(env, "AhaCard", {
         title: resultCore.ahaCard.title,
         body: resultCore.ahaCard.body,
@@ -2878,6 +3215,8 @@ export default {
         felt_natural: Boolean(body.feltNatural),
         notes: normalizeText(body.notes),
       });
+
+      await safelyCaptureMetricSignals(env, buildOutcomeMetricSignals(outcome));
 
       const scope = normalizeText(body.scope) || "Tony+Drew";
       const speaker = scope.includes("Drew") && !scope.includes("Tony") ? "Drew" : "Tony";
@@ -3031,6 +3370,7 @@ export default {
         if (!isObject(body)) return json({ error: "invalid_payload" }, request, env, 400);
         const created = await createEntityRecord(env, entity, body);
         await maybeInterpretEntityWrite(env, entity, created).catch(() => null);
+        await safelyCaptureMetricSignals(env, buildEntityMetricSignals(entity, created));
         return json(created, request, env, 201);
       }
 
@@ -3040,6 +3380,7 @@ export default {
         const updated = await updateEntityRecord(env, entity, id, body);
         if (updated) {
           await maybeInterpretEntityWrite(env, entity, updated).catch(() => null);
+          await safelyCaptureMetricSignals(env, buildEntityMetricSignals(entity, updated));
         }
         return updated
           ? json(updated, request, env)
