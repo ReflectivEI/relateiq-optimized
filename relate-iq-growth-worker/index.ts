@@ -899,6 +899,10 @@ async function countQuestionnaireResponsesForPersonPersistent(
   }).length;
 }
 
+function isSeededBaselineRelationship(relationshipId: string) {
+  return relationshipId === DEFAULT_RELATIONSHIP_ID || relationshipId === "relationship_tony_drew_friendship";
+}
+
 async function buildRelationshipSummaryPersistent(
   env: Env,
   relationship: Relationship,
@@ -926,12 +930,15 @@ async function buildRelationshipSummaryPersistent(
     (currentUser && participantNames.some((participant) => participant.trim().toLowerCase() === currentUser.name.trim().toLowerCase())
       ? 1
       : 0);
+  const isSeededBaseline = isSeededBaselineRelationship(relationship.id);
   return {
     ...relationship,
     member_count: memberCount,
     participant_names: participantNames,
-    needs_onboarding: !(await getLatestOnboardingPersistent(env, relationship.id, userId)),
-    needs_questionnaire: (await countQuestionnaireResponsesForPersonPersistent(env, relationship.id, currentPersonName)) < 94,
+    needs_onboarding: isSeededBaseline ? false : !(await getLatestOnboardingPersistent(env, relationship.id, userId)),
+    needs_questionnaire: isSeededBaseline
+      ? false
+      : (await countQuestionnaireResponsesForPersonPersistent(env, relationship.id, currentPersonName)) < 94,
     current_person_name: currentPersonName,
     current_user_role: await inferRelationshipRolePersistent(
       env,
@@ -1091,6 +1098,25 @@ async function createRelationshipForUserPersistent(env: Env, input: {
   if (!creator) return { ok: false as const, error: "creator_not_found" };
   const trimmedName = normalizeText(input.name);
   if (!trimmedName) return { ok: false as const, error: "relationship_name_required" };
+  const normalizedName = trimmedName.toLowerCase();
+  const memberships = await getMembershipsForUserPersistent(env, creator.id);
+  const relationships = await listRelationships(env);
+  const existingRelationship = relationships.find((relationship) => {
+    const isOwnedByCreator = memberships.some((membership) => membership.relationship_id === relationship.id);
+    return (
+      isOwnedByCreator &&
+      relationship.type === input.type &&
+      normalizeText(relationship.name).toLowerCase() === normalizedName
+    );
+  });
+  if (existingRelationship) {
+    return {
+      ok: true as const,
+      relationship: existingRelationship,
+      summary: await buildRelationshipSummaryPersistent(env, existingRelationship, creator.id),
+      reused: true,
+    };
+  }
   const timestamp = nowIso();
   const relationship: Relationship = {
     id: `relationship_${trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, "_")}_${crypto.randomUUID().slice(0, 8)}`,

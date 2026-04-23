@@ -679,6 +679,10 @@ function countQuestionnaireResponsesForPerson(relationshipId: string, personName
   return summary?.importedQuestions || 0;
 }
 
+function isSeededBaselineRelationship(relationshipId: string) {
+  return relationshipId === DEFAULT_RELATIONSHIP_ID || relationshipId === "relationship_tony_drew_friendship";
+}
+
 function buildRelationshipSummary(relationship: Relationship, userId: string): RelationshipSummary {
   const members = getRelationshipMembers(relationship.id);
   const participantNames =
@@ -692,12 +696,13 @@ function buildRelationshipSummary(relationship: Relationship, userId: string): R
     (currentUser && participantNames.some((participant) => participant.trim().toLowerCase() === currentUser.name.trim().toLowerCase())
       ? 1
       : 0);
+  const isSeededBaseline = isSeededBaselineRelationship(relationship.id);
   return {
     ...relationship,
     member_count: memberCount,
     participant_names: participantNames,
-    needs_onboarding: !getLatestOnboardingForUser(relationship.id, userId),
-    needs_questionnaire: countQuestionnaireResponsesForPerson(relationship.id, currentPersonName) < 94,
+    needs_onboarding: isSeededBaseline ? false : !getLatestOnboardingForUser(relationship.id, userId),
+    needs_questionnaire: isSeededBaseline ? false : countQuestionnaireResponsesForPerson(relationship.id, currentPersonName) < 94,
     current_person_name: currentPersonName,
     current_user_role: inferRelationshipRole(relationship, userId),
   };
@@ -755,6 +760,21 @@ export function createRelationshipForUser(input: {
 
   const trimmedName = input.name.trim();
   if (!trimmedName) return { ok: false as const, error: "relationship_name_required" };
+  const normalizedName = trimmedName.toLowerCase();
+  const existingSummary = getRelationshipsForUser(creator.id).find(
+    (relationship) =>
+      relationship.type === input.type &&
+      relationship.name.trim().toLowerCase() === normalizedName,
+  );
+  if (existingSummary) {
+    const existingRelationship = getRelationship(existingSummary.id);
+    return {
+      ok: true as const,
+      relationship: existingRelationship!,
+      summary: buildRelationshipSummary(existingRelationship!, creator.id),
+      reused: true,
+    };
+  }
 
   const timestamp = nowIso();
   const relationship: Relationship = {
