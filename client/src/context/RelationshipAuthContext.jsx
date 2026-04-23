@@ -36,6 +36,10 @@ export function RelationshipAuthProvider({ children }) {
   };
 
   const refresh = async () => {
+    if (!api.session.getStoredAuthToken()) {
+      resetToSignedOut();
+      return null;
+    }
     try {
       const payload = await api.auth.bootstrap();
       syncBootstrap(payload);
@@ -52,6 +56,13 @@ export function RelationshipAuthProvider({ children }) {
   useEffect(() => {
     let cancelled = false;
     const bootstrap = async () => {
+      if (!api.session.getStoredAuthToken()) {
+        if (!cancelled) {
+          resetToSignedOut();
+          setLoading(false);
+        }
+        return;
+      }
       try {
         const payload = await api.auth.bootstrap();
         if (!cancelled) syncBootstrap(payload);
