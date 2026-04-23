@@ -2,6 +2,9 @@ const API_BASE =
   import.meta.env.VITE_WORKER_URL ||
   "https://relate-iq-growth-api.tonyabdelmalak.workers.dev";
 
+const AUTH_TOKEN_KEY = "relateiq.auth.token";
+const RELATIONSHIP_ID_KEY = "relateiq.active.relationship";
+
 const LOCAL_QUESTIONNAIRE_FILES = {
   Tony: "/data/relateiq/tony.questionnaire.json",
   Drew: "/data/relateiq/drew.questionnaire.json",
@@ -18,10 +21,43 @@ function buildUrl(path, params) {
   return url.toString();
 }
 
+export function getStoredAuthToken() {
+  return typeof window === "undefined" ? "" : window.localStorage.getItem(AUTH_TOKEN_KEY) || "";
+}
+
+export function setStoredAuthToken(token) {
+  if (typeof window === "undefined") return;
+  if (token) {
+    window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+  } else {
+    window.localStorage.removeItem(AUTH_TOKEN_KEY);
+  }
+}
+
+export function getStoredRelationshipId() {
+  return typeof window === "undefined" ? "" : window.localStorage.getItem(RELATIONSHIP_ID_KEY) || "";
+}
+
+export function setStoredRelationshipId(relationshipId) {
+  if (typeof window === "undefined") return;
+  if (relationshipId) {
+    window.localStorage.setItem(RELATIONSHIP_ID_KEY, relationshipId);
+  } else {
+    window.localStorage.removeItem(RELATIONSHIP_ID_KEY);
+  }
+}
+
+export function clearStoredSession() {
+  setStoredAuthToken("");
+  setStoredRelationshipId("");
+}
+
 async function request(path, options = {}) {
   const headers = {
     ...(options.headers || {}),
   };
+  const authToken = getStoredAuthToken();
+  const relationshipId = options.relationshipId || getStoredRelationshipId();
   const body =
     options.body === undefined
       ? undefined
@@ -31,6 +67,12 @@ async function request(path, options = {}) {
 
   if (!(body instanceof FormData) && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
+  }
+  if (authToken && !headers.Authorization) {
+    headers.Authorization = `Bearer ${authToken}`;
+  }
+  if (relationshipId && !headers["X-Relationship-Id"]) {
+    headers["X-Relationship-Id"] = relationshipId;
   }
 
   const response = await fetch(buildUrl(path, options.params), {
@@ -143,7 +185,15 @@ function entityClient(entity) {
 
 export const api = {
   request,
+  session: {
+    getStoredAuthToken,
+    setStoredAuthToken,
+    getStoredRelationshipId,
+    setStoredRelationshipId,
+    clearStoredSession,
+  },
   entities: {
+    Relationship: entityClient("Relationship"),
     AhaCard: entityClient("AhaCard"),
     CheckIn: entityClient("CheckIn"),
     CoachSession: entityClient("CoachSession"),
@@ -163,6 +213,37 @@ export const api = {
     TriggerEntry: entityClient("TriggerEntry"),
     UserProfile: entityClient("UserProfile"),
     VisionPin: entityClient("VisionPin"),
+  },
+  relationships: {
+    list() {
+      return request("/api/relationships");
+    },
+    create(payload) {
+      return request("/api/relationships/create", {
+        method: "POST",
+        body: payload,
+      });
+    },
+    invite(payload) {
+      return request("/api/relationships/invite", {
+        method: "POST",
+        body: payload,
+      });
+    },
+    onboard(payload) {
+      return request("/api/relationships/onboarding", {
+        method: "POST",
+        body: payload,
+      });
+    },
+  },
+  invites: {
+    lookup(token) {
+      return request(`/api/invite/${token}`);
+    },
+    accept(token) {
+      return request(`/api/invite/${token}`, { method: "POST" });
+    },
   },
   playLab: {
     createSession(payload) {
@@ -275,14 +356,45 @@ export const api = {
     },
   },
   auth: {
+    async login(payload) {
+      const result = await request("/api/auth/login", {
+        method: "POST",
+        body: payload,
+        headers: { "X-Relationship-Id": "" },
+      });
+      if (result?.token) setStoredAuthToken(result.token);
+      if (result?.default_relationship_id) setStoredRelationshipId(result.default_relationship_id);
+      return result;
+    },
+    async register(payload) {
+      const result = await request("/api/auth/register", {
+        method: "POST",
+        body: payload,
+        headers: { "X-Relationship-Id": "" },
+      });
+      if (result?.token) setStoredAuthToken(result.token);
+      if (result?.default_relationship_id) setStoredRelationshipId(result.default_relationship_id);
+      return result;
+    },
+    async bootstrap() {
+      const result = await request("/api/auth/me", {
+        headers: { "X-Relationship-Id": getStoredRelationshipId() || "" },
+      });
+      if (result?.default_relationship_id && !getStoredRelationshipId()) {
+        setStoredRelationshipId(result.default_relationship_id);
+      }
+      return result;
+    },
     async me() {
-      return { id: "local-public-user", role: "admin" };
+      const result = await this.bootstrap();
+      return result?.user || result;
     },
     logout() {
+      clearStoredSession();
       return null;
     },
     redirectToLogin() {
-      return null;
+      window.location.href = "/?auth=1";
     },
   },
 };

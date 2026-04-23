@@ -1,0 +1,141 @@
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { api } from "@/api/client";
+import { queryClientInstance } from "@/lib/query-client";
+
+const RelationshipAuthContext = createContext(null);
+
+export function RelationshipAuthProvider({ children }) {
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [relationships, setRelationships] = useState([]);
+  const [activeRelationshipId, setActiveRelationshipId] = useState(api.session.getStoredRelationshipId());
+  const [error, setError] = useState("");
+
+  const syncBootstrap = (payload) => {
+    setUser(payload?.user || null);
+    setRelationships(payload?.relationships || []);
+    const storedId = api.session.getStoredRelationshipId();
+    const nextId =
+      payload?.relationships?.some((relationship) => relationship.id === storedId)
+        ? storedId
+        : payload?.default_relationship_id || payload?.relationships?.[0]?.id || "";
+    api.session.setStoredRelationshipId(nextId);
+    setActiveRelationshipId(nextId);
+    setError("");
+    queryClientInstance.clear();
+  };
+
+  const refresh = async () => {
+    const payload = await api.auth.bootstrap();
+    syncBootstrap(payload);
+    return payload;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const bootstrap = async () => {
+      try {
+        const payload = await api.auth.bootstrap();
+        if (!cancelled) syncBootstrap(payload);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Unable to load relationship context.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void bootstrap();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const login = async (input) => {
+    setLoading(true);
+    try {
+      const payload = await api.auth.login(input);
+      syncBootstrap(payload);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to sign in.");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const register = async (input) => {
+    setLoading(true);
+    try {
+      const payload = await api.auth.register(input);
+      syncBootstrap(payload);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to create account.");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = () => {
+    api.auth.logout();
+    setUser(null);
+    setRelationships([]);
+    setActiveRelationshipId("");
+    setError("");
+    queryClientInstance.clear();
+  };
+
+  const selectRelationship = (relationshipId) => {
+    api.session.setStoredRelationshipId(relationshipId);
+    setActiveRelationshipId(relationshipId);
+    queryClientInstance.clear();
+  };
+
+  const updateRelationships = (nextRelationships, defaultRelationshipId) => {
+    setRelationships(nextRelationships);
+    const nextId =
+      defaultRelationshipId && nextRelationships.some((relationship) => relationship.id === defaultRelationshipId)
+        ? defaultRelationshipId
+        : nextRelationships.some((relationship) => relationship.id === activeRelationshipId)
+          ? activeRelationshipId
+          : nextRelationships[0]?.id || "";
+    api.session.setStoredRelationshipId(nextId);
+    setActiveRelationshipId(nextId);
+    queryClientInstance.clear();
+  };
+
+  const value = useMemo(() => {
+    const activeRelationship =
+      relationships.find((relationship) => relationship.id === activeRelationshipId) || null;
+
+    return {
+      loading,
+      user,
+      relationships,
+      activeRelationshipId,
+      activeRelationship,
+      error,
+      login,
+      register,
+      logout,
+      refresh,
+      selectRelationship,
+      updateRelationships,
+    };
+  }, [loading, user, relationships, activeRelationshipId, error]);
+
+  return (
+    <RelationshipAuthContext.Provider value={value}>
+      {children}
+    </RelationshipAuthContext.Provider>
+  );
+}
+
+export function useRelationshipAuth() {
+  const context = useContext(RelationshipAuthContext);
+  if (!context) {
+    throw new Error("useRelationshipAuth must be used within RelationshipAuthProvider");
+  }
+  return context;
+}

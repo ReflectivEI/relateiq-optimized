@@ -26,12 +26,16 @@ import {
   ChevronLeft,
   ChevronRight,
   BookMarked,
+  Plus,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { api } from "@/api/client";
 import PageBanner from "@/components/layout/PageBanner";
 import ThemeToggle from "@/components/layout/ThemeToggle";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const navGroups = [
   {
@@ -77,8 +81,22 @@ const navGroups = [
 
 export default function AppLayout() {
   const location = useLocation();
+  const { user, relationships, activeRelationshipId, activeRelationship, selectRelationship, updateRelationships, logout } =
+    useRelationshipAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [relationshipName, setRelationshipName] = useState("");
+  const [relationshipType, setRelationshipType] = useState("romantic");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteLink, setInviteLink] = useState("");
+  const [selfDescription, setSelfDescription] = useState("");
+  const [supportStyle, setSupportStyle] = useState("");
+  const [supportNotes, setSupportNotes] = useState("");
+  const [communicationNote, setCommunicationNote] = useState("");
+  const [relationshipError, setRelationshipError] = useState("");
   const [openGroups, setOpenGroups] = useState({
     core: true,
     intelligence: true,
@@ -102,6 +120,49 @@ export default function AppLayout() {
       ...current,
       [groupId]: !current[groupId],
     }));
+  };
+
+  const handleCreateRelationship = async () => {
+    try {
+      const result = await api.relationships.create({
+        name: relationshipName,
+        type: relationshipType,
+      });
+      updateRelationships(result.relationships || [], result.relationship?.id);
+      setRelationshipName("");
+      setRelationshipType("romantic");
+      setCreateOpen(false);
+    } catch (error) {
+      setRelationshipError(error instanceof Error ? error.message : "Unable to create relationship.");
+    }
+  };
+
+  const handleCreateInvite = async () => {
+    try {
+      const result = await api.relationships.invite({ email: inviteEmail });
+      setInviteLink(result.absolute_invite_link || result.invite_link || "");
+    } catch (error) {
+      setRelationshipError(error instanceof Error ? error.message : "Unable to create invite.");
+    }
+  };
+
+  const handleSubmitOnboarding = async () => {
+    try {
+      const result = await api.relationships.onboard({
+        self_description: selfDescription,
+        support_style: supportStyle,
+        support_notes: supportNotes,
+        communication_note: communicationNote,
+      });
+      updateRelationships(result.relationships || relationships, activeRelationshipId);
+      setOnboardingOpen(false);
+      setSelfDescription("");
+      setSupportStyle("");
+      setSupportNotes("");
+      setCommunicationNote("");
+    } catch (error) {
+      setRelationshipError(error instanceof Error ? error.message : "Unable to save onboarding.");
+    }
   };
 
   return (
@@ -135,6 +196,49 @@ export default function AppLayout() {
               {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
             </Button>
           </div>
+          {!sidebarCollapsed && (
+            <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-3">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-teal-200/70">Active Connection</p>
+              <select
+                value={activeRelationshipId}
+                onChange={(event) => selectRelationship(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-white/10 bg-[#14263f] px-3 py-2 text-sm text-white"
+              >
+                {relationships.map((relationship) => (
+                  <option key={relationship.id} value={relationship.id}>
+                    {relationship.name} · {relationship.type}
+                  </option>
+                ))}
+              </select>
+              <div className="mt-3 flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 border-primary/30 bg-transparent text-teal-100 hover:bg-primary/10"
+                  onClick={() => {
+                    setRelationshipError("");
+                    setCreateOpen(true);
+                  }}
+                >
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Add
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 border-primary/30 bg-transparent text-teal-100 hover:bg-primary/10"
+                  onClick={() => {
+                    setRelationshipError("");
+                    setInviteLink("");
+                    setInviteOpen(true);
+                  }}
+                >
+                  <Link2 className="mr-1 h-3.5 w-3.5" />
+                  Invite
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
         <nav className={cn("flex-1 overflow-y-auto", sidebarCollapsed ? "p-3 space-y-2" : "p-4 space-y-4")}>
           {navGroups.map((group) => {
@@ -193,7 +297,7 @@ export default function AppLayout() {
         </nav>
         <div className={cn("border-t border-border", sidebarCollapsed ? "p-3" : "p-4")}>
           <button
-            onClick={() => api.auth.logout()}
+            onClick={() => logout()}
             className={cn(
               "flex w-full items-center rounded-2xl text-xs transition-all mb-2",
               sidebarCollapsed
@@ -229,6 +333,32 @@ export default function AppLayout() {
         </div>
         {mobileOpen && (
           <nav className="space-y-3 border-b border-border bg-card px-4 pb-4">
+            <div className="rounded-2xl border border-border/60 bg-muted/20 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                Active Connection
+              </p>
+              <select
+                value={activeRelationshipId}
+                onChange={(event) => selectRelationship(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
+              >
+                {relationships.map((relationship) => (
+                  <option key={relationship.id} value={relationship.id}>
+                    {relationship.name} · {relationship.type}
+                  </option>
+                ))}
+              </select>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={() => setCreateOpen(true)}>
+                  <Plus className="mr-1 h-4 w-4" />
+                  Add
+                </Button>
+                <Button variant="outline" onClick={() => setInviteOpen(true)}>
+                  <Link2 className="mr-1 h-4 w-4" />
+                  Invite
+                </Button>
+              </div>
+            </div>
             {navGroups.map((group) => {
               const groupHasActiveItem = group.items.some((item) => location.pathname === item.path);
               return (
@@ -281,6 +411,12 @@ export default function AppLayout() {
       <main className={cn("flex-1 pt-14 lg:pt-0 transition-all duration-300", sidebarCollapsed ? "lg:ml-[92px]" : "lg:ml-72")}>
         {/* Top bar with theme toggle */}
         <div className="hidden lg:flex items-center justify-end px-8 pt-4 pb-0">
+          <div className="mr-auto text-sm text-muted-foreground">
+            {activeRelationship ? `${activeRelationship.name} · ${activeRelationship.type}` : ""}
+          </div>
+          <Button variant="outline" size="sm" className="mr-2" onClick={() => setOnboardingOpen(true)}>
+            Onboarding
+          </Button>
           <ThemeToggle />
         </div>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -288,6 +424,96 @@ export default function AppLayout() {
           <Outlet />
         </div>
       </main>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-lg rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Create New Connection</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <input
+              value={relationshipName}
+              onChange={(event) => setRelationshipName(event.target.value)}
+              placeholder="Tony & Alex"
+              className="w-full rounded-2xl border border-border px-4 py-3"
+            />
+            <select
+              value={relationshipType}
+              onChange={(event) => setRelationshipType(event.target.value)}
+              className="w-full rounded-2xl border border-border px-4 py-3"
+            >
+              <option value="romantic">Romantic</option>
+              <option value="friendship">Friendship</option>
+              <option value="family">Family</option>
+              <option value="other">Other</option>
+            </select>
+            {relationshipError ? <p className="text-sm text-red-600">{relationshipError}</p> : null}
+            <Button onClick={handleCreateRelationship} className="w-full">Create Connection</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent className="max-w-lg rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Invite Someone</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <input
+              value={inviteEmail}
+              onChange={(event) => setInviteEmail(event.target.value)}
+              placeholder="friend@example.com"
+              className="w-full rounded-2xl border border-border px-4 py-3"
+            />
+            {inviteLink ? (
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-3 text-sm break-all">
+                {inviteLink}
+              </div>
+            ) : null}
+            {relationshipError ? <p className="text-sm text-red-600">{relationshipError}</p> : null}
+            <Button onClick={handleCreateInvite} className="w-full">Generate Invite Link</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={onboardingOpen} onOpenChange={setOnboardingOpen}>
+        <DialogContent className="max-w-xl rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Connection Onboarding</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              This space is just for you and {activeRelationship?.participant_names?.find((name) => name !== user?.name) || "the other person"}.
+            </p>
+            <input
+              value={selfDescription}
+              onChange={(event) => setSelfDescription(event.target.value)}
+              placeholder="How would you describe yourself in conversations?"
+              className="w-full rounded-2xl border border-border px-4 py-3"
+            />
+            <input
+              value={supportStyle}
+              onChange={(event) => setSupportStyle(event.target.value)}
+              placeholder="What helps you feel supported?"
+              className="w-full rounded-2xl border border-border px-4 py-3"
+            />
+            <textarea
+              value={supportNotes}
+              onChange={(event) => setSupportNotes(event.target.value)}
+              placeholder="Anything else that helps your partner understand your needs?"
+              className="min-h-[110px] w-full rounded-2xl border border-border px-4 py-3"
+            />
+            <textarea
+              value={communicationNote}
+              onChange={(event) => setCommunicationNote(event.target.value)}
+              placeholder="Anything they should know about how you communicate?"
+              className="min-h-[110px] w-full rounded-2xl border border-border px-4 py-3"
+            />
+            {relationshipError ? <p className="text-sm text-red-600">{relationshipError}</p> : null}
+            <Button onClick={handleSubmitOnboarding} className="w-full">Save Onboarding</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

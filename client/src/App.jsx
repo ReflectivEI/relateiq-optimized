@@ -27,6 +27,8 @@ import RelationshipJournal from './pages/RelationshipJournal.jsx';
 import VisionBoard from './pages/VisionBoard.jsx';
 import HealthReport from './pages/HealthReport.jsx';
 import ReferenceAppendix from './pages/ReferenceAppendix.jsx';
+import InviteAcceptPage from './pages/InviteAcceptPage.jsx';
+import { RelationshipAuthProvider } from './context/RelationshipAuthContext';
 
 const ApplicationRoutes = () => {
   return (
@@ -55,6 +57,7 @@ const ApplicationRoutes = () => {
         <Route path="/health-report" element={<HealthReport />} />
         <Route path="/appendix" element={<ReferenceAppendix />} />
       </Route>
+      <Route path="/invite/:token" element={<InviteAcceptPage />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
@@ -63,10 +66,12 @@ const ApplicationRoutes = () => {
 function App() {
   return (
     <QueryClientProvider client={queryClientInstance}>
-      <Router>
-        <ApplicationRoutes />
-      </Router>
-      <Toaster />
+      <RelationshipAuthProvider>
+        <Router>
+          <ApplicationRoutes />
+        </Router>
+        <Toaster />
+      </RelationshipAuthProvider>
     </QueryClientProvider>
   )
 }

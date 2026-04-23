@@ -1,12 +1,34 @@
 import {
+  DEFAULT_RELATIONSHIP_ID,
+  DEFAULT_USER_ID,
   RELATEIQ_STATE,
+  RELATEIQ_STATES,
   type AppState,
   type PersonId,
   type QuestionnaireSummary,
+  type RelationshipType,
   type UploadedQuestionnaire,
   buildCoachResponse,
   buildCheckInResponse,
   buildRepairResponse,
+  buildFtueExplain,
+  buildFtueResponse,
+  createRelationshipForUser,
+  createRelationshipInvite,
+  createUserAccount,
+  findInviteByToken,
+  getInviteLookup,
+  getRelationship,
+  getRelationshipMembershipsForUser,
+  getRelationshipState,
+  getRelationshipsForUser,
+  getFtueState,
+  getUserByEmail,
+  getUserById,
+  logFtueEvent,
+  submitRelationshipOnboarding,
+  acceptRelationshipInvite,
+  sanitizeUser,
 } from "../shared/relateiq";
 
 type Env = {
@@ -18,6 +40,7 @@ type Env = {
   GROQ_API_KEY_STANDALONE_3?: string;
   GROQ_MODEL?: string;
   RESEND_API_KEY?: string;
+  AUTH_SECRET?: string;
   EMAIL_FROM?: string;
   EMAIL?: {
     send(message: {
@@ -475,6 +498,118 @@ async function readJson(request: Request) {
   }
 }
 
+type SessionPayload = {
+  user_id: string;
+  email: string;
+  name: string;
+  issued_at: string;
+};
+
+function base64UrlEncode(input: string) {
+  return btoa(input).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function base64UrlDecode(input: string) {
+  const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
+  const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
+  return atob(`${normalized}${padding}`);
+}
+
+function authSecret(env: Env) {
+  return env.AUTH_SECRET || "relateiq-demo-secret";
+}
+
+async function signPayload(payload: string, env: Env) {
+  return sha256Hex(`${payload}.${authSecret(env)}`);
+}
+
+async function createSessionToken(session: SessionPayload, env: Env) {
+  const payload = base64UrlEncode(JSON.stringify(session));
+  const signature = await signPayload(payload, env);
+  return `relateiq.${payload}.${signature}`;
+}
+
+async function readSessionUser(request: Request, env: Env, allowDefault = true) {
+  const authHeader = request.headers.get("authorization") || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  if (!token.startsWith("relateiq.")) {
+    if (!allowDefault) return null;
+    const fallback = getUserById(DEFAULT_USER_ID);
+    return fallback ? sanitizeUser(fallback) : null;
+  }
+
+  const [, payload, signature] = token.split(".");
+  if (!payload || !signature) {
+    if (!allowDefault) return null;
+    const fallback = getUserById(DEFAULT_USER_ID);
+    return fallback ? sanitizeUser(fallback) : null;
+  }
+
+  const expected = await signPayload(payload, env);
+  if (expected !== signature) return null;
+
+  try {
+    const parsed = JSON.parse(base64UrlDecode(payload)) as SessionPayload;
+    const user = getUserById(parsed.user_id);
+    return user ? sanitizeUser(user) : null;
+  } catch {
+    return null;
+  }
+}
+
+function relationshipIdFrom(request: Request, url: URL, body?: unknown) {
+  const headerValue = request.headers.get("x-relationship-id");
+  if (headerValue) return headerValue;
+  const queryValue = url.searchParams.get("relationship_id");
+  if (queryValue) return queryValue;
+  if (body && typeof body === "object" && "relationship_id" in body && body.relationship_id) {
+    return String(body.relationship_id);
+  }
+  return DEFAULT_RELATIONSHIP_ID;
+}
+
+async function requireScopedRelationship(
+  request: Request,
+  env: Env,
+  url: URL,
+  body?: unknown,
+) {
+  const user = await readSessionUser(request, env);
+  if (!user) return { error: "unauthorized", status: 401 as const };
+
+  const relationshipId = relationshipIdFrom(request, url, body);
+  if (!relationshipId) {
+    return { error: "relationship_id_required", status: 400 as const };
+  }
+
+  const relationship = getRelationship(relationshipId);
+  if (!relationship) {
+    return { error: "relationship_not_found", status: 404 as const };
+  }
+
+  const memberships = getRelationshipMembershipsForUser(user.id);
+  if (!memberships.some((membership) => membership.relationship_id === relationshipId)) {
+    return { error: "forbidden", status: 403 as const };
+  }
+
+  const state = await buildState(env, relationshipId);
+  if (!state) {
+    return { error: "relationship_state_not_found", status: 404 as const };
+  }
+
+  return { user, relationship, state, relationshipId } as const;
+}
+
+function withRelationshipScope<T extends Record<string, unknown>>(
+  record: T,
+  relationshipId: string,
+) {
+  return {
+    ...record,
+    relationship_id: normalizeText(record.relationship_id) || relationshipId,
+  };
+}
+
 function getResponseArray(
   raw: Record<string, unknown> | Array<Record<string, unknown>>,
 ): Array<Record<string, unknown>> {
@@ -696,11 +831,15 @@ async function queryEntityCollection(
   env: Env,
   entity: string,
   requestUrl: URL,
+  relationshipId = DEFAULT_RELATIONSHIP_ID,
 ): Promise<Array<Record<string, unknown>>> {
   const records =
     entity === "QuestionnaireResponse"
       ? await listQuestionnaireResponseRecords(env)
       : await listEntityRecords(env, entity);
+  if (entity === "QuestionnaireResponse" && relationshipId !== DEFAULT_RELATIONSHIP_ID) {
+    return [];
+  }
 
   const queryValue = requestUrl.searchParams.get("q");
   let filtered = dedupeMetricStateRecords(entity, records);
@@ -715,26 +854,48 @@ async function queryEntityCollection(
     }
   }
 
+  if (entity !== "QuestionnaireResponse") {
+    filtered = filtered.filter(
+      (record) => normalizeText(record.relationship_id) === relationshipId,
+    );
+  }
+
   const sorted = sortRecords(filtered, requestUrl.searchParams.get("sort"));
   const sliced = sliceRecords(sorted, requestUrl.searchParams.get("skip"), requestUrl.searchParams.get("limit"));
   return selectFields(sliced, requestUrl.searchParams.get("fields"));
 }
 
-async function getEntityRecord(env: Env, entity: string, id: string): Promise<StoredRecord | null> {
+async function getEntityRecord(
+  env: Env,
+  entity: string,
+  id: string,
+  relationshipId = DEFAULT_RELATIONSHIP_ID,
+): Promise<StoredRecord | null> {
   if (entity === "QuestionnaireResponse") {
+    if (relationshipId !== DEFAULT_RELATIONSHIP_ID) return null;
     return getQuestionnaireResponseRecord(env, id);
   }
-  return kvGetJson<StoredRecord>(env, `data:${slugifyEntity(entity)}:${id}`);
+  const record = await kvGetJson<StoredRecord>(env, `data:${slugifyEntity(entity)}:${id}`);
+  if (!record) return null;
+  return normalizeText(record.relationship_id) === relationshipId ? record : null;
 }
 
-async function createEntityRecord(env: Env, entity: string, body: Record<string, unknown>): Promise<StoredRecord> {
+async function createEntityRecord(
+  env: Env,
+  entity: string,
+  body: Record<string, unknown>,
+  relationshipId = DEFAULT_RELATIONSHIP_ID,
+): Promise<StoredRecord> {
   if (entity === "QuestionnaireResponse") {
+    if (relationshipId !== DEFAULT_RELATIONSHIP_ID) {
+      throw new Error("questionnaire_scope_not_supported");
+    }
     return upsertQuestionnaireResponse(env, body);
   }
 
   const timestamp = nowIso();
   const record: StoredRecord = {
-    ...body,
+    ...withRelationshipScope(body, relationshipId),
     id: normalizeText(body.id) || createId(entity.toLowerCase()),
     created_date: normalizeText(body.created_date) || timestamp,
     updated_date: timestamp,
@@ -748,16 +909,18 @@ async function updateEntityRecord(
   entity: string,
   id: string,
   body: Record<string, unknown>,
+  relationshipId = DEFAULT_RELATIONSHIP_ID,
 ): Promise<StoredRecord | null> {
   if (entity === "QuestionnaireResponse") {
+    if (relationshipId !== DEFAULT_RELATIONSHIP_ID) return null;
     return upsertQuestionnaireResponse(env, body, id);
   }
 
-  const current = await getEntityRecord(env, entity, id);
+  const current = await getEntityRecord(env, entity, id, relationshipId);
   if (!current) return null;
   const record: StoredRecord = {
     ...current,
-    ...body,
+    ...withRelationshipScope(body, relationshipId),
     id,
     created_date: normalizeText(current.created_date) || nowIso(),
     updated_date: nowIso(),
@@ -766,21 +929,41 @@ async function updateEntityRecord(
   return record;
 }
 
-async function deleteEntityRecord(env: Env, entity: string, id: string): Promise<boolean> {
+async function deleteEntityRecord(
+  env: Env,
+  entity: string,
+  id: string,
+  relationshipId = DEFAULT_RELATIONSHIP_ID,
+): Promise<boolean> {
   if (!env.QUESTIONNAIRES) return false;
   if (entity === "QuestionnaireResponse") {
+    if (relationshipId !== DEFAULT_RELATIONSHIP_ID) return false;
     return deleteQuestionnaireResponse(env, id);
   }
   const key = `data:${slugifyEntity(entity)}:${id}`;
-  const existing = await env.QUESTIONNAIRES.get(key);
+  const existing = await kvGetJson<StoredRecord>(env, key);
   if (!existing) return false;
+  if (normalizeText(existing.relationship_id) !== relationshipId) return false;
   await env.QUESTIONNAIRES.delete(key);
   return true;
 }
 
-async function buildState(env: Env): Promise<AppState> {
+async function buildState(env: Env, relationshipId = DEFAULT_RELATIONSHIP_ID): Promise<AppState> {
+  const baseState = RELATEIQ_STATES[relationshipId] || RELATEIQ_STATE;
+  if (relationshipId !== DEFAULT_RELATIONSHIP_ID) {
+    return {
+      ...baseState,
+      questionnaires: baseState.questionnaires.map((summary) => ({
+        ...summary,
+        importedQuestions: 0,
+        importReady: false,
+      })),
+      questionnaireImported: false,
+    };
+  }
+
   const questionnaires = await Promise.all(
-    RELATEIQ_STATE.questionnaires.map(async (summary) => {
+    baseState.questionnaires.map(async (summary) => {
       const uploaded = await loadUploadedQuestionnaire(env, summary.person);
       const importedQuestions = uploaded?.responses.length || 0;
       const merged: QuestionnaireSummary = {
@@ -801,7 +984,7 @@ async function buildState(env: Env): Promise<AppState> {
   );
 
   return {
-    ...RELATEIQ_STATE,
+    ...baseState,
     questionnaireImported: questionnaires.every((item) => item.importReady),
     questionnaires,
   };
@@ -1915,12 +2098,14 @@ function getPlayLabPromptLine(moduleType: PlayLabModuleType, promptText: string)
   return promptText || PLAY_LAB_MODULE_LABELS[moduleType];
 }
 
-async function getLatestRelationshipDynamic(env: Env) {
-  const records = await listEntityRecords(env, "RelationshipDynamic");
+async function getLatestRelationshipDynamic(env: Env, relationshipId = DEFAULT_RELATIONSHIP_ID) {
+  const records = (await listEntityRecords(env, "RelationshipDynamic")).filter(
+    (record) => normalizeText(record.relationship_id) === relationshipId,
+  );
   return sortRecords(records, "-updated_date")[0] || null;
 }
 
-async function buildPlayLabMemory(env: Env, scope: string) {
+async function buildPlayLabMemory(env: Env, scope: string, relationshipId = DEFAULT_RELATIONSHIP_ID) {
   const [profiles, sessions, checkIns, triggers, repairs, outcomes, insightEntries, relationshipDynamic, playLabSessions, playLabResults] =
     await Promise.all([
       listEntityRecords(env, "UserProfile"),
@@ -1930,7 +2115,7 @@ async function buildPlayLabMemory(env: Env, scope: string) {
       listEntityRecords(env, "RepairEntry"),
       listEntityRecords(env, "OutcomeLog"),
       listEntityRecords(env, "InsightEntry"),
-      getLatestRelationshipDynamic(env),
+      getLatestRelationshipDynamic(env, relationshipId),
       listEntityRecords(env, "PlayLabSession"),
       listEntityRecords(env, "PlayLabResult"),
     ]);
@@ -1939,16 +2124,17 @@ async function buildPlayLabMemory(env: Env, scope: string) {
   const drewQuestionnaire = await loadUploadedQuestionnaire(env, "Drew");
 
   return {
+    relationship_id: relationshipId,
     scope,
-    profiles,
-    sessions: sortRecords(sessions, "-updated_date").slice(0, 12),
-    checkIns: sortRecords(checkIns, "-updated_date").slice(0, 12),
-    triggers: sortRecords(triggers, "-updated_date").slice(0, 12),
-    repairs: sortRecords(repairs, "-updated_date").slice(0, 12),
-    outcomes: sortRecords(outcomes, "-updated_date").slice(0, 12),
-    insights: sortRecords(insightEntries, "-updated_date").slice(0, 12),
-    playLabSessions: sortRecords(playLabSessions, "-updated_date").slice(0, 20),
-    playLabResults: sortRecords(playLabResults, "-updated_date").slice(0, 20),
+    profiles: profiles.filter((record) => normalizeText(record.relationship_id) === relationshipId),
+    sessions: sortRecords(sessions.filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date").slice(0, 12),
+    checkIns: sortRecords(checkIns.filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date").slice(0, 12),
+    triggers: sortRecords(triggers.filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date").slice(0, 12),
+    repairs: sortRecords(repairs.filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date").slice(0, 12),
+    outcomes: sortRecords(outcomes.filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date").slice(0, 12),
+    insights: sortRecords(insightEntries.filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date").slice(0, 12),
+    playLabSessions: sortRecords(playLabSessions.filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date").slice(0, 20),
+    playLabResults: sortRecords(playLabResults.filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date").slice(0, 20),
     relationshipDynamic,
     questionnaireCounts: {
       Tony: tonyQuestionnaire?.responses.length || 0,
@@ -2564,11 +2750,12 @@ export default {
     }
 
     if (url.pathname === "/health" && request.method === "GET") {
-      const state = await buildState(env);
+      const state = await buildState(env, DEFAULT_RELATIONSHIP_ID);
       return json(
         {
           ok: true,
           service: "relateiq-cloudflare-api",
+          default_relationship_id: DEFAULT_RELATIONSHIP_ID,
           questionnaireImported: state.questionnaireImported,
           groqConfigured: getGroqApiKeys(env).length > 0,
           groqKeysAvailable: getGroqApiKeys(env).length,
@@ -2579,8 +2766,237 @@ export default {
       );
     }
 
+    if (url.pathname === "/api/auth/login" && request.method === "POST") {
+      const body = await readJson(request);
+      const email = String(body?.email || "").trim().toLowerCase();
+      const password = String(body?.password || "");
+      const user = getUserByEmail(email);
+      if (!user) {
+        return json({ error: "invalid_credentials" }, request, env, 401);
+      }
+
+      const candidateHash = await sha256Hex(password);
+      if (candidateHash !== user.password_hash) {
+        return json({ error: "invalid_credentials" }, request, env, 401);
+      }
+
+      const relationships = getRelationshipsForUser(user.id);
+      const token = await createSessionToken(
+        {
+          user_id: user.id,
+          email: user.email,
+          name: user.name,
+          issued_at: new Date().toISOString(),
+        },
+        env,
+      );
+
+      return json(
+        {
+          ok: true,
+          token,
+          user: sanitizeUser(user),
+          relationships,
+          default_relationship_id: relationships[0]?.id || DEFAULT_RELATIONSHIP_ID,
+        },
+        request,
+        env,
+      );
+    }
+
+    if (url.pathname === "/api/auth/register" && request.method === "POST") {
+      const body = await readJson(request);
+      const created = await createUserAccount({
+        email: String(body?.email || ""),
+        password: String(body?.password || ""),
+        name: String(body?.name || ""),
+      });
+
+      if (!created.ok) {
+        return json({ error: created.error }, request, env, 400);
+      }
+
+      const user = created.user;
+      const relationships = getRelationshipsForUser(user.id);
+      const token = await createSessionToken(
+        {
+          user_id: user.id,
+          email: user.email,
+          name: user.name,
+          issued_at: new Date().toISOString(),
+        },
+        env,
+      );
+
+      return json(
+        {
+          ok: true,
+          token,
+          user: sanitizeUser(user),
+          relationships,
+          default_relationship_id: relationships[0]?.id || "",
+        },
+        request,
+        env,
+      );
+    }
+
+    if (url.pathname === "/api/auth/me" && request.method === "GET") {
+      const user = await readSessionUser(request, env, true);
+      if (!user) return json({ error: "unauthorized" }, request, env, 401);
+      const relationships = getRelationshipsForUser(user.id);
+      return json(
+        {
+          ok: true,
+          user,
+          relationships,
+          default_relationship_id: relationships[0]?.id || DEFAULT_RELATIONSHIP_ID,
+        },
+        request,
+        env,
+      );
+    }
+
+    if (url.pathname === "/api/relationships" && request.method === "GET") {
+      const user = await readSessionUser(request, env, true);
+      if (!user) return json({ error: "unauthorized" }, request, env, 401);
+      return json({ relationships: getRelationshipsForUser(user.id) }, request, env);
+    }
+
+    if (url.pathname === "/api/relationships/create" && request.method === "POST") {
+      const user = await readSessionUser(request, env, true);
+      if (!user) return json({ error: "unauthorized" }, request, env, 401);
+      const body = await readJson(request);
+      const created = createRelationshipForUser({
+        creatorUserId: user.id,
+        name: String(body?.name || ""),
+        type: (body?.type || "romantic") as RelationshipType,
+      });
+      if (!created.ok) {
+        return json({ error: created.error }, request, env, 400);
+      }
+      return json(
+        {
+          ok: true,
+          relationship: created.summary,
+          relationships: getRelationshipsForUser(user.id),
+        },
+        request,
+        env,
+      );
+    }
+
+    if (url.pathname === "/api/relationships/invite" && request.method === "POST") {
+      const body = await readJson(request);
+      const scoped = await requireScopedRelationship(request, env, url, body);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
+
+      const created = createRelationshipInvite({
+        relationshipId: scoped.relationshipId,
+        invitedEmail: String(body?.email || ""),
+      });
+      if (!created.ok) {
+        return json({ error: created.error }, request, env, 400);
+      }
+
+      return json(
+        {
+          ok: true,
+          invite: created.invite,
+          reused: created.reused,
+          invite_link: `/invite/${created.invite.invite_token}`,
+          absolute_invite_link: `${url.origin}/invite/${created.invite.invite_token}`,
+        },
+        request,
+        env,
+      );
+    }
+
+    if (url.pathname.startsWith("/api/invite/") && request.method === "GET") {
+      const token = url.pathname.split("/").pop() || "";
+      const currentUser = await readSessionUser(request, env, true);
+      const result = getInviteLookup(token, currentUser?.id);
+      if (!result) return json({ error: "invite_not_found" }, request, env, 404);
+      if (findInviteByToken(token)?.status === "expired") {
+        return json({ error: "invite_expired" }, request, env, 410);
+      }
+      return json(
+        {
+          ok: true,
+          invite: result.invite,
+          relationship: result.relationship,
+          inviter: result.inviter,
+          already_member: result.already_member,
+        },
+        request,
+        env,
+      );
+    }
+
+    if (url.pathname.startsWith("/api/invite/") && request.method === "POST") {
+      const token = url.pathname.split("/").pop() || "";
+      const user = await readSessionUser(request, env, false);
+      if (!user) return json({ error: "unauthorized" }, request, env, 401);
+
+      const accepted = acceptRelationshipInvite({ token, userId: user.id });
+      if (!accepted.ok) {
+        const status = accepted.error === "invite_expired" ? 410 : 400;
+        return json({ error: accepted.error }, request, env, status);
+      }
+
+      return json(
+        {
+          ok: true,
+          relationship: accepted.summary,
+          relationships: getRelationshipsForUser(user.id),
+          already_member: accepted.alreadyMember,
+          default_relationship_id: accepted.relationship.id,
+        },
+        request,
+        env,
+      );
+    }
+
+    if (url.pathname === "/api/relationships/onboarding" && request.method === "POST") {
+      const body = await readJson(request);
+      const scoped = await requireScopedRelationship(request, env, url, body);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
+
+      const saved = submitRelationshipOnboarding({
+        relationshipId: scoped.relationshipId,
+        userId: scoped.user.id,
+        selfDescription: String(body?.self_description || ""),
+        supportStyle: String(body?.support_style || ""),
+        supportNotes: String(body?.support_notes || ""),
+        communicationNote: String(body?.communication_note || ""),
+        skipped: Boolean(body?.skipped),
+      });
+
+      if (!saved.ok) {
+        return json({ error: saved.error }, request, env, 400);
+      }
+
+      return json(
+        {
+          ok: true,
+          onboarding: saved.onboarding,
+          relationships: getRelationshipsForUser(scoped.user.id),
+        },
+        request,
+        env,
+      );
+    }
+
     if (url.pathname === "/api/state" && request.method === "GET") {
-      return json(await buildState(env), request, env);
+      const scoped = await requireScopedRelationship(request, env, url);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
+      return json(await buildState(env, scoped.relationshipId), request, env);
     }
 
     if (
@@ -2836,13 +3252,18 @@ export default {
 
     if ((url.pathname === "/api/coach" || url.pathname === "/coach") && request.method === "POST") {
       const body = await readJson(request);
+      const scoped = await requireScopedRelationship(request, env, url, body);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
       const speaker = body?.speaker === "Drew" ? "Drew" : "Tony";
       const topic = String(body?.topic || "");
       const goal = String(body?.goal || "");
       const aiResponse = await buildAiCoachResponse(env, speaker, topic, goal);
       return json(
         aiResponse || {
-          ...buildCoachResponse({ speaker, topic, goal }),
+          ...buildCoachResponse({ relationshipId: scoped.relationshipId, speaker, topic, goal }),
+          relationship_id: scoped.relationshipId,
           provider: "deterministic",
           fallback: true,
         },
@@ -2853,13 +3274,18 @@ export default {
 
     if ((url.pathname === "/api/check-in" || url.pathname === "/check-in") && request.method === "POST") {
       const body = await readJson(request);
+      const scoped = await requireScopedRelationship(request, env, url, body);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
       const speaker = body?.speaker === "Drew" ? "Drew" : "Tony";
       const mood = String(body?.mood || "");
       const notes = String(body?.notes || "");
       const aiResponse = await buildAiCheckInResponse(env, speaker, mood, notes);
       return json(
         aiResponse || {
-          ...buildCheckInResponse({ speaker, mood, notes }),
+          ...buildCheckInResponse({ relationshipId: scoped.relationshipId, speaker, mood, notes }),
+          relationship_id: scoped.relationshipId,
           provider: "deterministic",
           fallback: true,
         },
@@ -2870,13 +3296,18 @@ export default {
 
     if ((url.pathname === "/api/repair" || url.pathname === "/repair") && request.method === "POST") {
       const body = await readJson(request);
+      const scoped = await requireScopedRelationship(request, env, url, body);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
       const speaker = body?.speaker === "Drew" ? "Drew" : "Tony";
       const issue = String(body?.issue || "");
       const desiredOutcome = String(body?.desiredOutcome || "");
       const aiResponse = await buildAiRepairResponse(env, speaker, issue, desiredOutcome);
       return json(
         aiResponse || {
-          ...buildRepairResponse({ speaker, issue, desiredOutcome }),
+          ...buildRepairResponse({ relationshipId: scoped.relationshipId, speaker, issue, desiredOutcome }),
+          relationship_id: scoped.relationshipId,
           provider: "deterministic",
           fallback: true,
         },
@@ -2886,8 +3317,14 @@ export default {
     }
 
     if ((url.pathname === "/api/insights" || url.pathname === "/insights") && request.method === "GET") {
-      const state = await buildState(env);
-      const insightEntries = await listEntityRecords(env, "InsightEntry");
+      const scoped = await requireScopedRelationship(request, env, url);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
+      const state = await buildState(env, scoped.relationshipId);
+      const insightEntries = (await listEntityRecords(env, "InsightEntry")).filter(
+        (entry) => normalizeText(entry.relationship_id) === scoped.relationshipId,
+      );
       return json(
         {
           profiles: state.profiles,
@@ -2927,6 +3364,7 @@ export default {
       const initiatedBy = toPersonId(body.initiatedBy);
       const answeringPerson = toPersonId(body.answeringPerson, initiatedBy);
       const scope = normalizeText(body.scope) || "Tony+Drew";
+      const relationshipId = relationshipIdFrom(request, url, body);
       const promptText = pickPrompt(moduleType, `${moduleType}:${scope}:${initiatedBy}`);
 
       const record = await createEntityRecord(env, "PlayLabSession", {
@@ -2942,7 +3380,7 @@ export default {
           createdFrom: normalizeText(body.createdFrom) || "play_lab",
         },
         related_session_id: normalizeText(body.relatedSessionId) || null,
-      });
+      }, relationshipId);
 
       return json(
         {
@@ -2970,8 +3408,9 @@ export default {
       const scope = normalizeText(body.scope) || "Tony+Drew";
       const initiatedBy = toPersonId(body.initiatedBy);
       const answeringPerson = toPersonId(body.answeringPerson, initiatedBy);
+      const relationshipId = relationshipIdFrom(request, url, body);
       const currentContextObject = isObject(body.currentContextObject) ? body.currentContextObject : null;
-      const memory = await buildPlayLabMemory(env, scope);
+      const memory = await buildPlayLabMemory(env, scope, relationshipId);
       const promptText = pickAdaptivePlayLabPrompt(moduleType, memory, scope);
 
       const record = await createEntityRecord(env, "PlayLabSession", {
@@ -2988,7 +3427,7 @@ export default {
           previousContext: currentContextObject,
         },
         related_session_id: normalizeText(body.relatedSessionId) || null,
-      });
+      }, relationshipId);
 
       return json(
         {
@@ -3008,6 +3447,7 @@ export default {
       if (!isObject(body) || !normalizeText(body.sessionId) || !normalizeText(body.responseValue)) {
         return json({ error: "invalid_payload" }, request, env, 400);
       }
+      const relationshipId = relationshipIdFrom(request, url, body);
 
       const responseRecord = await createEntityRecord(env, "PlayLabResponse", {
         session_id: normalizeText(body.sessionId),
@@ -3019,12 +3459,12 @@ export default {
         confidence: typeof body.confidence === "number" ? body.confidence : null,
         tags: Array.isArray(body.tags) ? body.tags.filter(Boolean).map((tag) => normalizeText(tag)) : [],
         metadata: isObject(body.metadata) ? body.metadata : null,
-      });
+      }, relationshipId);
 
       await updateEntityRecord(env, "PlayLabSession", normalizeText(body.sessionId), {
         status: "in_progress",
         last_input_at: nowIso(),
-      });
+      }, relationshipId);
 
       return json({ ok: true, response: responseRecord }, request, env, 201);
     }
@@ -3039,7 +3479,8 @@ export default {
       }
 
       const sessionId = normalizeText(body.sessionId);
-      const session = await getEntityRecord(env, "PlayLabSession", sessionId);
+      const relationshipId = relationshipIdFrom(request, url, body);
+      const session = await getEntityRecord(env, "PlayLabSession", sessionId, relationshipId);
       if (!session) {
         return json({ error: "session_not_found" }, request, env, 404);
       }
@@ -3051,7 +3492,7 @@ export default {
 
       const initiatedBy = toPersonId(body.initiatedBy || session.initiated_by);
       const scope = normalizeText(body.scope || session.scope) || "Tony+Drew";
-      const memory = await buildPlayLabMemory(env, scope);
+      const memory = await buildPlayLabMemory(env, scope, relationshipId);
       const sourceInputs = {
         promptText: normalizeText(body.promptText || session.prompt_text),
         actualAnswer: normalizeText(body.actualAnswer),
@@ -3124,7 +3565,7 @@ export default {
         provider: resultCore.provider,
         model: resultCore.model || null,
         key_index: resultCore.keyIndex ?? null,
-      });
+      }, relationshipId);
 
       await safelyCaptureMetricSignals(env, buildPlayLabMetricSignals(resultRecord));
 
@@ -3136,7 +3577,7 @@ export default {
         related_session_id: sessionId,
         inferred_tags: resultCore.inferredTags,
         saved_by_user: initiatedBy,
-      });
+      }, relationshipId);
 
       await createEntityRecord(env, "InsightEntry", {
         perspective: scope === "Tony+Drew" ? `${initiatedBy}→${resolvePlayLabPartner(initiatedBy)}` : scope,
@@ -3156,14 +3597,14 @@ export default {
         note: "",
         source_type: "play_lab",
         related_session_id: sessionId,
-      });
+      }, relationshipId);
 
       await updateEntityRecord(env, "PlayLabSession", sessionId, {
         status: "completed",
         result_id: resultRecord.id,
         aha_card_id: ahaRecord.id,
         context_object: contextObject,
-      });
+      }, relationshipId);
 
       return json(
         {
@@ -3191,12 +3632,13 @@ export default {
         return json({ error: "invalid_payload" }, request, env, 400);
       }
 
+      const relationshipId = relationshipIdFrom(request, url, body);
       const scope = normalizeText(body.scope) || "Tony+Drew";
       const relatedSessionId = normalizeText(body.relatedSessionId);
       const result =
         relatedSessionId
-          ? (await queryEntityCollection(env, "PlayLabResult", new URL(`${url.origin}/?q=${encodeURIComponent(JSON.stringify({ session_id: relatedSessionId }))}`)))[0]
-          : sortRecords(await listEntityRecords(env, "PlayLabResult"), "-updated_date")[0];
+          ? (await queryEntityCollection(env, "PlayLabResult", new URL(`${url.origin}/?q=${encodeURIComponent(JSON.stringify({ session_id: relatedSessionId }))}`), relationshipId))[0]
+          : sortRecords((await listEntityRecords(env, "PlayLabResult")).filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date")[0];
 
       const resultSummary = isObject(result) ? normalizeText(result.ai_summary) : "A new pattern is becoming clearer.";
       const ahaRecord = await createEntityRecord(env, "AhaCard", {
@@ -3207,7 +3649,7 @@ export default {
         related_session_id: relatedSessionId || normalizeText(result?.session_id),
         inferred_tags: Array.isArray(body.inferredTags) ? body.inferredTags : result?.inferred_tags || [],
         saved_by_user: normalizeText(body.savedByUser) || "Tony",
-      });
+      }, relationshipId);
 
       return json({ ok: true, ahaCard: ahaRecord }, request, env, 201);
     }
@@ -3218,14 +3660,15 @@ export default {
         return json({ error: "invalid_payload" }, request, env, 400);
       }
 
+      const relationshipId = relationshipIdFrom(request, url, body);
       const scope = normalizeText(body.scope) || "Tony";
       const userId = normalizeText(body.userId) || (scope.includes("Drew") && !scope.includes("Tony") ? "Drew" : "Tony");
-      const memory = await buildPlayLabMemory(env, scope);
+      const memory = await buildPlayLabMemory(env, scope, relationshipId);
       const topTag =
         Array.isArray(body.focusTags) && body.focusTags.length > 0
           ? normalizeText(body.focusTags[0])
           : extractKeywordsFromText(
-              ...sortRecords(await listEntityRecords(env, "PlayLabResult"), "-updated_date")
+              ...sortRecords((await listEntityRecords(env, "PlayLabResult")).filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date")
                 .slice(0, 5)
                 .map((item) => normalizeText(item.ai_summary)),
             )[0] || "clarity";
@@ -3253,7 +3696,7 @@ export default {
             questionnaireCounts: memory.questionnaireCounts,
           },
         },
-      });
+      }, relationshipId);
 
       return json({ ok: true, sideQuest: quest }, request, env, 201);
     }
@@ -3264,6 +3707,7 @@ export default {
         return json({ error: "invalid_payload" }, request, env, 400);
       }
 
+      const relationshipId = relationshipIdFrom(request, url, body);
       const outcome = await createEntityRecord(env, "OutcomeLog", {
         source_type: normalizeText(body.sourceType) || "play_lab",
         related_id: normalizeText(body.relatedId),
@@ -3274,7 +3718,7 @@ export default {
         connection_change: Number(body.connectionChange || 0),
         felt_natural: Boolean(body.feltNatural),
         notes: normalizeText(body.notes),
-      });
+      }, relationshipId);
 
       await safelyCaptureMetricSignals(env, buildOutcomeMetricSignals(outcome));
 
@@ -3304,26 +3748,29 @@ export default {
     }
 
     if (url.pathname === "/api/play-lab/history" && request.method === "GET") {
+      const relationshipId = relationshipIdFrom(request, url);
       const scope = normalizeText(url.searchParams.get("scope")) || "";
       const limit = Number(url.searchParams.get("limit") || 24) || 24;
-      const sessions = sortRecords(await listEntityRecords(env, "PlayLabSession"), "-updated_date")
+      const sessions = sortRecords((await listEntityRecords(env, "PlayLabSession")).filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date")
         .filter((record) => !scope || normalizeText(record.scope).includes(scope) || normalizeText(record.initiated_by) === scope)
         .slice(0, limit);
-      const results = sortRecords(await listEntityRecords(env, "PlayLabResult"), "-updated_date").slice(0, limit);
+      const results = sortRecords((await listEntityRecords(env, "PlayLabResult")).filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date").slice(0, limit);
       return json({ sessions, results }, request, env);
     }
 
     if (url.pathname === "/api/play-lab/aha-cards" && request.method === "GET") {
+      const relationshipId = relationshipIdFrom(request, url);
       const scope = normalizeText(url.searchParams.get("scope")) || "";
-      const cards = sortRecords(await listEntityRecords(env, "AhaCard"), "-updated_date").filter(
+      const cards = sortRecords((await listEntityRecords(env, "AhaCard")).filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date").filter(
         (record) => !scope || normalizeText(record.scope).includes(scope) || normalizeText(record.saved_by_user) === scope,
       );
       return json({ cards }, request, env);
     }
 
     if (url.pathname === "/api/play-lab/side-quests" && request.method === "GET") {
+      const relationshipId = relationshipIdFrom(request, url);
       const scope = normalizeText(url.searchParams.get("scope")) || "";
-      const quests = sortRecords(await listEntityRecords(env, "SideQuest"), "-updated_date").filter(
+      const quests = sortRecords((await listEntityRecords(env, "SideQuest")).filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date").filter(
         (record) => !scope || normalizeText(record.scope).includes(scope) || normalizeText(record.user_id) === scope,
       );
       return json({ quests }, request, env);
@@ -3413,31 +3860,34 @@ export default {
       const entity = parts[2];
       const id = parts[3];
       if (!entity) return json({ error: "entity_required" }, request, env, 400);
+      const body = request.method === "POST" || request.method === "PUT" ? await readJson(request) : undefined;
+      const scoped = await requireScopedRelationship(request, env, url, body);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
 
       if (request.method === "GET" && !id) {
-        return json(await queryEntityCollection(env, entity, url), request, env);
+        return json(await queryEntityCollection(env, entity, url, scoped.relationshipId), request, env);
       }
 
       if (request.method === "GET" && id) {
-        const record = await getEntityRecord(env, entity, id);
+        const record = await getEntityRecord(env, entity, id, scoped.relationshipId);
         return record
           ? json(record, request, env)
           : json({ error: "not_found" }, request, env, 404);
       }
 
       if (request.method === "POST" && !id) {
-        const body = await readJson(request);
         if (!isObject(body)) return json({ error: "invalid_payload" }, request, env, 400);
-        const created = await createEntityRecord(env, entity, body);
+        const created = await createEntityRecord(env, entity, body, scoped.relationshipId);
         await maybeInterpretEntityWrite(env, entity, created).catch(() => null);
         await safelyCaptureMetricSignals(env, buildEntityMetricSignals(entity, created));
         return json(created, request, env, 201);
       }
 
       if (request.method === "PUT" && id) {
-        const body = await readJson(request);
         if (!isObject(body)) return json({ error: "invalid_payload" }, request, env, 400);
-        const updated = await updateEntityRecord(env, entity, id, body);
+        const updated = await updateEntityRecord(env, entity, id, body, scoped.relationshipId);
         if (updated) {
           await maybeInterpretEntityWrite(env, entity, updated).catch(() => null);
           await safelyCaptureMetricSignals(env, buildEntityMetricSignals(entity, updated));
@@ -3448,7 +3898,7 @@ export default {
       }
 
       if (request.method === "DELETE" && id) {
-        const deleted = await deleteEntityRecord(env, entity, id);
+        const deleted = await deleteEntityRecord(env, entity, id, scoped.relationshipId);
         return deleted
           ? json({ ok: true, id }, request, env)
           : json({ error: "not_found" }, request, env, 404);
