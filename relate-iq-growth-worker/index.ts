@@ -704,6 +704,11 @@ async function kvPutJson(env: Env, key: string, value: unknown): Promise<void> {
   await env.QUESTIONNAIRES.put(key, JSON.stringify(value));
 }
 
+async function kvDelete(env: Env, key: string): Promise<void> {
+  if (!env.QUESTIONNAIRES) throw new Error("storage_unavailable");
+  await env.QUESTIONNAIRES.delete(key);
+}
+
 function authKey(entity: string, id: string) {
   return `auth:${entity}:${id}`;
 }
@@ -1151,7 +1156,13 @@ async function createRelationshipInvitePersistent(env: Env, input: {
       getInviteStatusPersistent(invite) === "pending",
   );
   if (existingPending) {
-    return { ok: true as const, invite: existingPending, reused: true };
+    const updatedPending: RelationshipInvite = {
+      ...existingPending,
+      invited_name: inferredName || existingPending.invited_name,
+      temporary_password: String(input.provisionalPassword || "").trim() || existingPending.temporary_password,
+    };
+    await saveAuthRecord(env, "invite", updatedPending);
+    return { ok: true as const, invite: updatedPending, reused: true, provisionalUser: provisionalUser ? sanitizeUser(provisionalUser) : null };
   }
   const invite: RelationshipInvite = {
     id: createId("invite"),
@@ -1159,6 +1170,7 @@ async function createRelationshipInvitePersistent(env: Env, input: {
     invited_email,
     invited_name: inferredName,
     provisional_user_id: provisionalUser?.id,
+    temporary_password: String(input.provisionalPassword || "").trim() || undefined,
     invite_token: crypto.randomUUID().replace(/-/g, ""),
     status: "pending",
     created_at: nowIso(),
@@ -1171,6 +1183,143 @@ async function createRelationshipInvitePersistent(env: Env, input: {
     reused: false,
     provisionalUser: provisionalUser ? sanitizeUser(provisionalUser) : null,
   };
+}
+
+async function listRelationshipAdminRowsPersistent(env: Env, ownerUserId: string) {
+  const relationships = await getRelationshipsForUserPersistent(env, ownerUserId);
+  const invites = await listInvites(env);
+  const memberships = await listMemberships(env);
+  const users = await listUsers(env);
+
+  const ownedRelationships = relationships.filter((relationship) => relationship.current_user_role === "owner");
+
+  return ownedRelationships
+    .map((relationship) => {
+      const invite = invites
+        .filter((entry) => entry.relationship_id === relationship.id)
+        .sort((a, b) => b.created_at.localeCompare(a.created_at))[0] || null;
+      const relationshipMemberships = memberships.filter((entry) => entry.relationship_id === relationship.id);
+      const secondaryMembership = relationshipMemberships.find((entry) => entry.user_id !== ownerUserId) || null;
+      const secondaryUser = secondaryMembership ? users.find((user) => user.id === secondaryMembership.user_id) || null : null;
+      return {
+        relationship_id: relationship.id,
+        relationship_name: relationship.name,
+        relationship_type: relationship.type,
+        user_name:
+          invite?.invited_name ||
+          secondaryUser?.name ||
+          relationship.participant_names.find((name) => name.trim().toLowerCase() !== (relationship.current_person_name || "").trim().toLowerCase()) ||
+          "Other Person",
+        email: invite?.invited_email || secondaryUser?.email || "",
+        temporary_password: invite?.temporary_password || "",
+        invite_status: invite ? getInviteStatusPersistent(invite) : secondaryUser ? "accepted" : "pending",
+        invite_link: invite ? `${getFrontendOrigin(new Request("https://relateiq-growth.pages.dev"))}/invite/${invite.invite_token}` : "",
+        member_count: relationship.member_count,
+        current_user_role: relationship.current_user_role,
+      };
+    })
+    .sort((a, b) => a.relationship_name.localeCompare(b.relationship_name));
+}
+
+async function updateRelationshipAdminEntryPersistent(
+  env: Env,
+  ownerUserId: string,
+  relationshipId: string,
+  input: {
+    relationshipName?: string;
+    relationshipType?: RelationshipType;
+    inviteName?: string;
+    inviteEmail?: string;
+    temporaryPassword?: string;
+  },
+) {
+  const relationship = await getRelationshipPersistent(env, relationshipId);
+  if (!relationship) return { ok: false as const, error: "relationship_not_found" };
+  const role = await inferRelationshipRolePersistent(env, relationship, ownerUserId);
+  if (role !== "owner") return { ok: false as const, error: "forbidden" };
+
+  const trimmedRelationshipName = normalizeText(input.relationshipName || "");
+  if (trimmedRelationshipName) {
+    relationship.name = trimmedRelationshipName;
+    relationship.type = (input.relationshipType || relationship.type) as RelationshipType;
+    relationship.participants = parseRelationshipParticipants(trimmedRelationshipName, relationship.participants?.[0] || "Owner");
+    relationship.updated_at = nowIso();
+    await saveAuthRecord(env, "relationship", relationship);
+  } else if (input.relationshipType && input.relationshipType !== relationship.type) {
+    relationship.type = input.relationshipType;
+    relationship.updated_at = nowIso();
+    await saveAuthRecord(env, "relationship", relationship);
+  }
+
+  const invites = await listInvites(env);
+  const invite = invites
+    .filter((entry) => entry.relationship_id === relationshipId)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))[0] || null;
+
+  if (invite) {
+    const nextName = normalizeText(input.inviteName || "") || invite.invited_name || "";
+    const nextEmail = normalizeText(input.inviteEmail || "").toLowerCase() || invite.invited_email;
+    const nextPassword = String(input.temporaryPassword || "").trim() || invite.temporary_password || "";
+
+    invite.invited_name = nextName || invite.invited_name;
+    invite.invited_email = nextEmail;
+    invite.temporary_password = nextPassword || undefined;
+    await saveAuthRecord(env, "invite", invite);
+
+    if (invite.provisional_user_id) {
+      const provisionalUser = await getUserByIdPersistent(env, invite.provisional_user_id);
+      if (provisionalUser) {
+        provisionalUser.name = nextName || provisionalUser.name;
+        provisionalUser.email = nextEmail || provisionalUser.email;
+        if (nextPassword) {
+          provisionalUser.password_hash = await sha256Hex(nextPassword);
+        }
+        await saveAuthRecord(env, "user", provisionalUser);
+      }
+    }
+  }
+
+  return { ok: true as const, relationships: await getRelationshipsForUserPersistent(env, ownerUserId), adminRows: await listRelationshipAdminRowsPersistent(env, ownerUserId) };
+}
+
+async function deleteRelationshipAdminEntryPersistent(env: Env, ownerUserId: string, relationshipId: string) {
+  const relationship = await getRelationshipPersistent(env, relationshipId);
+  if (!relationship) return { ok: false as const, error: "relationship_not_found" };
+  if (relationshipId === DEFAULT_RELATIONSHIP_ID || relationshipId === "relationship_tony_drew_friendship") {
+    return { ok: false as const, error: "cannot_delete_seeded_relationship" };
+  }
+  const role = await inferRelationshipRolePersistent(env, relationship, ownerUserId);
+  if (role !== "owner") return { ok: false as const, error: "forbidden" };
+
+  const memberships = await listMemberships(env);
+  const invites = await listInvites(env);
+  const onboarding = await listOnboardingRecords(env);
+
+  await kvDelete(env, authKey("relationship", relationshipId));
+
+  for (const membership of memberships.filter((entry) => entry.relationship_id === relationshipId)) {
+    await kvDelete(env, authKey("membership", membership.id));
+  }
+
+  for (const invite of invites.filter((entry) => entry.relationship_id === relationshipId)) {
+    await kvDelete(env, authKey("invite", invite.id));
+  }
+
+  for (const entry of onboarding.filter((item) => item.relationship_id === relationshipId)) {
+    await kvDelete(env, authKey("onboarding", entry.id));
+  }
+
+  if (env.QUESTIONNAIRES) {
+    const list = await env.QUESTIONNAIRES.list({ prefix: "data:", limit: 1000 });
+    for (const key of list.keys) {
+      const record = await kvGetJson<Record<string, unknown>>(env, key.name);
+      if (normalizeText((record?.relationship_id as string | undefined) || "") === relationshipId) {
+        await kvDelete(env, key.name);
+      }
+    }
+  }
+
+  return { ok: true as const, relationships: await getRelationshipsForUserPersistent(env, ownerUserId), adminRows: await listRelationshipAdminRowsPersistent(env, ownerUserId) };
 }
 
 async function getInviteLookupPersistent(env: Env, token: string, currentUserId?: string) {
@@ -3641,6 +3790,12 @@ export default {
       return json({ relationships: await getRelationshipsForUserPersistent(env, user.id) }, request, env);
     }
 
+    if (url.pathname === "/api/relationships/manage" && request.method === "GET") {
+      const user = await readSessionUser(request, env, false);
+      if (!user) return json({ error: "unauthorized" }, request, env, 401);
+      return json({ rows: await listRelationshipAdminRowsPersistent(env, user.id) }, request, env);
+    }
+
     if (url.pathname === "/api/relationships/create" && request.method === "POST") {
       const user = await readSessionUser(request, env, false);
       if (!user) return json({ error: "unauthorized" }, request, env, 401);
@@ -3697,6 +3852,35 @@ export default {
         request,
         env,
       );
+    }
+
+    if (url.pathname.startsWith("/api/relationships/manage/") && request.method === "PATCH") {
+      const user = await readSessionUser(request, env, false);
+      if (!user) return json({ error: "unauthorized" }, request, env, 401);
+      const relationshipId = normalizeText(url.pathname.split("/").pop() || "");
+      const body = await readJson(request);
+      const updated = await updateRelationshipAdminEntryPersistent(env, user.id, relationshipId, {
+        relationshipName: String(body?.relationship_name || ""),
+        relationshipType: (body?.relationship_type || "") as RelationshipType,
+        inviteName: String(body?.user_name || ""),
+        inviteEmail: String(body?.email || ""),
+        temporaryPassword: String(body?.temporary_password || ""),
+      });
+      if (!updated.ok) {
+        return json({ error: updated.error }, request, env, updated.error === "forbidden" ? 403 : 400);
+      }
+      return json(updated, request, env);
+    }
+
+    if (url.pathname.startsWith("/api/relationships/manage/") && request.method === "DELETE") {
+      const user = await readSessionUser(request, env, false);
+      if (!user) return json({ error: "unauthorized" }, request, env, 401);
+      const relationshipId = normalizeText(url.pathname.split("/").pop() || "");
+      const deleted = await deleteRelationshipAdminEntryPersistent(env, user.id, relationshipId);
+      if (!deleted.ok) {
+        return json({ error: deleted.error }, request, env, deleted.error === "forbidden" ? 403 : 400);
+      }
+      return json(deleted, request, env);
     }
 
     if (url.pathname.startsWith("/api/invite/") && request.method === "GET") {

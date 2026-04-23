@@ -222,6 +222,9 @@ export const api = {
     list() {
       return request("/api/relationships");
     },
+    manage() {
+      return request("/api/relationships/manage");
+    },
     create(payload) {
       return request("/api/relationships/create", {
         method: "POST",
@@ -238,6 +241,17 @@ export const api = {
       return request("/api/relationships/onboarding", {
         method: "POST",
         body: payload,
+      });
+    },
+    updateManaged(relationshipId, payload) {
+      return request(`/api/relationships/manage/${relationshipId}`, {
+        method: "PATCH",
+        body: payload,
+      });
+    },
+    deleteManaged(relationshipId) {
+      return request(`/api/relationships/manage/${relationshipId}`, {
+        method: "DELETE",
       });
     },
   },

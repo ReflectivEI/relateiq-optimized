@@ -28,6 +28,11 @@ import {
   BookMarked,
   Plus,
   Link2,
+  Settings2,
+  Pencil,
+  Trash2,
+  RefreshCw,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -79,6 +84,11 @@ const navGroups = [
   },
 ];
 
+function generateTemporaryPassword() {
+  const base = crypto.randomUUID().replace(/-/g, "");
+  return `${base.slice(0, 4)}${base.slice(4, 8)}!${base.slice(8, 11)}A`;
+}
+
 export default function AppLayout() {
   const location = useLocation();
   const { user, relationships, activeRelationshipId, activeRelationship, selectRelationship, updateRelationships, logout } =
@@ -87,6 +97,7 @@ export default function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [relationshipName, setRelationshipName] = useState("");
   const [relationshipType, setRelationshipType] = useState("romantic");
@@ -95,11 +106,14 @@ export default function AppLayout() {
   const [invitePassword, setInvitePassword] = useState("");
   const [inviteLink, setInviteLink] = useState("");
   const [provisionedAccount, setProvisionedAccount] = useState(null);
+  const [managedRows, setManagedRows] = useState([]);
+  const [editingRelationshipId, setEditingRelationshipId] = useState("");
   const [selfDescription, setSelfDescription] = useState("");
   const [supportStyle, setSupportStyle] = useState("");
   const [supportNotes, setSupportNotes] = useState("");
   const [communicationNote, setCommunicationNote] = useState("");
   const [relationshipError, setRelationshipError] = useState("");
+  const [managementLoading, setManagementLoading] = useState(false);
   const [openGroups, setOpenGroups] = useState({
     core: true,
     intelligence: true,
@@ -126,8 +140,56 @@ export default function AppLayout() {
     }));
   };
 
+  const ensureInvitePassword = () => {
+    const nextPassword = invitePassword.trim() || generateTemporaryPassword();
+    if (!invitePassword.trim()) {
+      setInvitePassword(nextPassword);
+    }
+    return nextPassword;
+  };
+
+  const loadManagedRows = async () => {
+    setManagementLoading(true);
+    try {
+      const result = await api.relationships.manage();
+      setManagedRows(result.rows || []);
+    } catch (error) {
+      setRelationshipError(error instanceof Error ? error.message : "Unable to load managed connections.");
+    } finally {
+      setManagementLoading(false);
+    }
+  };
+
+  const openManageDialog = async () => {
+    setRelationshipError("");
+    setManageOpen(true);
+    await loadManagedRows();
+  };
+
+  const startEditingRow = (row) => {
+    setEditingRelationshipId(row.relationship_id);
+    setRelationshipName(row.relationship_name || "");
+    setRelationshipType(row.relationship_type || "romantic");
+    setInviteName(row.user_name || "");
+    setInviteEmail(row.email || "");
+    setInvitePassword(row.temporary_password || generateTemporaryPassword());
+    setInviteLink(row.invite_link || "");
+  };
+
+  const resetConnectionForm = () => {
+    setRelationshipName("");
+    setRelationshipType("romantic");
+    setInviteName("");
+    setInviteEmail("");
+    setInvitePassword(generateTemporaryPassword());
+    setInviteLink("");
+    setProvisionedAccount(null);
+    setEditingRelationshipId("");
+  };
+
   const handleCreateRelationship = async () => {
     try {
+      const nextPassword = ensureInvitePassword();
       const trimmedPartnerName = inviteName.trim();
       const resolvedName =
         relationshipName.trim() || [user?.name, trimmedPartnerName].filter(Boolean).join(" & ");
@@ -142,7 +204,7 @@ export default function AppLayout() {
           relationship_id: result.relationship?.id,
           email: inviteEmail,
           name: trimmedPartnerName,
-          password: invitePassword,
+          password: nextPassword,
         });
         setInviteLink(inviteResult.absolute_invite_link || inviteResult.invite_link || "");
         setProvisionedAccount(
@@ -150,7 +212,7 @@ export default function AppLayout() {
             ? {
                 name: inviteResult.provisional_user.name,
                 email: inviteResult.provisional_user.email,
-                password: invitePassword,
+                password: nextPassword,
               }
             : null,
         );
@@ -161,6 +223,7 @@ export default function AppLayout() {
       setRelationshipType("romantic");
       setCreateOpen(false);
       setInviteOpen(true);
+      await loadManagedRows();
     } catch (error) {
       setRelationshipError(error instanceof Error ? error.message : "Unable to create relationship.");
     }
@@ -168,11 +231,12 @@ export default function AppLayout() {
 
   const handleCreateInvite = async () => {
     try {
+      const nextPassword = ensureInvitePassword();
       const result = await api.relationships.invite({
         relationship_id: activeRelationshipId,
         email: inviteEmail,
         name: inviteName,
-        password: invitePassword,
+        password: nextPassword,
       });
       setInviteLink(result.absolute_invite_link || result.invite_link || "");
       setProvisionedAccount(
@@ -180,12 +244,45 @@ export default function AppLayout() {
           ? {
               name: result.provisional_user.name,
               email: result.provisional_user.email,
-              password: invitePassword,
+              password: nextPassword,
             }
           : null,
       );
+      await loadManagedRows();
     } catch (error) {
       setRelationshipError(error instanceof Error ? error.message : "Unable to create invite.");
+    }
+  };
+
+  const handleSaveManagedRow = async () => {
+    if (!editingRelationshipId) return;
+    try {
+      const nextPassword = ensureInvitePassword();
+      const result = await api.relationships.updateManaged(editingRelationshipId, {
+        relationship_name: relationshipName,
+        relationship_type: relationshipType,
+        user_name: inviteName,
+        email: inviteEmail,
+        temporary_password: nextPassword,
+      });
+      updateRelationships(result.relationships || relationships, activeRelationshipId);
+      setManagedRows(result.adminRows || []);
+      resetConnectionForm();
+    } catch (error) {
+      setRelationshipError(error instanceof Error ? error.message : "Unable to update managed connection.");
+    }
+  };
+
+  const handleDeleteManagedRow = async (relationshipId) => {
+    try {
+      const result = await api.relationships.deleteManaged(relationshipId);
+      updateRelationships(result.relationships || [], activeRelationshipId);
+      setManagedRows(result.adminRows || []);
+      if (editingRelationshipId === relationshipId) {
+        resetConnectionForm();
+      }
+    } catch (error) {
+      setRelationshipError(error instanceof Error ? error.message : "Unable to delete managed connection.");
     }
   };
 
@@ -260,10 +357,7 @@ export default function AppLayout() {
                   className="flex-1 border-primary/30 bg-transparent text-teal-100 hover:bg-primary/10"
                   onClick={() => {
                     setRelationshipError("");
-                    setInviteName("");
-                    setInviteEmail("");
-                    setInvitePassword("");
-                    setProvisionedAccount(null);
+                    resetConnectionForm();
                     setCreateOpen(true);
                   }}
                 >
@@ -278,11 +372,20 @@ export default function AppLayout() {
                     setRelationshipError("");
                     setInviteLink("");
                     setProvisionedAccount(null);
+                    if (!invitePassword.trim()) setInvitePassword(generateTemporaryPassword());
                     setInviteOpen(true);
                   }}
                 >
                   <Link2 className="mr-1 h-3.5 w-3.5" />
                   Invite
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-primary/30 bg-transparent px-3 text-teal-100 hover:bg-primary/10"
+                  onClick={() => void openManageDialog()}
+                >
+                  <Settings2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
@@ -397,15 +500,19 @@ export default function AppLayout() {
                 ))}
               </select>
               <div className="mt-3 grid grid-cols-2 gap-2">
-            <Button variant="outline" onClick={() => setCreateOpen(true)}>
+            <Button variant="outline" onClick={() => { setRelationshipError(""); resetConnectionForm(); setCreateOpen(true); }}>
                   <Plus className="mr-1 h-4 w-4" />
                   Add
                 </Button>
-            <Button variant="outline" onClick={() => setInviteOpen(true)}>
+            <Button variant="outline" onClick={() => { setRelationshipError(""); if (!invitePassword.trim()) setInvitePassword(generateTemporaryPassword()); setInviteOpen(true); }}>
                   <Link2 className="mr-1 h-4 w-4" />
                   Invite
                 </Button>
               </div>
+              <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={() => void openManageDialog()}>
+                <Settings2 className="mr-2 h-4 w-4" />
+                Manage Connections
+              </Button>
             </div>
             {navGroups.map((group) => {
               const groupHasActiveItem = group.items.some((item) => location.pathname === item.path);
@@ -572,6 +679,135 @@ export default function AppLayout() {
             <Button onClick={handleCreateInvite} className="w-full" disabled={!isOwner}>
               Generate Invite Link
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={manageOpen} onOpenChange={setManageOpen}>
+        <DialogContent className="max-w-5xl rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Manage Connections</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5">
+            <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
+              This owner-only panel shows the people you’ve added, their assigned login email, the current temporary password on file, and edit/delete controls for each managed connection.
+            </div>
+            <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+              <div className="overflow-hidden rounded-2xl border border-border/70">
+                <div className="hidden grid-cols-[1.1fr_1.2fr_1fr_0.9fr] gap-3 border-b border-border/70 bg-muted/20 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground md:grid">
+                  <div>User</div>
+                  <div>Email</div>
+                  <div>Temporary Password</div>
+                  <div>Actions</div>
+                </div>
+                <div className="divide-y divide-border/60">
+                  {managementLoading ? (
+                    <div className="px-4 py-6 text-sm text-muted-foreground">Loading managed connections…</div>
+                  ) : managedRows.length === 0 ? (
+                    <div className="px-4 py-6 text-sm text-muted-foreground">No managed connections yet.</div>
+                  ) : (
+                    managedRows.map((row) => (
+                      <div key={row.relationship_id} className="grid gap-3 px-4 py-4 md:grid-cols-[1.1fr_1.2fr_1fr_0.9fr] md:items-center">
+                        <div>
+                          <p className="font-medium text-foreground">{row.user_name}</p>
+                          <p className="text-xs text-muted-foreground">{row.relationship_name} · {row.relationship_type}</p>
+                        </div>
+                        <div className="break-all text-sm text-foreground">{row.email || "No email yet"}</div>
+                        <div className="flex items-center gap-2">
+                          <code className="rounded-xl bg-muted/40 px-2 py-1 text-xs text-foreground">{row.temporary_password || "Not set"}</code>
+                          {row.temporary_password ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => navigator.clipboard.writeText(row.temporary_password)}
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </Button>
+                          ) : null}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button type="button" variant="outline" size="sm" onClick={() => startEditingRow(row)}>
+                            <Pencil className="mr-2 h-3.5 w-3.5" />
+                            Edit
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            onClick={() => void handleDeleteManagedRow(row.relationship_id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4 rounded-2xl border border-border/70 bg-background p-4">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    {editingRelationshipId ? "Edit managed connection" : "Select a row to edit"}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Update the connection label, invited user, email, or temporary password. Password changes are re-hashed on the backend and remain scoped to this connection only.
+                  </p>
+                </div>
+                <input
+                  value={relationshipName}
+                  onChange={(event) => setRelationshipName(event.target.value)}
+                  placeholder="Connection name"
+                  className="w-full rounded-2xl border border-border px-4 py-3"
+                />
+                <select
+                  value={relationshipType}
+                  onChange={(event) => setRelationshipType(event.target.value)}
+                  className="w-full rounded-2xl border border-border px-4 py-3"
+                >
+                  <option value="romantic">Romantic</option>
+                  <option value="friendship">Friendship</option>
+                  <option value="family">Family</option>
+                  <option value="other">Other</option>
+                </select>
+                <input
+                  value={inviteName}
+                  onChange={(event) => setInviteName(event.target.value)}
+                  placeholder="User name"
+                  className="w-full rounded-2xl border border-border px-4 py-3"
+                />
+                <input
+                  value={inviteEmail}
+                  onChange={(event) => setInviteEmail(event.target.value)}
+                  placeholder="Email"
+                  className="w-full rounded-2xl border border-border px-4 py-3"
+                />
+                <div className="flex gap-2">
+                  <input
+                    value={invitePassword}
+                    onChange={(event) => setInvitePassword(event.target.value)}
+                    placeholder="Temporary password"
+                    className="w-full rounded-2xl border border-border px-4 py-3"
+                  />
+                  <Button type="button" variant="outline" onClick={() => setInvitePassword(generateTemporaryPassword())}>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Generate
+                  </Button>
+                </div>
+                {relationshipError ? <p className="text-sm text-red-600">{relationshipError}</p> : null}
+                <div className="flex gap-2">
+                  <Button type="button" className="flex-1" disabled={!editingRelationshipId} onClick={() => void handleSaveManagedRow()}>
+                    Save Changes
+                  </Button>
+                  <Button type="button" variant="outline" onClick={resetConnectionForm}>
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

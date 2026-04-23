@@ -34,6 +34,7 @@ export type RelationshipInvite = {
   invited_email: string;
   invited_name?: string;
   provisional_user_id?: string;
+  temporary_password?: string;
   invite_token: string;
   status: RelationshipInviteStatus;
   created_at: string;
