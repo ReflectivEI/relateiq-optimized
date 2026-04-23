@@ -722,7 +722,7 @@ export default function AppLayout() {
       </Dialog>
 
       <Dialog open={manageOpen} onOpenChange={setManageOpen}>
-        <DialogContent className="max-w-5xl rounded-3xl">
+        <DialogContent className="max-h-[85vh] w-[min(96vw,80rem)] max-w-[96vw] overflow-x-auto overflow-y-auto rounded-3xl">
           <DialogHeader>
             <DialogTitle>Manage Connections</DialogTitle>
           </DialogHeader>
@@ -730,7 +730,8 @@ export default function AppLayout() {
             <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
               This owner-only panel shows the people you’ve added, their assigned login email, the current temporary password on file, and edit/delete controls for each managed connection.
             </div>
-            <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+            <div className="overflow-x-auto">
+              <div className="grid min-w-[980px] gap-4 lg:grid-cols-[1.3fr_1fr]">
               <div className="overflow-hidden rounded-2xl border border-border/70">
                 <div className="hidden grid-cols-[1.1fr_1.2fr_1fr_0.9fr] gap-3 border-b border-border/70 bg-muted/20 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground md:grid">
                   <div>User</div>
@@ -845,6 +846,7 @@ export default function AppLayout() {
                   </Button>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </DialogContent>
