@@ -655,11 +655,22 @@ async function requireRelationshipOwner(
 ) {
   const scoped = await requireScopedRelationship(request, env, url, body);
   if ("error" in scoped) return scoped;
+  const effectiveRole = await inferRelationshipRolePersistent(env, scoped.relationship, scoped.user.id);
   const membership = await getMembershipForUserPersistent(env, scoped.relationshipId, scoped.user.id);
-  if (!membership || membership.role !== "owner") {
+  if (effectiveRole !== "owner") {
     return { error: "forbidden", status: 403 as const };
   }
-  return { ...scoped, membership } as const;
+  return {
+    ...scoped,
+    membership:
+      membership ||
+      ({
+        id: `derived_owner_${scoped.relationshipId}_${scoped.user.id}`,
+        relationship_id: scoped.relationshipId,
+        user_id: scoped.user.id,
+        role: "owner",
+      } satisfies RelationshipMembership),
+  } as const;
 }
 
 function withRelationshipScope<T extends Record<string, unknown>>(
@@ -741,10 +752,30 @@ async function getRelationshipPersistent(env: Env, id: string) {
 }
 
 async function listMemberships(env: Env): Promise<RelationshipMembership[]> {
-  return dedupeById<RelationshipMembership>([
+  const memberships = dedupeById<RelationshipMembership>([
     ...RELATEIQ_MEMBERSHIPS,
     ...(await listAuthRecords<RelationshipMembership>(env, "membership")),
   ]);
+  return Promise.all(memberships.map((membership) => reconcileMembershipRolePersistent(env, membership)));
+}
+
+async function reconcileMembershipRolePersistent(env: Env, membership: RelationshipMembership) {
+  const shouldBeOwner =
+    membership.user_id === "tony" &&
+    (membership.relationship_id === DEFAULT_RELATIONSHIP_ID ||
+      membership.relationship_id === "relationship_tony_drew_friendship");
+
+  if (!shouldBeOwner || membership.role === "owner") {
+    return membership;
+  }
+
+  const repaired: RelationshipMembership = {
+    ...membership,
+    role: "owner",
+  };
+
+  await saveAuthRecord(env, "membership", repaired);
+  return repaired;
 }
 
 async function getMembershipsForUserPersistent(env: Env, userId: string) {
@@ -797,6 +828,38 @@ async function getMembershipForUserPersistent(env: Env, relationshipId: string, 
   );
 }
 
+async function inferRelationshipRolePersistent(
+  env: Env,
+  relationship: Relationship,
+  userId: string,
+  relationshipMemberships?: RelationshipMembership[],
+  currentUser?: User | null,
+) {
+  const memberships = relationshipMemberships || (await listMemberships(env)).filter(
+    (membership) => membership.relationship_id === relationship.id,
+  );
+  const membership = memberships.find((entry) => entry.user_id === userId) || null;
+  if (membership?.role === "owner") return "owner" as const;
+
+  const resolvedCurrentUser = currentUser || (await getUserByIdPersistent(env, userId));
+  const hasOwner = memberships.some((entry) => entry.role === "owner");
+  const firstParticipant = relationship.participants?.[0]?.trim().toLowerCase();
+  const currentName = resolvedCurrentUser?.name?.trim().toLowerCase();
+
+  if (!hasOwner && resolvedCurrentUser && firstParticipant && firstParticipant === currentName) {
+    return "owner" as const;
+  }
+
+  if (
+    resolvedCurrentUser?.id === "tony" &&
+    (relationship.id === DEFAULT_RELATIONSHIP_ID || relationship.id === "relationship_tony_drew_friendship")
+  ) {
+    return "owner" as const;
+  }
+
+  return (membership?.role as "owner" | "participant" | undefined) || "participant";
+}
+
 async function countQuestionnaireResponsesForPersonPersistent(
   env: Env,
   relationshipId: string,
@@ -836,20 +899,30 @@ async function buildRelationshipSummaryPersistent(
     relationship.participants?.length >= 2
       ? mergeParticipantNames(relationship.participants)
       : mergeParticipantNames(relationship.participants, memberNames);
-  const membership = relationshipMemberships.find((entry) => entry.user_id === userId) || null;
   const currentUser = users.find((user) => user.id === userId) || null;
   const currentPersonName =
     participantNames.find(
       (participant) => participant.trim().toLowerCase() === (currentUser?.name || "").trim().toLowerCase(),
     ) || participantNames[0] || currentUser?.name || "Tony";
+  const memberCount =
+    relationshipMemberships.length ||
+    (currentUser && participantNames.some((participant) => participant.trim().toLowerCase() === currentUser.name.trim().toLowerCase())
+      ? 1
+      : 0);
   return {
     ...relationship,
-    member_count: relationshipMemberships.length,
+    member_count: memberCount,
     participant_names: participantNames,
     needs_onboarding: !(await getLatestOnboardingPersistent(env, relationship.id, userId)),
     needs_questionnaire: (await countQuestionnaireResponsesForPersonPersistent(env, relationship.id, currentPersonName)) < 94,
     current_person_name: currentPersonName,
-    current_user_role: (membership?.role as "owner" | "participant" | undefined) || "participant",
+    current_user_role: await inferRelationshipRolePersistent(
+      env,
+      relationship,
+      userId,
+      relationshipMemberships,
+      currentUser,
+    ),
   };
 }
 
@@ -3568,11 +3641,15 @@ export default {
       if (!created.ok) {
         return json({ error: created.error }, request, env, 400);
       }
+      const relationshipList = await getRelationshipsForUserPersistent(env, user.id);
+      const mergedRelationships = relationshipList.some((entry) => entry.id === created.summary.id)
+        ? relationshipList
+        : [created.summary, ...relationshipList];
       return json(
         {
           ok: true,
           relationship: created.summary,
-          relationships: await getRelationshipsForUserPersistent(env, user.id),
+          relationships: mergedRelationships,
         },
         request,
         env,

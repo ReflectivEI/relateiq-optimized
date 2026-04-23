@@ -264,7 +264,7 @@ export const RELATEIQ_MEMBERSHIPS: RelationshipMembership[] = [
     id: "membership_tony_romantic",
     relationship_id: DEFAULT_RELATIONSHIP_ID,
     user_id: "tony",
-    role: "participant",
+    role: "owner",
   },
   {
     id: "membership_drew_romantic",
@@ -276,7 +276,7 @@ export const RELATEIQ_MEMBERSHIPS: RelationshipMembership[] = [
     id: "membership_tony_friendship",
     relationship_id: "relationship_tony_drew_friendship",
     user_id: "tony",
-    role: "participant",
+    role: "owner",
   },
   {
     id: "membership_drew_friendship",
@@ -638,6 +638,30 @@ function getMembershipForUser(relationshipId: string, userId: string) {
   );
 }
 
+function inferRelationshipRole(relationship: Relationship, userId: string) {
+  const membership = getMembershipForUser(relationship.id, userId);
+  if (membership?.role === "owner") return "owner";
+
+  const memberships = RELATEIQ_MEMBERSHIPS.filter((entry) => entry.relationship_id === relationship.id);
+  const hasOwner = memberships.some((entry) => entry.role === "owner");
+  const currentUser = getUserById(userId);
+  const firstParticipant = relationship.participants?.[0]?.trim().toLowerCase();
+  const currentName = currentUser?.name?.trim().toLowerCase();
+
+  if (!hasOwner && currentUser && firstParticipant && firstParticipant === currentName) {
+    return "owner";
+  }
+
+  if (
+    currentUser?.id === "tony" &&
+    (relationship.id === DEFAULT_RELATIONSHIP_ID || relationship.id === "relationship_tony_drew_friendship")
+  ) {
+    return "owner";
+  }
+
+  return membership?.role || "participant";
+}
+
 function inferCurrentPersonName(relationship: Relationship, userId: string, participantNames: string[]) {
   const currentUser = getUserById(userId);
   if (!currentUser) return participantNames[0] || "Tony";
@@ -660,16 +684,21 @@ function buildRelationshipSummary(relationship: Relationship, userId: string): R
     relationship.participants?.length >= 2
       ? relationship.participants
       : Array.from(new Set([...(relationship.participants || []), ...members.map((member) => member.name)]));
-  const membership = getMembershipForUser(relationship.id, userId);
   const currentPersonName = inferCurrentPersonName(relationship, userId, participantNames);
+  const currentUser = getUserById(userId);
+  const memberCount =
+    members.length ||
+    (currentUser && participantNames.some((participant) => participant.trim().toLowerCase() === currentUser.name.trim().toLowerCase())
+      ? 1
+      : 0);
   return {
     ...relationship,
-    member_count: members.length,
+    member_count: memberCount,
     participant_names: participantNames,
     needs_onboarding: !getLatestOnboardingForUser(relationship.id, userId),
     needs_questionnaire: countQuestionnaireResponsesForPerson(relationship.id, currentPersonName) < 94,
     current_person_name: currentPersonName,
-    current_user_role: membership?.role || "participant",
+    current_user_role: inferRelationshipRole(relationship, userId),
   };
 }
 
