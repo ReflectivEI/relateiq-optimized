@@ -18,21 +18,28 @@ import PrivacyBanner from "@/components/ui/PrivacyBanner";
 import VoiceRecorder from "@/components/reflection/VoiceRecorder";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getPartnerName, getRelationshipLabel } from "@/lib/relationshipParticipants";
 
 export default function DailyConnections() {
-  const [person, setPerson] = useState("Tony");
+  const { activeRelationshipId, activeRelationship, participants } = useRelationshipAuth();
+  const [person, setPerson] = useState(participants[0]);
   const [answer, setAnswer] = useState("");
   const [mood, setMood] = useState("");
   const [loading, setLoading] = useState(false);
   const [inputMode, setInputMode] = useState("text");
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    setPerson((current) => (participants.includes(current) ? current : participants[0]));
+  }, [participants]);
+
   // Get today's question (deterministic)
   const todayQuestion = getTodayQuestion();
 
   // Fetch today's reflections
   const { data: reflections = [] } = useQuery({
-    queryKey: ["daily-reflections-today"],
+    queryKey: ["daily-reflections-today", activeRelationshipId],
     queryFn: async () => {
       const today = todayQuestion.date;
       return api.entities.DailyReflection.filter({
@@ -43,8 +50,9 @@ export default function DailyConnections() {
 
   // Get my response and partner's response
   const myResponse = reflections.find((r) => r.person_name === person);
-  const partnerName = person === "Tony" ? "Drew" : "Tony";
+  const partnerName = getPartnerName(person, participants);
   const partnerResponse = reflections.find((r) => r.person_name === partnerName);
+  const relationshipLabel = getRelationshipLabel(activeRelationship, participants);
 
   // Mark partner response as viewed if we haven't already
   useEffect(() => {
@@ -80,7 +88,7 @@ export default function DailyConnections() {
       setMood("");
       setInputMode("text");
       toast.success("Response shared with your partner ✨");
-      queryClient.invalidateQueries({ queryKey: ["daily-reflections-today"] });
+      queryClient.invalidateQueries({ queryKey: ["daily-reflections-today", activeRelationshipId] });
     } catch (err) {
       toast.error("Failed to save reflection");
     } finally {
@@ -112,20 +120,21 @@ export default function DailyConnections() {
 
       <Tabs value={person} onValueChange={setPerson}>
         <TabsList>
-          <TabsTrigger value="Tony">Tony</TabsTrigger>
-          <TabsTrigger value="Drew">Drew</TabsTrigger>
+          {participants.map((name) => (
+            <TabsTrigger key={name} value={name}>{name}</TabsTrigger>
+          ))}
         </TabsList>
       </Tabs>
 
       <div className="grid gap-3 md:grid-cols-2">
-        {["Tony", "Drew"].map((name) => {
+        {participants.map((name) => {
           const reflection = reflections.find((item) => item.person_name === name);
           const active = person === name;
           return (
             <Card key={name} className={active ? "border-2 border-primary/35 bg-primary/5" : "border border-border/60 bg-white"}>
               <CardContent className="flex items-center justify-between gap-4 p-4">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">{name}</p>
+                <p className="text-sm font-semibold text-foreground">{name}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {reflection ? "Reflection saved for today." : "No reflection saved yet today."}
                   </p>
@@ -161,7 +170,7 @@ export default function DailyConnections() {
             {person}'s Reflection
           </h2>
           <p className="text-sm text-muted-foreground">
-            Switch between Tony and Drew above to write and review each person’s daily reflection.
+            Switch between the people in this connection above to write and review each reflection for {relationshipLabel}.
           </p>
 
           {myResponse ? (
@@ -213,7 +222,7 @@ export default function DailyConnections() {
                         "Tap Record Voice Memo, speak naturally, and press Stop when you are done.",
                         "The memo is uploaded securely and transcribed into text to prefill your reflection.",
                         "The transcript is what gets saved into Daily Connections. The original audio is only used to create that transcript and support the reflection workflow.",
-                        "Your voice memo can also help the app detect tone, summarize themes, and improve coaching context for Tony and Drew."
+                        `Your voice memo can also help the app detect tone, summarize themes, and improve coaching context for ${relationshipLabel}.`
                       ],
                     }}
                   />

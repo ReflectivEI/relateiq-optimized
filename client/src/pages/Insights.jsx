@@ -35,6 +35,7 @@ import RelationshipStateCard from "@/components/insights/RelationshipStateCard";
 import PatternDriftTracker from "@/components/insights/PatternDriftTracker";
 import InsightTimeline from "@/components/insights/InsightTimeline";
 import { computePatternProfile } from "@/lib/patternEngine";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 
 const CONFIDENCE_CONFIG = {
   early_signal: { label: "Early Signal", color: "bg-orange-100 text-orange-700 border-orange-200" },
@@ -150,7 +151,7 @@ function ModeCard({ icon: Icon, title, badge, description, sources, locked, onCl
 
 // ─── CONTEXT INSIGHTS VIEW ────────────────────────────────────────────────────
 
-function ContextInsightsView({ insights, ctx, contentRef, insightId }) {
+function ContextInsightsView({ insights, ctx, contentRef, insightId, participants, relationshipLabel }) {
   const conf = CONFIDENCE_CONFIG[insights.confidence_level] || CONFIDENCE_CONFIG.early_signal;
 
   return (
@@ -214,7 +215,7 @@ function ContextInsightsView({ insights, ctx, contentRef, insightId }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Early Signals — Tony</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Early Signals — {participants[0]}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 pt-0">
             {(insights.signals_tony || []).map((s, i) => (
@@ -223,12 +224,12 @@ function ContextInsightsView({ insights, ctx, contentRef, insightId }) {
                 <span className="text-foreground">{s}</span>
               </div>
             ))}
-            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle="Early Signals — Tony" sectionContent={(insights.signals_tony || []).join("\n")} className="mt-2" />}
+            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle={`Early Signals — ${participants[0]}`} sectionContent={(insights.signals_tony || []).join("\n")} className="mt-2" />}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Early Signals — Drew</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Early Signals — {participants[1]}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 pt-0">
             {(insights.signals_drew || []).map((s, i) => (
@@ -237,7 +238,7 @@ function ContextInsightsView({ insights, ctx, contentRef, insightId }) {
                 <span className="text-foreground">{s}</span>
               </div>
             ))}
-            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle="Early Signals — Drew" sectionContent={(insights.signals_drew || []).join("\n")} className="mt-2" />}
+            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle={`Early Signals — ${participants[1]}`} sectionContent={(insights.signals_drew || []).join("\n")} className="mt-2" />}
           </CardContent>
         </Card>
       </div>
@@ -247,7 +248,7 @@ function ContextInsightsView({ insights, ctx, contentRef, insightId }) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Heart className="w-4 h-4 text-primary" /> Tony + Drew Together
+              <Heart className="w-4 h-4 text-primary" /> {relationshipLabel} Together
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 pt-0">
@@ -257,7 +258,7 @@ function ContextInsightsView({ insights, ctx, contentRef, insightId }) {
                 <span className="text-foreground">{s}</span>
               </div>
             ))}
-            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle="Tony + Drew Together" sectionContent={insights.signals_together.join("\n")} className="mt-2" />}
+            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle={`${relationshipLabel} Together`} sectionContent={insights.signals_together.join("\n")} className="mt-2" />}
           </CardContent>
         </Card>
       )}
@@ -365,8 +366,8 @@ function ContextInsightsView({ insights, ctx, contentRef, insightId }) {
           <ExportBar ctx={ctx} content={[
             insights.what_system_sees,
             insights.what_this_means,
-            `\nEarly Signals — Tony:\n${(insights.signals_tony || []).map(s => `• ${s}`).join("\n")}`,
-            `\nEarly Signals — Drew:\n${(insights.signals_drew || []).map(s => `• ${s}`).join("\n")}`,
+            `\nEarly Signals — ${participants[0]}:\n${(insights.signals_tony || []).map(s => `• ${s}`).join("\n")}`,
+            `\nEarly Signals — ${participants[1]}:\n${(insights.signals_drew || []).map(s => `• ${s}`).join("\n")}`,
             `\nWhat to Try Next:\n${(insights.what_to_try_next || []).map((r, i) => `${i + 1}. ${r}`).join("\n")}`,
           ].join("\n\n")} />
         </>
@@ -379,7 +380,7 @@ function ContextInsightsView({ insights, ctx, contentRef, insightId }) {
 
 // ─── DEEP INSIGHTS VIEW ───────────────────────────────────────────────────────
 
-function DeepInsightsView({ insights, ctx, contentRef, insightId }) {
+function DeepInsightsView({ insights, ctx, contentRef, insightId, participants, relationshipLabel }) {
   return (
     <div className="space-y-6" ref={contentRef}>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
@@ -471,7 +472,7 @@ function DeepInsightsView({ insights, ctx, contentRef, insightId }) {
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            <ArrowLeftRight className="w-4 h-4" /> Tony vs Drew Comparison
+            <ArrowLeftRight className="w-4 h-4" /> {participants[0]} vs {participants[1]} Comparison
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -480,8 +481,8 @@ function DeepInsightsView({ insights, ctx, contentRef, insightId }) {
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-2.5 px-3 font-medium text-muted-foreground">Category</th>
-                  <th className="text-left py-2.5 px-3 font-medium text-primary">Tony</th>
-                  <th className="text-left py-2.5 px-3 font-medium text-accent-foreground">Drew</th>
+                  <th className="text-left py-2.5 px-3 font-medium text-primary">{participants[0]}</th>
+                  <th className="text-left py-2.5 px-3 font-medium text-accent-foreground">{participants[1]}</th>
                   <th className="text-left py-2.5 px-3 font-medium text-muted-foreground">Insight</th>
                 </tr>
               </thead>
@@ -536,6 +537,7 @@ function DeepInsightsView({ insights, ctx, contentRef, insightId }) {
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 
 export default function Insights() {
+  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
   const [contextInsights, setContextInsights] = useState(null);
   const [deepInsights, setDeepInsights] = useState(null);
   const [insightsCtx, setInsightsCtx] = useState(null);
@@ -548,52 +550,52 @@ export default function Insights() {
   const queryClient = useQueryClient();
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles-insights"],
+    queryKey: ["profiles-insights", activeRelationshipId],
     queryFn: () => api.entities.UserProfile.list(),
   });
 
   const { data: tonyResponses = [] } = useQuery({
-    queryKey: ["responses-insights-tony"],
-    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Tony" }),
+    queryKey: ["responses-insights-tony", activeRelationshipId, participants[0]],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: participants[0] }),
   });
 
   const { data: drewResponses = [] } = useQuery({
-    queryKey: ["responses-insights-drew"],
-    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Drew" }),
+    queryKey: ["responses-insights-drew", activeRelationshipId, participants[1]],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: participants[1] }),
   });
 
   const { data: relationshipDynamics = [] } = useQuery({
-    queryKey: ["relationship-dynamic"],
+    queryKey: ["relationship-dynamic", activeRelationshipId],
     queryFn: () => api.entities.RelationshipDynamic.list("-created_date", 1),
   });
 
   const { data: recentSessions = [] } = useQuery({
-    queryKey: ["sessions-insights"],
+    queryKey: ["sessions-insights", activeRelationshipId],
     queryFn: () => api.entities.CoachSession.list("-created_date", 50),
   });
 
   const { data: recentCheckIns = [] } = useQuery({
-    queryKey: ["checkins-insights"],
+    queryKey: ["checkins-insights", activeRelationshipId],
     queryFn: () => api.entities.CheckIn.list("-created_date", 50),
   });
 
   const { data: repairEntries = [] } = useQuery({
-    queryKey: ["repairs-insights"],
+    queryKey: ["repairs-insights", activeRelationshipId],
     queryFn: () => api.entities.RepairEntry.list("-created_date", 20),
   });
 
   const { data: triggers = [] } = useQuery({
-    queryKey: ["triggers-insights"],
+    queryKey: ["triggers-insights", activeRelationshipId],
     queryFn: () => api.entities.TriggerEntry.list(),
   });
 
   const { data: insightEntries = [] } = useQuery({
-    queryKey: ["insight-entries"],
+    queryKey: ["insight-entries", activeRelationshipId],
     queryFn: () => api.entities.InsightEntry.list("-created_date", 10),
   });
 
-  const tonyProfile = profiles.find((p) => p.person_name === "Tony");
-  const drewProfile = profiles.find((p) => p.person_name === "Drew");
+  const tonyProfile = profiles.find((p) => p.person_name === participants[0]);
+  const drewProfile = profiles.find((p) => p.person_name === participants[1]);
   const existingDynamic = relationshipDynamics[0] || null;
   const bothReady = tonyProfile && drewProfile;
 
@@ -659,7 +661,7 @@ export default function Insights() {
         relationshipDynamic: existingDynamic,
       }),
       model: "claude_sonnet_4_6",
-      partnerLanguage: { personName: "Tony", partnerName: "Drew", replacePronouns: false },
+      partnerLanguage: { personName: participants[0], partnerName: participants[1], replacePronouns: false },
       response_json_schema: {
         type: "object",
         properties: {
@@ -710,7 +712,7 @@ export default function Insights() {
     } else {
       await api.entities.RelationshipDynamic.create(contextPayload);
     }
-    queryClient.invalidateQueries({ queryKey: ["relationship-dynamic"] });
+    queryClient.invalidateQueries({ queryKey: ["relationship-dynamic", activeRelationshipId] });
 
     setContextInsights(result);
     setInsightsCtx(makeCtx("Context-Based Insights", result.what_system_sees));
@@ -774,7 +776,7 @@ export default function Insights() {
       safeInvokeLLM({
         prompt: buildInsightsPrompt({ tonyProfile, drewProfile, tonyResponses, drewResponses, relationshipDynamic: existingDynamic }),
         model: "claude_sonnet_4_6",
-        partnerLanguage: { personName: "Tony", partnerName: "Drew", replacePronouns: false },
+        partnerLanguage: { personName: participants[0], partnerName: participants[1], replacePronouns: false },
         response_json_schema: {
           type: "object",
           properties: {
@@ -794,7 +796,7 @@ export default function Insights() {
       safeInvokeLLM({
         prompt: buildDynamicUpdatePrompt({ tonyProfile, drewProfile, recentSessions, recentCheckIns }),
         model: "gpt_5_mini",
-        partnerLanguage: { personName: "Tony", partnerName: "Drew", replacePronouns: false },
+        partnerLanguage: { personName: participants[0], partnerName: participants[1], replacePronouns: false },
         response_json_schema: {
           type: "object",
           properties: {
@@ -830,7 +832,7 @@ export default function Insights() {
     setActiveTab("deep");
     setLoading(false);
     setLoadingMode(null);
-    queryClient.invalidateQueries({ queryKey: ["relationship-dynamic"] });
+    queryClient.invalidateQueries({ queryKey: ["relationship-dynamic", activeRelationshipId] });
   };
 
   const defaultCtx = makeCtx("Couple Analysis", null);
@@ -841,7 +843,7 @@ export default function Insights() {
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">Insights</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Relationship intelligence generated from everything the system knows — sessions, check-ins, questionnaire answers, and lived situations.
+          Relationship intelligence generated for {relationshipLabel} from everything the system knows — sessions, check-ins, questionnaire answers, and lived situations.
         </p>
         {lastUpdated && (
           <p className="text-xs text-muted-foreground/60 mt-1">
@@ -891,7 +893,7 @@ export default function Insights() {
           title="Full Deep Insights"
           description={bothReady
             ? "Use this for the deeper partner comparison: shared strengths, risks, recurring loops, predictions, and grounded next steps."
-            : "A deeper couple analysis is still available now. It becomes more precise as both Tony and Drew complete more profile data."}
+            : `A deeper couple analysis is still available now. It becomes more precise as both ${participants[0]} and ${participants[1]} complete more profile data.`}
           locked={false}
           active={activeTab === "deep"}
           loading={loadingMode === "deep"}
@@ -905,7 +907,7 @@ export default function Insights() {
           <Heart className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
           <p className="text-sm text-muted-foreground">
             <strong className="text-foreground">Waiting for partner data:</strong>{" "}
-            {tonyResponses.length === 0 ? "Tony" : "Drew"} hasn't completed any questionnaire answers yet.
+            {tonyResponses.length === 0 ? participants[0] : participants[1]} hasn't completed any questionnaire answers yet.
             Combined insights will deepen significantly once both partners have contributed data.
           </p>
         </div>
@@ -1036,12 +1038,12 @@ export default function Insights() {
             {contextInsights && (
               <>
                 {contextInsights.confidence_explanation?.includes("Fallback") && <FallbackBadge />}
-                <ContextInsightsView insights={contextInsights} ctx={insightsCtx} contentRef={contentRef} insightId={existingDynamic?.id} />
+                <ContextInsightsView insights={contextInsights} ctx={insightsCtx} contentRef={contentRef} insightId={existingDynamic?.id} participants={participants} relationshipLabel={relationshipLabel} />
               </>
             )}
           </TabsContent>
           <TabsContent value="deep" className="mt-6">
-            {deepInsights && <DeepInsightsView insights={deepInsights} ctx={insightsCtx} contentRef={contentRef} insightId={existingDynamic?.id} />}
+            {deepInsights && <DeepInsightsView insights={deepInsights} ctx={insightsCtx} contentRef={contentRef} insightId={existingDynamic?.id} participants={participants} relationshipLabel={relationshipLabel} />}
           </TabsContent>
         </Tabs>
       )}

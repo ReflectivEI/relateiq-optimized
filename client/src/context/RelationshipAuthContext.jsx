@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "@/api/client";
 import { queryClientInstance } from "@/lib/query-client";
+import { getRelationshipLabel, getRelationshipParticipants } from "@/lib/relationshipParticipants";
 
 const RelationshipAuthContext = createContext(null);
 
@@ -108,6 +109,8 @@ export function RelationshipAuthProvider({ children }) {
   const value = useMemo(() => {
     const activeRelationship =
       relationships.find((relationship) => relationship.id === activeRelationshipId) || null;
+    const participants = getRelationshipParticipants(activeRelationship, user?.name);
+    const relationshipLabel = getRelationshipLabel(activeRelationship, participants);
 
     return {
       loading,
@@ -115,6 +118,10 @@ export function RelationshipAuthProvider({ children }) {
       relationships,
       activeRelationshipId,
       activeRelationship,
+      participants,
+      primaryPerson: participants[0],
+      secondaryPerson: participants[1],
+      relationshipLabel,
       error,
       login,
       register,

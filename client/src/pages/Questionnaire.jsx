@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
@@ -12,15 +12,23 @@ import { Lock, Globe, CheckCircle2, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AskCoachDrawer from "@/components/ai/AskCoachDrawer";
 import { buildContextObject } from "@/lib/aiCoachService";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 
 export default function Questionnaire() {
-  const [person, setPerson] = useState("Tony");
+  const { activeRelationshipId, participants } = useRelationshipAuth();
+  const [person, setPerson] = useState(participants[0]);
   const [activeCategory, setActiveCategory] = useState("surface");
   const [mode, setMode] = useState("individual");
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    if (!participants.includes(person)) {
+      setPerson(participants[0]);
+    }
+  }, [participants, person]);
+
   const { data: responses = [] } = useQuery({
-    queryKey: ["responses", person],
+    queryKey: ["responses", activeRelationshipId, person],
     queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: person }),
   });
 
@@ -59,7 +67,7 @@ export default function Questionnaire() {
         ...payload,
       });
     }
-    queryClient.invalidateQueries({ queryKey: ["responses", person] });
+    queryClient.invalidateQueries({ queryKey: ["responses", activeRelationshipId, person] });
   };
 
   return (
@@ -67,15 +75,18 @@ export default function Questionnaire() {
       {/* Header */}
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">Questionnaire</h1>
-        <p className="text-muted-foreground mt-1">Build your relationship context, one question at a time</p>
+          <p className="text-muted-foreground mt-1">
+            Build private relationship context for each person in this connection, one question at a time.
+          </p>
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-4">
         <Tabs value={person} onValueChange={setPerson}>
           <TabsList>
-            <TabsTrigger value="Tony">Tony</TabsTrigger>
-            <TabsTrigger value="Drew">Drew</TabsTrigger>
+            {participants.map((participant) => (
+              <TabsTrigger key={participant} value={participant}>{participant}</TabsTrigger>
+            ))}
           </TabsList>
         </Tabs>
 
@@ -163,8 +174,8 @@ export default function Questionnaire() {
         sectionTitle: `${person}'s Responses`,
         scope: person,
         sourceInputs: { category: activeCategory, answeredCount: totalAnswered },
-        tonyResponses: person === "Tony" ? responses : [],
-        drewResponses: person === "Drew" ? responses : [],
+        tonyResponses: person === participants[0] ? responses : [],
+        drewResponses: person === participants[1] ? responses : [],
       })} />
 
       {/* Questions */}

@@ -25,6 +25,7 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 
 const PAGE_META = {
   "/":             { label: "Context: Us",       subtitle: "Understanding each other deeply, communicating with intention, and growing together — powered by insight.", icon: LayoutDashboard },
@@ -51,6 +52,7 @@ const PAGE_META = {
 
 export default function PageBanner() {
   const location = useLocation();
+  const { relationshipLabel } = useRelationshipAuth();
   const customHeroRoutes = new Set(["/journal", "/playbook", "/health-report"]);
 
   if (customHeroRoutes.has(location.pathname)) {
@@ -59,6 +61,10 @@ export default function PageBanner() {
 
   const meta = PAGE_META[location.pathname] || { label: "Context: Us", subtitle: "Better Together", icon: Link2 };
   const Icon = meta.icon;
+  const subtitle =
+    location.pathname === "/journal"
+      ? `A private writing space for ${relationshipLabel}`
+      : meta.subtitle;
 
   return (
     <div className="enterprise-hero mb-8 overflow-hidden">
@@ -70,7 +76,7 @@ export default function PageBanner() {
           <h2 className="font-display text-2xl sm:text-3xl font-bold text-white">
             {meta.label}
           </h2>
-          <p className="max-w-2xl text-sm leading-relaxed text-teal-100/75 mt-0.5">{meta.subtitle}</p>
+          <p className="max-w-2xl text-sm leading-relaxed text-teal-100/75 mt-0.5">{subtitle}</p>
         </div>
         <div className="shrink-0 w-10 h-10 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center mt-1">
           <Icon className="w-5 h-5 text-teal-200" />

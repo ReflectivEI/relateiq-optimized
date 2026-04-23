@@ -12,13 +12,14 @@ import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
 import { format, subDays } from "date-fns";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
 
-function buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel, viewMode }) {
+function buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel, viewMode, participants, relationshipLabel }) {
+  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants || [];
   const subject =
-    viewMode === "Tony"
-      ? "Tony within the Tony and Drew relationship"
-      : viewMode === "Drew"
-      ? "Drew within the Tony and Drew relationship"
-      : "the Tony and Drew relationship";
+    viewMode === primaryPerson
+      ? `${primaryPerson} within ${relationshipLabel}`
+      : viewMode === secondaryPerson
+      ? `${secondaryPerson} within ${relationshipLabel}`
+      : relationshipLabel;
   const recentCheckIns = checkIns.slice(0, 8);
   const recentReflections = reflections.slice(0, 10);
   const recentSessions = coachSessions.slice(0, 5);
@@ -60,7 +61,7 @@ Generate a structured Relationship Health Report with these sections:
 Be warm, insightful, and evidence-based. Reference specific things from their data where possible. Keep each section concise (2-4 sentences max). Do NOT make assumptions not supported by the data.`;
 }
 
-export default function AIHealthReport({ checkIns, reflections, coachSessions, viewMode = "compare" }) {
+export default function AIHealthReport({ checkIns, reflections, coachSessions, viewMode = "compare", participants = ["Tony", "Drew"], relationshipLabel = "this relationship" }) {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [creditError, setCreditError] = useState(false);
@@ -74,14 +75,14 @@ export default function AIHealthReport({ checkIns, reflections, coachSessions, v
     try {
       const result = await safeInvokeLLM(
         {
-          prompt: buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel, viewMode }),
+          prompt: buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel, viewMode, participants, relationshipLabel }),
           model: "claude_sonnet_4_6",
           partnerLanguage:
-            viewMode === "Tony"
-              ? { personName: "Tony", partnerName: "Drew", replacePronouns: false }
-              : viewMode === "Drew"
-              ? { personName: "Drew", partnerName: "Tony", replacePronouns: false }
-              : { personName: "Tony", partnerName: "Drew", replacePronouns: false },
+            viewMode === participants[0]
+              ? { personName: participants[0], partnerName: participants[1], replacePronouns: false }
+              : viewMode === participants[1]
+              ? { personName: participants[1], partnerName: participants[0], replacePronouns: false }
+              : { personName: participants[0], partnerName: participants[1], replacePronouns: false },
         },
         40000,
         null

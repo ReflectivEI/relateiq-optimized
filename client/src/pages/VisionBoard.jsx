@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import PinCard from "@/components/vision/PinCard";
 import PinForm from "@/components/vision/PinForm";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 
 const CATEGORIES = ["all", "dream", "goal", "value", "memory", "intention"];
 const PROGRESS_FILTERS = ["all", "not_started", "in_progress", "achieved"];
@@ -24,23 +25,19 @@ const STATS = (pins) => ({
 });
 
 export default function VisionBoard() {
+  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
   const [showForm, setShowForm] = useState(false);
   const [editingPin, setEditingPin] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [progressFilter, setProgressFilter] = useState("all");
   const queryClient = useQueryClient();
 
-  const { data: user } = useQuery({
-    queryKey: ["auth-user-vision"],
-    queryFn: () => api.auth.me(),
-  });
-
   const { data: pins = [], isLoading } = useQuery({
-    queryKey: ["vision-pins"],
+    queryKey: ["vision-pins", activeRelationshipId],
     queryFn: () => api.entities.VisionPin.list("-created_date"),
   });
-
-  const personName = user?.full_name?.split(" ")[0] || "Tony";
+  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const sharedScope = `${primaryPerson}_${secondaryPerson}`;
 
   const filteredPins = pins.filter((p) => {
     const catOk = categoryFilter === "all" || p.category === categoryFilter;
@@ -55,13 +52,14 @@ export default function VisionBoard() {
     } else {
       await api.entities.VisionPin.create({
         ...formData,
+        relationship_id: activeRelationshipId,
         source: "manual",
         source_date: new Date().toISOString().split("T")[0],
         progress: "not_started",
       });
       toast.success("Vision pinned! 📌");
     }
-    queryClient.invalidateQueries({ queryKey: ["vision-pins"] });
+    queryClient.invalidateQueries({ queryKey: ["vision-pins", activeRelationshipId] });
     setShowForm(false);
     setEditingPin(null);
   };
@@ -74,12 +72,12 @@ export default function VisionBoard() {
       return;
     }
     await api.entities.VisionPin.update(id, data);
-    queryClient.invalidateQueries({ queryKey: ["vision-pins"] });
+    queryClient.invalidateQueries({ queryKey: ["vision-pins", activeRelationshipId] });
   };
 
   const handleDelete = async (id) => {
     await api.entities.VisionPin.delete(id);
-    queryClient.invalidateQueries({ queryKey: ["vision-pins"] });
+    queryClient.invalidateQueries({ queryKey: ["vision-pins", activeRelationshipId] });
     toast.success("Pin removed");
   };
 
@@ -97,7 +95,7 @@ export default function VisionBoard() {
           Vision Board
         </h1>
         <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-          Pin your shared dreams, goals, and values. Watch your relationship aspirations take shape together.
+          Pin your shared dreams, goals, and values for {relationshipLabel}. Watch your relationship aspirations take shape together.
         </p>
       </motion.div>
 
@@ -176,7 +174,8 @@ export default function VisionBoard() {
           >
             <PinForm
               initialData={editingPin || {}}
-              personName={personName}
+              participants={participants}
+              defaultPinnedBy={primaryPerson}
               onSave={handleSave}
               onCancel={() => { setShowForm(false); setEditingPin(null); }}
             />
@@ -225,6 +224,8 @@ export default function VisionBoard() {
               >
                 <PinCard
                   pin={pin}
+                  participants={participants}
+                  sharedScope={sharedScope}
                   onUpdate={handleUpdate}
                   onDelete={handleDelete}
                 />
@@ -235,7 +236,7 @@ export default function VisionBoard() {
       )}
 
       <p className="text-center text-xs text-muted-foreground/60 border-t border-border pt-6">
-        Vision pins are shared between both partners. Tap the progress status on any pin to update it.
+        Vision pins are shared within {relationshipLabel}. Tap the progress status on any pin to update it.
       </p>
     </div>
   );

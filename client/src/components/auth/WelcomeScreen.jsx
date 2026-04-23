@@ -19,7 +19,7 @@ export default function WelcomeScreen({ isNewUser = false }) {
         </div>
         <div className="text-center">
           <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">Context: Us</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Relationship intelligence for Tony & Drew</p>
+          <p className="text-muted-foreground mt-1 text-sm">Private relationship intelligence for the people in this connection</p>
         </div>
       </div>
 
@@ -28,15 +28,15 @@ export default function WelcomeScreen({ isNewUser = false }) {
         {isNewUser ? (
           <div className="p-8 space-y-6">
             <div className="space-y-2 text-center">
-              <h2 className="font-display text-xl font-semibold text-foreground">Welcome, Drew</h2>
+              <h2 className="font-display text-xl font-semibold text-foreground">Welcome</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Tony has set up a shared relationship app to help you both communicate better, understand each other more deeply, and navigate challenges with clarity.
+                You’ve been invited into a private shared relationship space designed to help both people communicate better, understand each other more deeply, and navigate challenges with clarity.
               </p>
             </div>
 
             <div className="space-y-3">
               {[
-                { icon: Shield, text: "Your answers are private by default — only what you choose to share is visible to Tony." },
+                { icon: Shield, text: "Your answers are private by default — only what you explicitly share becomes visible to the other person." },
                 { icon: Sparkles, text: "AI-powered insights are generated from both of your inputs combined." },
                 { icon: MessageCircleHeart, text: "No therapy jargon — just practical guidance tailored to how you both communicate." },
               ].map(({ icon: Icon, text }, i) => (
@@ -65,13 +65,13 @@ export default function WelcomeScreen({ isNewUser = false }) {
             <div className="space-y-2 text-center">
               <h2 className="font-display text-xl font-semibold text-foreground">Sign in to continue</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                This is a private app for Tony & Drew. Sign in to access your relationship intelligence dashboard.
+                This is a private relationship workspace. Sign in to access only the connections you belong to.
               </p>
             </div>
 
             <div className="space-y-3">
               {[
-                { icon: Shield, text: "All data is private and only accessible to Tony and Drew." },
+                { icon: Shield, text: "All data is private and only accessible within the relationship contexts you belong to." },
                 { icon: Sparkles, text: "AI insights, coaching, and repair tools — all in one place." },
                 { icon: MessageCircleHeart, text: "Evidence-informed relationship support, not generic advice." },
               ].map(({ icon: Icon, text }, i) => (

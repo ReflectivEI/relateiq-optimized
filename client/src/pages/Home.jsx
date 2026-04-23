@@ -26,6 +26,7 @@ import { generateRepairSuggestion, detectFriction } from "@/lib/repairSuggestion
 import EarlyWarningCard from "@/components/dashboard/EarlyWarningCard";
 import { getRiskSummary } from "@/lib/earlyWarningEngine";
 import { buildFallbackProfile, normalizeProfileOutput } from "@/lib/aiSafe";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import {
   Dialog,
   DialogContent,
@@ -79,58 +80,56 @@ const quickActions = [
 ];
 
 export default function Home() {
+  const { activeRelationshipId, activeRelationship, participants, primaryPerson, secondaryPerson, relationshipLabel } = useRelationshipAuth();
   const [repairSuggestion, setRepairSuggestion] = useState(null);
   const [repairLoading, setRepairLoading] = useState(false);
   const [repairDismissed, setRepairDismissed] = useState(false);
   const [riskSummary, setRiskSummary] = useState(null);
   const [expandedProfile, setExpandedProfile] = useState(null);
-  const [expandedProfileCards, setExpandedProfileCards] = useState({
-    Tony: false,
-    Drew: false,
-  });
+  const [expandedProfileCards, setExpandedProfileCards] = useState({});
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles-home"],
+    queryKey: ["profiles-home", activeRelationshipId],
     queryFn: () => api.entities.UserProfile.list(),
   });
 
   const { data: checkIns = [] } = useQuery({
-    queryKey: ["checkins-home"],
+    queryKey: ["checkins-home", activeRelationshipId],
     queryFn: () => api.entities.CheckIn.list("-created_date", 14),
   });
 
   const { data: repairEntries = [] } = useQuery({
-    queryKey: ["repair-entries-home"],
+    queryKey: ["repair-entries-home", activeRelationshipId],
     queryFn: () => api.entities.RepairEntry.list("-created_date", 10),
   });
 
   const { data: sessions = [] } = useQuery({
-    queryKey: ["sessions-home"],
+    queryKey: ["sessions-home", activeRelationshipId],
     queryFn: () => api.entities.CoachSession.list("-created_date", 15),
   });
 
   const { data: tonyResponses = [] } = useQuery({
-    queryKey: ["tony-responses-home"],
-    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Tony" }),
+    queryKey: ["relationship-person-a-responses-home", activeRelationshipId, primaryPerson],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: primaryPerson }),
   });
 
   const { data: drewResponses = [] } = useQuery({
-    queryKey: ["drew-responses-home"],
-    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Drew" }),
+    queryKey: ["relationship-person-b-responses-home", activeRelationshipId, secondaryPerson],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: secondaryPerson }),
   });
 
   const { data: triggers = [] } = useQuery({
-    queryKey: ["triggers-home"],
+    queryKey: ["triggers-home", activeRelationshipId],
     queryFn: () => api.entities.TriggerEntry.list(),
   });
 
-  const tonyProfile = profiles.find((p) => p.person_name === "Tony");
-  const drewProfile = profiles.find((p) => p.person_name === "Drew");
+  const tonyProfile = profiles.find((p) => p.person_name === primaryPerson);
+  const drewProfile = profiles.find((p) => p.person_name === secondaryPerson);
   const fallbackTony = !tonyProfile && tonyResponses.length > 0
-    ? normalizeProfileOutput(buildFallbackProfile("Tony", tonyResponses), "Tony")
+    ? normalizeProfileOutput(buildFallbackProfile(primaryPerson, tonyResponses), primaryPerson)
     : null;
   const fallbackDrew = !drewProfile && drewResponses.length > 0
-    ? normalizeProfileOutput(buildFallbackProfile("Drew", drewResponses), "Drew")
+    ? normalizeProfileOutput(buildFallbackProfile(secondaryPerson, drewResponses), secondaryPerson)
     : null;
 
   // Run early warning system when check-ins load
@@ -197,7 +196,7 @@ export default function Home() {
       >
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 border border-primary/15 text-primary text-xs font-medium tracking-wide uppercase">
           <Sparkles className="h-3.5 w-3.5" />
-          Tony & Drew
+          {relationshipLabel}
         </div>
         <p className="mx-auto text-base text-muted-foreground sm:text-lg lg:text-[1.25rem] lg:leading-8 lg:whitespace-nowrap">
           Your relationship command center for reflection, coaching, insight generation, and practical growth tools.
@@ -229,17 +228,17 @@ export default function Home() {
 
       {/* Profile Status Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        {["Tony", "Drew"].map((name) => {
-          const profile = name === "Tony" ? (tonyProfile || fallbackTony) : (drewProfile || fallbackDrew);
+        {participants.map((name, index) => {
+          const profile = index === 0 ? (tonyProfile || fallbackTony) : (drewProfile || fallbackDrew);
           const hasProfileData = Boolean(profile);
-          const isExpanded = expandedProfileCards[name];
+          const isExpanded = Boolean(expandedProfileCards[name]);
           const previewText = profile?.communication_style || `${name}'s profile preview`;
           return (
             <motion.div
               key={name}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: name === "Tony" ? 0.1 : 0.2 }}
+              transition={{ delay: index === 0 ? 0.1 : 0.2 }}
             >
               <Card className="h-full border border-border/70 bg-card/90 backdrop-blur-sm hover:shadow-md transition-shadow">
                 <CardContent className="flex h-full flex-col p-6">
@@ -385,12 +384,13 @@ export default function Home() {
           <AskAIButton
             context={buildContext({
               section: "Home Dashboard",
-              perspective: "Tony+Drew",
+              perspective: relationshipLabel,
               riskSummary,
               profiles,
               checkIns,
               triggers,
               sessions,
+              relationship: activeRelationship,
             })}
             modalTitle="Ask AI About Early Warnings"
             showText={true}
@@ -417,7 +417,7 @@ export default function Home() {
               </DialogHeader>
               <div className="space-y-5 px-6 py-6">
                 {(() => {
-                  const profile = expandedProfile === "Tony" ? (tonyProfile || fallbackTony) : (drewProfile || fallbackDrew);
+                  const profile = expandedProfile === primaryPerson ? (tonyProfile || fallbackTony) : (drewProfile || fallbackDrew);
                   return (
                     <>
                       <p className="text-base leading-8 text-foreground">

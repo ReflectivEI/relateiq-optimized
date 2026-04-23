@@ -116,6 +116,10 @@ async function loadLocalQuestionnaire(personName) {
 
 async function questionnaireFallback(params) {
   const personName = params?.person_name;
+  const relationshipId = getStoredRelationshipId();
+  if (relationshipId && relationshipId !== "relationship_tony_drew_romantic") {
+    return [];
+  }
   if (!personName || !LOCAL_QUESTIONNAIRE_FILES[personName]) return [];
   return loadLocalQuestionnaire(personName);
 }

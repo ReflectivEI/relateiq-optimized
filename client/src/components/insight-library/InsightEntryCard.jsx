@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import MetricExplainer from "@/components/ui/MetricExplainer";
+import { getDisplayPerspective } from "@/lib/relationshipParticipants";
 
 const PERSPECTIVE_COLORS = {
   "Tony":      "bg-blue-100 text-blue-700 border-blue-200",
@@ -19,7 +20,7 @@ const PERSPECTIVE_COLORS = {
   "Drew→Tony": "bg-orange-100 text-orange-700 border-orange-200",
 };
 
-export default function InsightEntryCard({ entry, onNoteUpdate, onDelete }) {
+export default function InsightEntryCard({ entry, participants = ["Tony", "Drew"], onNoteUpdate, onDelete }) {
   const [expanded, setExpanded] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
   const [note, setNote] = useState(entry.note || "");
@@ -44,7 +45,7 @@ export default function InsightEntryCard({ entry, onNoteUpdate, onDelete }) {
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             <Badge className={cn("text-[11px] border font-normal", PERSPECTIVE_COLORS[entry.perspective] || "border-border")}>
-              {entry.perspective}
+              {getDisplayPerspective(entry.perspective, participants)}
             </Badge>
             {entry.mode && (
               <Badge variant="outline" className="text-[10px] font-normal">{entry.mode}</Badge>
@@ -55,7 +56,7 @@ export default function InsightEntryCard({ entry, onNoteUpdate, onDelete }) {
                 title="Confidence score"
                 summary="This percentage reflects how strongly the saved analysis was supported by the available questionnaire, session, and check-in data at that time."
                 calculation={`This score combines data volume, clarity of recurring patterns, and how consistent the evidence was when the analysis was saved.`}
-                source={`Perspective: ${entry.perspective} · Mode: ${entry.mode || "analysis"} · Recorded: ${dateLabel}`}
+                source={`Perspective: ${getDisplayPerspective(entry.perspective, participants)} · Mode: ${entry.mode || "analysis"} · Recorded: ${dateLabel}`}
               />
             )}
           </div>

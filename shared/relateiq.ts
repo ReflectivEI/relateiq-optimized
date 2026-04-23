@@ -581,7 +581,30 @@ export function getUserById(id: string) {
 }
 
 export function getRelationship(id: string) {
-  return RELATEIQ_RELATIONSHIPS.find((relationship) => relationship.id === id) || null;
+  const relationship = RELATEIQ_RELATIONSHIPS.find((candidate) => candidate.id === id) || null;
+  if (!relationship) return null;
+  const parsedNames = relationship.name
+    .trim()
+    .replace(/\s+[·•|-]\s+(romantic|friendship|family|other)$/i, "")
+    .replace(/\s+—\s+(friendship lens|romantic lens|family lens)$/i, "")
+    .split(/\s*(?:&|and|\/|\+)\s*/i)
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .slice(0, 2);
+  const current = (relationship.participants || []).map((value) => value.trim()).filter(Boolean);
+  const currentIsLegacyPair =
+    current.length === 2 &&
+    current.some((name) => name.toLowerCase() === "tony") &&
+    current.some((name) => name.toLowerCase() === "drew");
+  const parsedIsDifferentPair =
+    parsedNames.length === 2 &&
+    parsedNames.join("|").toLowerCase() !== "tony|drew" &&
+    parsedNames.join("|").toLowerCase() !== "drew|tony";
+  if (parsedNames.length === 2 && (current.length !== 2 || (currentIsLegacyPair && parsedIsDifferentPair))) {
+    relationship.participants = parsedNames;
+    relationship.updated_at = nowIso();
+  }
+  return relationship;
 }
 
 export function getRelationshipMembershipsForUser(userId: string) {
@@ -604,10 +627,14 @@ export function getLatestOnboardingForUser(relationshipId: string, userId: strin
 
 function buildRelationshipSummary(relationship: Relationship, userId: string): RelationshipSummary {
   const members = getRelationshipMembers(relationship.id);
+  const participantNames =
+    relationship.participants?.length >= 2
+      ? relationship.participants
+      : Array.from(new Set([...(relationship.participants || []), ...members.map((member) => member.name)]));
   return {
     ...relationship,
     member_count: members.length,
-    participant_names: members.map((member) => member.name),
+    participant_names: participantNames,
     needs_onboarding: !getLatestOnboardingForUser(relationship.id, userId),
   };
 }
@@ -618,9 +645,11 @@ export function getRelationshipsForUser(userId: string): RelationshipSummary[] {
       (membership) => membership.relationship_id,
     ),
   );
-  return RELATEIQ_RELATIONSHIPS.filter((relationship) => allowed.has(relationship.id)).map((relationship) =>
-    buildRelationshipSummary(relationship, userId),
-  );
+  return RELATEIQ_RELATIONSHIPS
+    .filter((relationship) => allowed.has(relationship.id))
+    .map((relationship) => getRelationship(relationship.id))
+    .filter(Boolean)
+    .map((relationship) => buildRelationshipSummary(relationship!, userId));
 }
 
 export function getRelationshipState(relationshipId: string): AppState | null {
@@ -668,10 +697,18 @@ export function createRelationshipForUser(input: {
     id: `relationship_${slugify(trimmedName)}_${crypto.randomUUID().slice(0, 8)}`,
     name: trimmedName,
     type: input.type,
-    participants: [creator.name],
+    participants: trimmedName
+      .split(/\s*(?:&|and|\/|\+)\s*/i)
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .slice(0, 2),
     created_at: timestamp,
     updated_at: timestamp,
   };
+
+  if (relationship.participants.length < 2) {
+    relationship.participants = [creator.name, "Other Person"];
+  }
 
   RELATEIQ_RELATIONSHIPS.push(relationship);
   RELATEIQ_MEMBERSHIPS.push({
@@ -687,8 +724,12 @@ export function createRelationshipForUser(input: {
     productName: "RelateIQ",
     migrationState: "Fresh relationship created with isolated intelligence and empty memory.",
     questionnaireImported: false,
-    profiles: [buildEmptyProfile(relationship.id, creator.name, input.type)],
-    questionnaires: [buildEmptyQuestionnaire(relationship.id, creator.name)],
+    profiles: relationship.participants.map((participant) =>
+      buildEmptyProfile(relationship.id, participant, input.type),
+    ),
+    questionnaires: relationship.participants.map((participant) =>
+      buildEmptyQuestionnaire(relationship.id, participant),
+    ),
     triggers: [],
     insights: [],
     tools: BASE_TOOLS.map((tool) => ({ ...tool, relationship_id: relationship.id })),
@@ -723,6 +764,15 @@ export function createRelationshipInvite(input: {
 
   const invited_email = input.invitedEmail.trim().toLowerCase();
   if (!invited_email) return { ok: false as const, error: "invite_email_required" };
+
+  const inferredName = invited_email.split("@")[0]
+    ?.replace(/[._-]+/g, " ")
+    ?.replace(/\b\w/g, (match) => match.toUpperCase())
+    ?.trim();
+  if (inferredName && relationship.participants.length < 2 && !relationship.participants.includes(inferredName)) {
+    relationship.participants.push(inferredName);
+    relationship.updated_at = nowIso();
+  }
 
   const existingPending = RELATEIQ_INVITES.find(
     (invite) =>
@@ -802,7 +852,7 @@ export function acceptRelationshipInvite(input: { token: string; userId: string 
       user_id: user.id,
       role: "participant",
     });
-    if (!relationship.participants.includes(user.name)) {
+    if (relationship.participants.length < 2 && !relationship.participants.includes(user.name)) {
       relationship.participants.push(user.name);
       relationship.updated_at = nowIso();
     }

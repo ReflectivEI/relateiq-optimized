@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { api } from "@/api/client";
-import { tonyData } from "@/lib/exportData/tonyQuestionnaire";
-import { drewData } from "@/lib/exportData/drewQuestionnaire";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,6 +23,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 
 const CATEGORY_LABELS = {
   surface: "Surface Pattern",
@@ -39,79 +39,82 @@ const CATEGORY_LABELS = {
   then_vs_now: "Then vs. Now",
 };
 
-const SECTION_PROMPTS = [
+function buildSectionPrompts(primaryPerson, secondaryPerson) {
+  return [
   {
     title: "Conflict Style",
     description: "How each of you tends to enter, pace, and experience conflict.",
     icon: Scale,
-    prompt: "How do Tony and Drew each approach conflict, and where do their styles clash most?",
-    summaryPrompt: "Summarize Tony and Drew's conflict style differences in 4 concise bullets.",
+    prompt: `How do ${primaryPerson} and ${secondaryPerson} each approach conflict, and where do their styles clash most?`,
+    summaryPrompt: `Summarize ${primaryPerson} and ${secondaryPerson}'s conflict style differences in 4 concise bullets.`,
   },
   {
     title: "Triggers",
     description: "What tends to activate each person emotionally during hard moments.",
     icon: ShieldAlert,
-    prompt: "What triggers Tony most, what triggers Drew most, and what usually happens next?",
-    summaryPrompt: "Summarize Tony and Drew's biggest triggers and how to avoid escalating them.",
+    prompt: `What triggers ${primaryPerson} most, what triggers ${secondaryPerson} most, and what usually happens next?`,
+    summaryPrompt: `Summarize ${primaryPerson} and ${secondaryPerson}'s biggest triggers and how to avoid escalating them.`,
   },
   {
     title: "Communication",
     description: "What tone, pacing, and communication style each person responds to best.",
     icon: MessageSquareText,
-    prompt: "What communication style works best for Tony and what communication style works best for Drew?",
-    summaryPrompt: "Summarize the communication style that works best for Tony and Drew.",
+    prompt: `What communication style works best for ${primaryPerson} and what communication style works best for ${secondaryPerson}?`,
+    summaryPrompt: `Summarize the communication style that works best for ${primaryPerson} and ${secondaryPerson}.`,
   },
   {
     title: "Emotional Processing",
     description: "How each person handles hurt, overwhelm, and emotional intensity.",
     icon: BrainCircuit,
-    prompt: "How do Tony and Drew each process hurt, stress, and emotional overwhelm?",
-    summaryPrompt: "Summarize how Tony and Drew each process hurt and overwhelm.",
+    prompt: `How do ${primaryPerson} and ${secondaryPerson} each process hurt, stress, and emotional overwhelm?`,
+    summaryPrompt: `Summarize how ${primaryPerson} and ${secondaryPerson} each process hurt and overwhelm.`,
   },
   {
     title: "What Helps Repair",
     description: "What tends to help each of you feel reconnected after distance or friction.",
     icon: HeartHandshake,
-    prompt: "How can Tony and Drew reconnect after a fight or tense moment in a way that actually lands?",
-    summaryPrompt: "Summarize what helps Tony and Drew repair and reconnect.",
+    prompt: `How can ${primaryPerson} and ${secondaryPerson} reconnect after a fight or tense moment in a way that actually lands?`,
+    summaryPrompt: `Summarize what helps ${primaryPerson} and ${secondaryPerson} repair and reconnect.`,
   },
   {
     title: "Feeling Heard",
     description: "What each person needs in order to feel understood and emotionally received.",
     icon: Ear,
-    prompt: "What does Tony need to feel heard, and what does Drew need to feel heard?",
-    summaryPrompt: "Summarize what helps Tony and Drew feel heard and emotionally understood.",
+    prompt: `What does ${primaryPerson} need to feel heard, and what does ${secondaryPerson} need to feel heard?`,
+    summaryPrompt: `Summarize what helps ${primaryPerson} and ${secondaryPerson} feel heard and emotionally understood.`,
   },
   {
     title: "Stress Response",
     description: "How outside stress tends to show up between the two of you.",
     icon: Clock3,
-    prompt: "How should Drew approach Tony when he's stressed, and how should Tony approach Drew when he's stressed?",
+    prompt: `How should ${secondaryPerson} approach ${primaryPerson} when they're stressed, and how should ${primaryPerson} approach ${secondaryPerson} when they're stressed?`,
     summaryPrompt: "Summarize how each person should be approached during stress.",
   },
   {
     title: "What To Do Next",
     description: "Actionable next-step coaching grounded in your actual questionnaire patterns.",
     icon: Lightbulb,
-    prompt: "Given everything you know about Tony and Drew, what are the 5 most useful relationship moves to focus on next?",
-    summaryPrompt: "Summarize the 5 highest-priority next steps for Tony and Drew.",
+    prompt: `Given everything you know about ${primaryPerson} and ${secondaryPerson}, what are the 5 most useful relationship moves to focus on next?`,
+    summaryPrompt: `Summarize the 5 highest-priority next steps for ${primaryPerson} and ${secondaryPerson}.`,
   },
 ];
+}
 
 function formatCategoryName(value) {
   return CATEGORY_LABELS[value] || value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function buildSystemPrompt(scope) {
-  const tonyContext = tonyData
-    .map((q) => `Category: ${formatCategoryName(q.category)}\nQuestion: ${q.question_text}\nTony: ${q.answer}`)
+function buildSystemPrompt(scope, participants, primaryResponses, secondaryResponses) {
+  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const primaryContext = primaryResponses
+    .map((q) => `Category: ${formatCategoryName(q.category || "")}\nQuestion: ${q.question_text || q.question || ""}\n${primaryPerson}: ${q.answer_text || q.answer || q.response_value || ""}`)
     .join("\n\n");
 
-  const drewContext = drewData
-    .map((q) => `Category: ${formatCategoryName(q.category)}\nQuestion: ${q.question_text}\nDrew: ${q.answer}`)
+  const secondaryContext = secondaryResponses
+    .map((q) => `Category: ${formatCategoryName(q.category || "")}\nQuestion: ${q.question_text || q.question || ""}\n${secondaryPerson}: ${q.answer_text || q.answer || q.response_value || ""}`)
     .join("\n\n");
 
-  return `You are an expert Relationship Coach with deep knowledge of Tony and Drew's relationship. You have studied their full questionnaire responses and can give highly personalized, specific advice. You never give generic advice — you always reference what Tony and Drew have actually said.
+  return `You are an expert Relationship Coach with deep knowledge of ${primaryPerson} and ${secondaryPerson}'s relationship. You have studied their full questionnaire responses and can give highly personalized, specific advice. You never give generic advice — you always reference what ${primaryPerson} and ${secondaryPerson} have actually said.
 
 IMPORTANT RULES:
 - Always cite specific answers from their questionnaires when relevant.
@@ -120,15 +123,15 @@ IMPORTANT RULES:
 - Use clear section headers, concise paragraphs, and practical guidance.
 - Be warm, direct, and empathetic.
 - Never take sides — hold both perspectives with equal care.
-- Current scope: ${scope === "both" ? "Tony & Drew (couple view)" : scope === "Tony" ? "Tony's perspective" : "Drew's perspective"}
+- Current scope: ${scope === "both" ? `${primaryPerson} & ${secondaryPerson} (couple view)` : scope === primaryPerson ? `${primaryPerson}'s perspective` : `${secondaryPerson}'s perspective`}
 
-TONY'S FULL QUESTIONNAIRE RESPONSES:
-${tonyContext}
+${primaryPerson.toUpperCase()}'S FULL QUESTIONNAIRE RESPONSES:
+${primaryContext}
 
-DREW'S FULL QUESTIONNAIRE RESPONSES:
-${drewContext}
+${secondaryPerson.toUpperCase()}'S FULL QUESTIONNAIRE RESPONSES:
+${secondaryContext}
 
-You are ready to answer questions about Tony, Drew, and their relationship with full context.`;
+You are ready to answer questions about ${primaryPerson}, ${secondaryPerson}, and their relationship with full context.`;
 }
 
 function prettifyResponseText(text) {
@@ -143,6 +146,12 @@ function prettifyResponseText(text) {
 }
 
 export default function RelationshipChat() {
+  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
+  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const sectionPrompts = React.useMemo(
+    () => buildSectionPrompts(primaryPerson, secondaryPerson),
+    [primaryPerson, secondaryPerson],
+  );
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -151,9 +160,25 @@ export default function RelationshipChat() {
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
 
+  const { data: primaryResponses = [] } = useQuery({
+    queryKey: ["chat-responses-primary", activeRelationshipId, primaryPerson],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: primaryPerson }),
+  });
+  const { data: secondaryResponses = [] } = useQuery({
+    queryKey: ["chat-responses-secondary", activeRelationshipId, secondaryPerson],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: secondaryPerson }),
+  });
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  useEffect(() => {
+    setScope((current) => {
+      if (current === "both") return current;
+      return participants.includes(current) ? current : "both";
+    });
+  }, [participants]);
 
   const sendMessage = async (text) => {
     const userText = (text || input).trim();
@@ -170,7 +195,7 @@ export default function RelationshipChat() {
       .map((message) => `${message.role === "user" ? "User" : "Coach"}: ${message.content}`)
       .join("\n\n");
 
-    const prompt = `${buildSystemPrompt(scope)}
+    const prompt = `${buildSystemPrompt(scope, participants, primaryResponses, secondaryResponses)}
 
 CONVERSATION SO FAR:
 ${conversationHistory}
@@ -214,7 +239,7 @@ Respond as the Relationship Coach. Use clean headers and human-readable section 
           </div>
           <div>
             <h1 className="font-display text-xl font-bold text-foreground">Relationship Coach</h1>
-            <p className="text-xs text-muted-foreground">Powered by Tony &amp; Drew&apos;s full questionnaire data</p>
+              <p className="text-xs text-muted-foreground">Powered by {relationshipLabel}&apos;s questionnaire data</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -223,9 +248,9 @@ Respond as the Relationship Coach. Use clean headers and human-readable section 
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="both">Tony &amp; Drew</SelectItem>
-              <SelectItem value="Tony">Tony&apos;s perspective</SelectItem>
-              <SelectItem value="Drew">Drew&apos;s perspective</SelectItem>
+              <SelectItem value="both">{primaryPerson} &amp; {secondaryPerson}</SelectItem>
+              <SelectItem value={primaryPerson}>{primaryPerson}&apos;s perspective</SelectItem>
+              <SelectItem value={secondaryPerson}>{secondaryPerson}&apos;s perspective</SelectItem>
             </SelectContent>
           </Select>
           {messages.length > 0 && (
@@ -251,12 +276,12 @@ Respond as the Relationship Coach. Use clean headers and human-readable section 
               </div>
               <h2 className="font-display text-lg font-semibold text-foreground">Choose a section to explore</h2>
               <p className="mx-auto max-w-2xl text-sm text-muted-foreground">
-                Each section below is grounded in Tony and Drew&apos;s actual questionnaire answers. Use the main action for a deeper answer or the summarize pill for a faster read.
+                Each section below is grounded in {primaryPerson} and {secondaryPerson}&apos;s actual questionnaire answers. Use the main action for a deeper answer or the summarize pill for a faster read.
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {SECTION_PROMPTS.map((section) => (
+              {sectionPrompts.map((section) => (
                 <div
                   key={section.title}
                   className="enterprise-hover-raise rounded-2xl border border-[#0e6f72]/20 bg-white p-4 shadow-sm"
@@ -333,7 +358,7 @@ Respond as the Relationship Coach. Use clean headers and human-readable section 
         <div className="flex gap-2 items-end">
           <Textarea
             ref={textareaRef}
-            placeholder="Ask about Tony, Drew, or their relationship..."
+            placeholder={`Ask about ${primaryPerson}, ${secondaryPerson}, or this relationship...`}
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
@@ -350,7 +375,7 @@ Respond as the Relationship Coach. Use clean headers and human-readable section 
           </Button>
         </div>
         <p className="mt-1.5 text-center text-[10px] text-muted-foreground/60">
-          References Tony &amp; Drew&apos;s full questionnaire responses · Press Enter to send
+          References {primaryPerson} &amp; {secondaryPerson}&apos;s full questionnaire responses · Press Enter to send
         </p>
       </div>
     </div>

@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
 import { askCoach } from "@/lib/aiCoachService";
 import { cn } from "@/lib/utils";
+import { getDisplayPerspective } from "@/lib/relationshipParticipants";
 
 export default function AskCoachDrawer({ ctx, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -45,8 +46,11 @@ export default function AskCoachDrawer({ ctx, defaultOpen = false }) {
     setLoading(false);
   };
 
-  const scopeLabel =
-    ctx?.scope === "Tony+Drew" ? "Tony & Drew" : ctx?.scope || "You";
+  const participants = [
+    ctx?.memory?.primaryPerson || "Tony",
+    ctx?.memory?.secondaryPerson || "Drew",
+  ];
+  const scopeLabel = ctx?.scope ? getDisplayPerspective(ctx.scope, participants) : "You";
   const quickPrompts = [
     "What is the most grounded way to respond here?",
     "What is this moment probably signaling underneath?",

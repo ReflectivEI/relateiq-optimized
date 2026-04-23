@@ -9,24 +9,24 @@ import { TrendingUp } from "lucide-react";
 const MOOD_SCORE = { great: 5, good: 4, okay: 3, tough: 2, difficult: 1 };
 const MOOD_LABEL = { 5: "Great", 4: "Good", 3: "Okay", 2: "Tough", 1: "Difficult" };
 
-export default function SentimentTrendChart({ checkIns }) {
+export default function SentimentTrendChart({ checkIns, participants = ["Tony", "Drew"] }) {
   if (checkIns.length < 2) return null;
 
   // Build per-person trend data (last 8 check-ins, chronological)
-  const tony = checkIns.filter((c) => c.person_name === "Tony").slice(0, 8).reverse();
-  const drew = checkIns.filter((c) => c.person_name === "Drew").slice(0, 8).reverse();
+  const primary = checkIns.filter((c) => c.person_name === participants[0]).slice(0, 8).reverse();
+  const secondary = checkIns.filter((c) => c.person_name === participants[1]).slice(0, 8).reverse();
 
   // Merge by week label
-  const weeks = new Set([...tony.map((c) => c.week_label), ...drew.map((c) => c.week_label)]);
+  const weeks = new Set([...primary.map((c) => c.week_label), ...secondary.map((c) => c.week_label)]);
   const data = Array.from(weeks)
     .slice(-8)
     .map((week) => {
-      const t = tony.find((c) => c.week_label === week);
-      const d = drew.find((c) => c.week_label === week);
+      const t = primary.find((c) => c.week_label === week);
+      const d = secondary.find((c) => c.week_label === week);
       return {
         week: week?.replace("Week of ", "").split(",")[0] || "—",
-        Tony: t ? MOOD_SCORE[t.mood] : null,
-        Drew: d ? MOOD_SCORE[d.mood] : null,
+        [participants[0]]: t ? MOOD_SCORE[t.mood] : null,
+        [participants[1]]: d ? MOOD_SCORE[d.mood] : null,
       };
     });
 
@@ -50,13 +50,13 @@ export default function SentimentTrendChart({ checkIns }) {
               contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
             />
             <ReferenceLine y={3} stroke="hsl(var(--border))" strokeDasharray="4 4" />
-            <Line type="monotone" dataKey="Tony" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} connectNulls />
-            <Line type="monotone" dataKey="Drew" stroke="hsl(var(--chart-2))" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+            <Line type="monotone" dataKey={participants[0]} stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+            <Line type="monotone" dataKey={participants[1]} stroke="hsl(var(--chart-2))" strokeWidth={2} dot={{ r: 3 }} connectNulls />
           </LineChart>
         </ResponsiveContainer>
         <div className="flex gap-4 mt-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-primary rounded inline-block" />Tony</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded inline-block" style={{ background: "hsl(var(--chart-2))" }} />Drew</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-primary rounded inline-block" />{participants[0]}</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 rounded inline-block" style={{ background: "hsl(var(--chart-2))" }} />{participants[1]}</span>
         </div>
       </CardContent>
     </Card>

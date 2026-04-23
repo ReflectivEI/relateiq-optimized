@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,8 @@ import OutcomeLogger from "@/components/repair/OutcomeLogger";
 import { safeInvokeLLM } from "@/lib/aiSafe";
 import PrivacyBanner from "@/components/ui/PrivacyBanner";
 import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getPartnerName } from "@/lib/relationshipParticipants";
 
 function stripDuplicateReflectionHeading(value = "") {
   return value
@@ -38,7 +40,8 @@ const moods = [
 ];
 
 export default function CheckIn() {
-  const [person, setPerson] = useState("Tony");
+  const { activeRelationshipId, participants } = useRelationshipAuth();
+  const [person, setPerson] = useState(participants[0]);
   const [form, setForm] = useState({
     what_worked: "",
     what_could_improve: "",
@@ -55,18 +58,26 @@ export default function CheckIn() {
   const [creditError, setCreditError] = useState(false);
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    if (!participants.includes(person)) {
+      setPerson(participants[0]);
+      setAiReflection(null);
+      setCheckInId(null);
+    }
+  }, [participants, person]);
+
   const { data: checkIns = [] } = useQuery({
-    queryKey: ["checkins", person],
+    queryKey: ["checkins", activeRelationshipId, person],
     queryFn: () => api.entities.CheckIn.filter({ person_name: person }, "-created_date", 20),
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles-checkin"],
+    queryKey: ["profiles-checkin", activeRelationshipId],
     queryFn: () => api.entities.UserProfile.list(),
   });
 
   const { data: allResponses = [] } = useQuery({
-    queryKey: ["responses-checkin", person],
+    queryKey: ["responses-checkin", activeRelationshipId, person],
     queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: person }),
   });
 
@@ -91,7 +102,7 @@ export default function CheckIn() {
       reflection = await safeInvokeLLM(
         {
           prompt,
-          partnerLanguage: { personName: person, partnerName: person === "Tony" ? "Drew" : "Tony" },
+          partnerLanguage: { personName: person, partnerName: getPartnerName(person, participants) },
         },
         20000,
         "We couldn't generate your reflection right now. Your check-in has been saved — try regenerating soon."
@@ -121,12 +132,12 @@ export default function CheckIn() {
       originalOutput: reflection,
       profiles,
       checkIns,
-      tonyResponses: person === "Tony" ? allResponses : [],
-      drewResponses: person === "Drew" ? allResponses : [],
+      tonyResponses: person === participants[0] ? allResponses : [],
+      drewResponses: person === participants[1] ? allResponses : [],
     }));
     setForm({ what_worked: "", what_could_improve: "", mood: "", gratitude: "", connected_moment: "", distance_moment: "", unasked_need: "" });
     setSubmitting(false);
-    queryClient.invalidateQueries({ queryKey: ["checkins", person] });
+    queryClient.invalidateQueries({ queryKey: ["checkins", activeRelationshipId, person] });
   };
 
   // Detect mood trend from past check-ins
@@ -147,8 +158,9 @@ export default function CheckIn() {
 
       <Tabs value={person} onValueChange={(v) => { setPerson(v); setAiReflection(null); setCheckInId(null); }}>
         <TabsList>
-          <TabsTrigger value="Tony">Tony</TabsTrigger>
-          <TabsTrigger value="Drew">Drew</TabsTrigger>
+          {participants.map((participant) => (
+            <TabsTrigger key={participant} value={participant}>{participant}</TabsTrigger>
+          ))}
         </TabsList>
       </Tabs>
 
@@ -295,8 +307,8 @@ export default function CheckIn() {
         sourceInputs: {},
         profiles,
         checkIns,
-        tonyResponses: person === "Tony" ? allResponses : [],
-        drewResponses: person === "Drew" ? allResponses : [],
+        tonyResponses: person === participants[0] ? allResponses : [],
+        drewResponses: person === participants[1] ? allResponses : [],
       })} />
 
       {visibleCheckIns.length > 0 && (

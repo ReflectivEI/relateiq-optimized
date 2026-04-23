@@ -47,6 +47,8 @@ import ErrorFallback from "@/components/errors/ErrorFallback";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
 import NotesPanel from "@/components/notes/NotesPanel";
 import { enforceCoachStructure, deriveCoachModes } from "@/lib/coachStructureEnforcer";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { buildParticipantData, getPartnerName } from "@/lib/relationshipParticipants";
 
 const SUGGESTION_PILLS = [
   { id: "handling_conflict", label: "Handling Conflict", icon: AlertTriangle, description: "Get grounded guidance before a hard conversation escalates." },
@@ -100,8 +102,9 @@ function summarizeCoachSession(session) {
 }
 
 export default function Coach() {
-  const [speaker, setSpeaker] = useState("Tony");
-  const [speakingTo, setSpeakingTo] = useState("Drew");
+  const { activeRelationshipId, participants } = useRelationshipAuth();
+  const [speaker, setSpeaker] = useState(participants[0]);
+  const [speakingTo, setSpeakingTo] = useState(participants[1]);
   const [situation, setSituation] = useState("");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState(null);
@@ -118,47 +121,61 @@ export default function Coach() {
   const responseRef = useRef(null);
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    if (!participants.includes(speaker)) setSpeaker(participants[0]);
+    if (!participants.includes(speakingTo) || speakingTo === speaker) {
+      setSpeakingTo(getPartnerName(participants[0], participants));
+    }
+  }, [participants, speaker, speakingTo]);
+
   const { data: triggers = [] } = useQuery({
-    queryKey: ["triggers-coach"],
+    queryKey: ["triggers-coach", activeRelationshipId],
     queryFn: () => api.entities.TriggerEntry.list(),
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles-coach"],
+    queryKey: ["profiles-coach", activeRelationshipId],
     queryFn: () => api.entities.UserProfile.list(),
   });
 
   const { data: pastSessions = [] } = useQuery({
-    queryKey: ["coach-sessions"],
+    queryKey: ["coach-sessions", activeRelationshipId],
     queryFn: () => api.entities.CoachSession.list("-created_date", 20),
   });
 
   const { data: tonyResponses = [] } = useQuery({
-    queryKey: ["responses-coach-tony"],
-    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Tony" }),
+    queryKey: ["responses-coach-person-a", activeRelationshipId, participants[0]],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: participants[0] }),
   });
 
   const { data: drewResponses = [] } = useQuery({
-    queryKey: ["responses-coach-drew"],
-    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Drew" }),
+    queryKey: ["responses-coach-person-b", activeRelationshipId, participants[1]],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: participants[1] }),
   });
+
+  const { legacySlots } = buildParticipantData(
+    participants,
+    profiles,
+    tonyResponses,
+    drewResponses,
+  );
 
   // Sync data to global state
   useEffect(() => {
     globalState.setState({
-      tony: profiles.find((p) => p.person_name === "Tony"),
-      drew: profiles.find((p) => p.person_name === "Drew"),
-      tonyResponses,
-      drewResponses,
+      tony: legacySlots.tony,
+      drew: legacySlots.drew,
+      tonyResponses: legacySlots.tonyResponses,
+      drewResponses: legacySlots.drewResponses,
       triggers,
       coachSessions: pastSessions,
     });
-  }, [profiles, tonyResponses, drewResponses, triggers, pastSessions]);
+  }, [legacySlots, triggers, pastSessions]);
 
   const speakerProfile = profiles.find((p) => p.person_name === speaker);
   const targetProfile = profiles.find((p) => p.person_name === speakingTo);
-  const speakerResponses = speaker === "Tony" ? tonyResponses : drewResponses;
-  const targetResponses = speakingTo === "Tony" ? tonyResponses : drewResponses;
+  const speakerResponses = speaker === participants[0] ? tonyResponses : drewResponses;
+  const targetResponses = speakingTo === participants[0] ? tonyResponses : drewResponses;
 
   const runCoachCall = async (situationText) => {
     setError(null);
@@ -259,7 +276,7 @@ export default function Coach() {
     setResponse(modes.full);
     setOutputMode("full");
     setLoading(false);
-    queryClient.invalidateQueries({ queryKey: ["coach-sessions"] });
+    queryClient.invalidateQueries({ queryKey: ["coach-sessions", activeRelationshipId] });
   };
 
   const handleSuggestionPill = (pillId) => {
@@ -324,7 +341,7 @@ export default function Coach() {
       setEditingSessionId(null);
       setSessionId(null);
     }
-    queryClient.invalidateQueries({ queryKey: ["coach-sessions"] });
+    queryClient.invalidateQueries({ queryKey: ["coach-sessions", activeRelationshipId] });
     toast.success("Conversation deleted");
   };
 
@@ -362,7 +379,7 @@ export default function Coach() {
               This is me → I'm speaking to
             </p>
             <div className="flex gap-2 flex-wrap">
-              {["Tony", "Drew"].map((person) => (
+              {participants.map((person) => (
                 <Button
                   key={person}
                   variant={speaker === person ? "default" : "outline"}
@@ -379,7 +396,7 @@ export default function Coach() {
               {speaker && (
                 <>
                   <span className="text-xs text-muted-foreground px-2">→</span>
-                  {["Tony", "Drew"].map((person) => {
+                  {participants.map((person) => {
                     if (person === speaker) return null;
                     return (
                       <Button

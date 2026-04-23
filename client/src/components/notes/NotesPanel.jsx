@@ -12,19 +12,22 @@ import { ChevronDown, ChevronUp, Plus, Send, Share2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getPartnerName } from "@/lib/relationshipParticipants";
 
 export default function NotesPanel({
   section = "general",
   relatedItemId = null,
   personName = "Tony",
 }) {
+  const { activeRelationshipId, participants } = useRelationshipAuth();
   const [expanded, setExpanded] = useState(false);
   const [newNote, setNewNote] = useState("");
   const queryClient = useQueryClient();
 
   // Fetch notes for this section
   const { data: notes = [] } = useQuery({
-    queryKey: ["notes", section, relatedItemId],
+    queryKey: ["notes", activeRelationshipId, section, relatedItemId],
     queryFn: () =>
       api.entities.Note.filter({
         related_section: section,
@@ -32,10 +35,11 @@ export default function NotesPanel({
       }),
   });
 
-  const isSharedScope = personName === "Tony_Drew";
-  const partnerName = personName === "Tony" ? "Drew" : "Tony";
+  const sharedScope = `${participants[0]}_${participants[1]}`;
+  const isSharedScope = personName === sharedScope;
+  const partnerName = getPartnerName(personName, participants);
   const myNotes = isSharedScope
-    ? notes.filter((n) => n.person_name === "Tony" || n.person_name === "Drew")
+    ? notes.filter((n) => participants.includes(n.person_name))
     : notes.filter((n) => n.person_name === personName);
   const sharedNotes = isSharedScope
     ? []
@@ -47,14 +51,15 @@ export default function NotesPanel({
   const createNoteMutation = useMutation({
     mutationFn: (content) =>
       api.entities.Note.create({
-        person_name: isSharedScope ? "Tony" : personName,
+        person_name: isSharedScope ? participants[0] : personName,
         content,
         related_section: section,
         related_item_id: relatedItemId,
+        relationship_id: activeRelationshipId,
       }),
     onSuccess: () => {
       setNewNote("");
-      queryClient.invalidateQueries({ queryKey: ["notes", section, relatedItemId] });
+      queryClient.invalidateQueries({ queryKey: ["notes", activeRelationshipId, section, relatedItemId] });
       toast.success("Note saved");
     },
   });
@@ -64,7 +69,7 @@ export default function NotesPanel({
     mutationFn: (noteId) =>
       api.entities.Note.update(noteId, { shared_with_partner: true }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes", section, relatedItemId] });
+      queryClient.invalidateQueries({ queryKey: ["notes", activeRelationshipId, section, relatedItemId] });
       toast.success("Note shared with your partner");
     },
   });
@@ -73,7 +78,7 @@ export default function NotesPanel({
   const deleteNoteMutation = useMutation({
     mutationFn: (noteId) => api.entities.Note.delete(noteId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes", section, relatedItemId] });
+      queryClient.invalidateQueries({ queryKey: ["notes", activeRelationshipId, section, relatedItemId] });
       toast.success("Note deleted");
     },
   });

@@ -7,10 +7,10 @@ import { MessageCircle, UserRound } from "lucide-react";
 
 const MOOD_SCORE = { great: 5, good: 4, okay: 3, tough: 2, difficult: 1 };
 
-export default function CommunicationPatterns({ checkIns, coachSessions }) {
+export default function CommunicationPatterns({ checkIns, coachSessions, participants = ["Tony", "Drew"] }) {
   const stats = useMemo(() => {
     // Per-person mood averages
-    const personStats = ["Tony", "Drew"].map((name) => {
+    const personStats = participants.map((name) => {
       const mine = checkIns.filter((c) => c.person_name === name);
       if (!mine.length) return null;
       const scores = mine.map((c) => MOOD_SCORE[c.mood] || 3);
@@ -36,7 +36,7 @@ export default function CommunicationPatterns({ checkIns, coachSessions }) {
       .slice(0, 6);
 
     return { personStats, sortedTopics };
-  }, [checkIns, coachSessions]);
+  }, [checkIns, coachSessions, participants]);
 
   if (!stats.personStats.length && !stats.sortedTopics.length) return null;
 

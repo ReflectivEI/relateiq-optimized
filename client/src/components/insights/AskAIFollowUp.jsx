@@ -2,7 +2,7 @@
  * AskAIFollowUp — inline "Ask AI" panel attached to any insight section.
  * Tony or Drew can ask a follow-up question about a specific part of the analysis.
  */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, Send, Loader2, X, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,23 @@ import { askCoach } from "@/lib/aiCoachService";
 import { cn } from "@/lib/utils";
 
 export default function AskAIFollowUp({ ctx, sectionTitle, sectionContent, className }) {
+  const participants = [
+    ctx?.memory?.primaryPerson || "Tony",
+    ctx?.memory?.secondaryPerson || "Drew",
+  ];
+  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
   const [open, setOpen] = useState(false);
-  const [person, setPerson] = useState("Tony");
+  const [person, setPerson] = useState(primaryPerson);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState(null);
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
+
+  useEffect(() => {
+    if (![primaryPerson, secondaryPerson].includes(person)) {
+      setPerson(primaryPerson);
+    }
+  }, [person, primaryPerson, secondaryPerson]);
 
   const handleAsk = async () => {
     if (!question.trim() || loading) return;
@@ -67,8 +78,8 @@ export default function AskAIFollowUp({ ctx, sectionTitle, sectionContent, class
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Tony">Tony</SelectItem>
-                    <SelectItem value="Drew">Drew</SelectItem>
+                    <SelectItem value={primaryPerson}>{primaryPerson}</SelectItem>
+                    <SelectItem value={secondaryPerson}>{secondaryPerson}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

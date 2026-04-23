@@ -18,12 +18,21 @@ const CATEGORIES = [
 
 const EMOJIS = ["✨", "🎯", "💎", "💝", "🌱", "🏡", "🌍", "💪", "🫂", "🎉", "🌈", "❤️", "🔥", "🙏", "🌟"];
 
-export default function PinForm({ initialData = {}, onSave, onCancel, personName }) {
+export default function PinForm({
+  initialData = {},
+  onSave,
+  onCancel,
+  participants = ["Tony", "Drew"],
+  defaultPinnedBy,
+}) {
+  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const sharedScope = `${primaryPerson}_${secondaryPerson}`;
+  const pinnedByOptions = [primaryPerson, secondaryPerson, sharedScope];
   const [form, setForm] = useState({
     title: initialData.title || "",
     description: initialData.description || "",
     category: initialData.category || "dream",
-    pinned_by: initialData.pinned_by || personName || "Tony_Drew",
+    pinned_by: initialData.pinned_by || defaultPinnedBy || primaryPerson,
     emoji: initialData.emoji || "✨",
     notes: initialData.notes || "",
     shared: initialData.shared !== false,
@@ -115,7 +124,7 @@ export default function PinForm({ initialData = {}, onSave, onCancel, personName
         <div className="space-y-1.5">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pinned by</p>
           <div className="flex gap-2">
-            {["Tony", "Drew", "Tony_Drew"].map((who) => (
+            {pinnedByOptions.map((who) => (
               <button
                 key={who}
                 onClick={() => set("pinned_by", who)}
@@ -125,7 +134,7 @@ export default function PinForm({ initialData = {}, onSave, onCancel, personName
                     : "border-border/50 text-muted-foreground hover:border-border"
                 }`}
               >
-                {who === "Tony_Drew" ? "Both of Us 💑" : who}
+                {who === sharedScope ? "Both of Us" : who}
               </button>
             ))}
           </div>

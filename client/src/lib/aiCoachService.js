@@ -12,11 +12,39 @@ import { api } from "@/api/client";
 import { RELATIONSHIP_COACH_SYSTEM, aggregateTags, serializeProfile, buildFullResponseContext } from "./prompts";
 import { safeInvokeLLM } from "./aiSafe";
 
-function getPartnerLanguageForScope(scope = "") {
-  if (scope === "Tony") return { personName: "Tony", partnerName: "Drew" };
-  if (scope === "Drew") return { personName: "Drew", partnerName: "Tony" };
-  if (scope.includes("Tony") && scope.includes("Drew")) {
-    return { personName: "Tony", partnerName: "Drew", replacePronouns: false };
+function getNamesFromMemory(memory = {}) {
+  const primaryProfile = memory?.primaryProfile || memory?.tonyProfile || null;
+  const secondaryProfile = memory?.secondaryProfile || memory?.drewProfile || null;
+  const primaryResponsesName = memory?.primaryResponses?.[0]?.person_name;
+  const secondaryResponsesName = memory?.secondaryResponses?.[0]?.person_name;
+  return {
+    primaryPerson:
+      primaryProfile?.person_name ||
+      primaryResponsesName ||
+      memory?.primaryPerson ||
+      "Tony",
+    secondaryPerson:
+      secondaryProfile?.person_name ||
+      secondaryResponsesName ||
+      memory?.secondaryPerson ||
+      "Drew",
+  };
+}
+
+function getPartnerLanguageForScope(scope = "", memory = {}) {
+  const { primaryPerson, secondaryPerson } = getNamesFromMemory(memory);
+  if (scope === "Tony" || scope === primaryPerson) {
+    return { personName: primaryPerson, partnerName: secondaryPerson };
+  }
+  if (scope === "Drew" || scope === secondaryPerson) {
+    return { personName: secondaryPerson, partnerName: primaryPerson };
+  }
+  if (
+    scope.includes("Tony") ||
+    scope.includes("Drew") ||
+    (scope.includes(primaryPerson) && scope.includes(secondaryPerson))
+  ) {
+    return { personName: primaryPerson, partnerName: secondaryPerson, replacePronouns: false };
   }
   return null;
 }
@@ -38,8 +66,26 @@ export function buildContextObject({
   checkIns = [],
   relationshipDynamic = null,
 }) {
-  const tonyProfile = profiles.find((p) => p.person_name === "Tony");
-  const drewProfile = profiles.find((p) => p.person_name === "Drew");
+  const primaryPerson =
+    tonyResponses[0]?.person_name ||
+    profiles[0]?.person_name ||
+    "Tony";
+  const secondaryPerson =
+    drewResponses[0]?.person_name ||
+    profiles.find((p) => p.person_name && p.person_name !== primaryPerson)?.person_name ||
+    profiles[1]?.person_name ||
+    "Drew";
+
+  const primaryProfile =
+    profiles.find((p) => p.person_name === primaryPerson) ||
+    profiles[0] ||
+    null;
+  const secondaryProfile =
+    profiles.find((p) => p.person_name === secondaryPerson) ||
+    profiles.find((p) => p.person_name !== primaryProfile?.person_name) ||
+    profiles[1] ||
+    null;
+  const relationshipLabel = `${primaryPerson} & ${secondaryPerson}`;
 
   return {
     page,
@@ -50,8 +96,19 @@ export function buildContextObject({
     timestamp: new Date().toISOString(),
     sessionId: `${page}-${Date.now()}`,
     memory: {
-      tonyProfile: tonyProfile || null,
-      drewProfile: drewProfile || null,
+      primaryProfile: primaryProfile || null,
+      secondaryProfile: secondaryProfile || null,
+      primaryResponses: tonyResponses,
+      secondaryResponses: drewResponses,
+      primaryTags: aggregateTags(tonyResponses),
+      secondaryTags: aggregateTags(drewResponses),
+      primaryResponseCount: tonyResponses.length,
+      secondaryResponseCount: drewResponses.length,
+      relationshipLabel,
+      primaryPerson,
+      secondaryPerson,
+      tonyProfile: primaryProfile || null,
+      drewProfile: secondaryProfile || null,
       tonyTags: aggregateTags(tonyResponses),
       drewTags: aggregateTags(drewResponses),
       tonyResponseCount: tonyResponses.length,
@@ -65,15 +122,16 @@ export function buildContextObject({
 
 function serializeMemoryForPrompt(ctx) {
   const { memory, scope } = ctx;
+  const { primaryPerson, secondaryPerson } = getNamesFromMemory(memory);
   const lines = [];
 
   if (scope === "Tony" || scope === "Tony+Drew") {
-    lines.push(serializeProfile("Tony", memory.tonyProfile));
-    if (memory.tonyTags) lines.push(`Tony's behavioral patterns: ${memory.tonyTags}`);
+    lines.push(serializeProfile(primaryPerson, memory.primaryProfile || memory.tonyProfile));
+    if (memory.primaryTags || memory.tonyTags) lines.push(`${primaryPerson}'s behavioral patterns: ${memory.primaryTags || memory.tonyTags}`);
   }
   if (scope === "Drew" || scope === "Tony+Drew") {
-    lines.push(serializeProfile("Drew", memory.drewProfile));
-    if (memory.drewTags) lines.push(`Drew's behavioral patterns: ${memory.drewTags}`);
+    lines.push(serializeProfile(secondaryPerson, memory.secondaryProfile || memory.drewProfile));
+    if (memory.secondaryTags || memory.drewTags) lines.push(`${secondaryPerson}'s behavioral patterns: ${memory.secondaryTags || memory.drewTags}`);
   }
   if (memory.relationshipDynamic?.ai_dynamic_summary) {
     lines.push(`Couple dynamic summary: ${memory.relationshipDynamic.ai_dynamic_summary}`);
@@ -121,17 +179,18 @@ Be specific to ${ctx.scope}. Use stored profile data and memory. Do not give gen
 Format your response with clear section headers and short readable paragraphs.`;
 
   const result = await safeInvokeLLM(
-    { prompt, model: "claude_sonnet_4_6", partnerLanguage: getPartnerLanguageForScope(ctx.scope) },
+    { prompt, model: "claude_sonnet_4_6", partnerLanguage: getPartnerLanguageForScope(ctx.scope, ctx.memory) },
     35000,
     "I'm unable to respond right now. Please try again in a moment."
   );
 
   // Log session
   try {
-    const speaker = ctx.scope === "Drew" ? "Drew" : "Tony";
+    const { primaryPerson, secondaryPerson } = getNamesFromMemory(ctx.memory);
+    const speaker = ctx.scope === "Drew" ? secondaryPerson : primaryPerson;
     await api.entities.CoachSession.create({
       speaker,
-      speaking_to: ctx.scope === "Tony+Drew" ? "Drew" : speaker === "Tony" ? "Drew" : "Tony",
+      speaking_to: ctx.scope === "Tony+Drew" ? secondaryPerson : speaker === primaryPerson ? secondaryPerson : primaryPerson,
       situation: `[${ctx.page} / ${ctx.sectionTitle}] ${question}`,
       ai_response: result,
       tool_type: "coach",
@@ -184,7 +243,7 @@ Return your response in this exact format:
 [Single sentence. Make it memorable.]`;
 
   return safeInvokeLLM(
-    { prompt, model: "claude_sonnet_4_6", partnerLanguage: getPartnerLanguageForScope(scope) },
+    { prompt, model: "claude_sonnet_4_6", partnerLanguage: getPartnerLanguageForScope(scope, ctx.memory) },
     35000,
     "Unable to generate explanation right now. Please try again."
   );
@@ -224,7 +283,7 @@ Return your response in this exact format:
 [Name and describe the pattern specifically — what it looks like, where it comes from]
 
 ## 💞 Why This Matters in Your Relationship
-[How this impacts ${scope.includes("+") ? "Tony and Drew's dynamic" : `${scope}'s experience`} — be specific]
+[How this impacts ${scope.includes("+") ? "this relationship dynamic" : `${scope}'s experience`} — be specific]
 
 ## 🧩 How It May Show Up in Real Life
 [A concrete, realistic example grounded in their dynamic]
@@ -236,7 +295,7 @@ Return your response in this exact format:
 [A closing insight connecting this pattern to their specific relationship history]`;
 
   return safeInvokeLLM(
-    { prompt, model: "claude_sonnet_4_6", partnerLanguage: getPartnerLanguageForScope(scope) },
+    { prompt, model: "claude_sonnet_4_6", partnerLanguage: getPartnerLanguageForScope(scope, ctx.memory) },
     35000,
     "Unable to generate elaboration right now. Please try again."
   );

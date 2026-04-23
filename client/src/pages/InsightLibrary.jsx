@@ -19,8 +19,9 @@ import AskAIButton from "@/components/askAI/AskAIButton";
 import { buildContext } from "@/lib/contextBuilder";
 import { isAfter, subMonths, parseISO } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getDisplayPerspective, getPerspectiveLabels } from "@/lib/relationshipParticipants";
 
-const PERSPECTIVES = ["All", "Tony", "Drew", "Tony→Drew", "Drew→Tony"];
 const TIME_RANGES = [
   { label: "All time", months: null },
   { label: "Last 1 month", months: 1 },
@@ -36,26 +37,31 @@ const PERSPECTIVE_COLORS = {
 };
 
 export default function InsightLibrary() {
+  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
   const [search, setSearch] = useState("");
   const [perspectiveFilter, setPerspectiveFilter] = useState("All");
   const [timeRange, setTimeRange] = useState(null); // months
   const [activeTab, setActiveTab] = useState("library");
   const queryClient = useQueryClient();
   const chartRef = useRef(null);
+  const perspectiveOptions = useMemo(
+    () => ["All", ...Object.keys(getPerspectiveLabels(participants)).filter((value) => value !== "Tony+Drew")],
+    [participants],
+  );
 
   const { data: entries = [], isLoading } = useQuery({
-    queryKey: ["insight-entries"],
+    queryKey: ["insight-entries", activeRelationshipId],
     queryFn: () => api.entities.InsightEntry.list("-created_date", 200),
   });
 
   const handleNoteUpdate = async (id, note) => {
     await api.entities.InsightEntry.update(id, { note });
-    queryClient.invalidateQueries({ queryKey: ["insight-entries"] });
+    queryClient.invalidateQueries({ queryKey: ["insight-entries", activeRelationshipId] });
   };
 
   const handleDeleteEntry = async (id) => {
     await api.entities.InsightEntry.delete(id);
-    queryClient.invalidateQueries({ queryKey: ["insight-entries"] });
+    queryClient.invalidateQueries({ queryKey: ["insight-entries", activeRelationshipId] });
   };
 
   // Filter pipeline
@@ -108,7 +114,7 @@ export default function InsightLibrary() {
 
   const askAIContext = buildContext({
     section: "Insight Library",
-    perspective: "Tony+Drew",
+    perspective: relationshipLabel,
     selectedInsight: filtered.length > 0 ? filtered[0] : null,
     profiles: [],
     checkIns: [],
@@ -207,7 +213,7 @@ export default function InsightLibrary() {
             <div className="flex flex-wrap gap-2 items-center">
               <Filter className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               {/* Perspective filter */}
-              {PERSPECTIVES.map((p) => (
+              {perspectiveOptions.map((p) => (
                 <button
                   key={p}
                   onClick={() => setPerspectiveFilter(p)}
@@ -220,7 +226,7 @@ export default function InsightLibrary() {
                       : "border-[#0e6f72]/25 bg-white text-[#2b3445] hover:border-[#0e6f72] hover:bg-[#e8f7f6]"
                   )}
                 >
-                  {p}
+                  {p === "All" ? p : getDisplayPerspective(p, participants)}
                   {p !== "All" && totalByPerspective[p] ? ` (${totalByPerspective[p]})` : ""}
                 </button>
               ))}
@@ -267,11 +273,11 @@ export default function InsightLibrary() {
             </div>
           )}
 
-          <div className="space-y-3">
-            {filtered.map((entry) => (
-              <InsightEntryCard key={entry.id} entry={entry} onNoteUpdate={handleNoteUpdate} onDelete={handleDeleteEntry} />
-            ))}
-          </div>
+            <div className="space-y-3">
+              {filtered.map((entry) => (
+              <InsightEntryCard key={entry.id} entry={entry} participants={participants} onNoteUpdate={handleNoteUpdate} onDelete={handleDeleteEntry} />
+              ))}
+            </div>
         </TabsContent>
 
         {/* ── EVOLUTION TAB ── */}
@@ -291,20 +297,20 @@ export default function InsightLibrary() {
           )}
 
           {/* Per-perspective history list */}
-          {["Tony→Drew", "Drew→Tony", "Tony", "Drew"].map((persp) => {
+          {perspectiveOptions.filter((value) => value !== "All").map((persp) => {
             const perspEntries = entries.filter((e) => e.perspective === persp);
             if (perspEntries.length === 0) return null;
             return (
               <div key={persp} className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Badge className={cn("text-xs border font-normal", PERSPECTIVE_COLORS[persp])}>
-                    {persp}
+                    {getDisplayPerspective(persp, participants)}
                   </Badge>
                   <span className="text-xs text-muted-foreground">{perspEntries.length} analyses</span>
                 </div>
                 <div className="space-y-2">
                   {perspEntries.slice(0, 5).map((entry) => (
-                    <InsightEntryCard key={entry.id} entry={entry} onNoteUpdate={handleNoteUpdate} onDelete={handleDeleteEntry} />
+                    <InsightEntryCard key={entry.id} entry={entry} participants={participants} onNoteUpdate={handleNoteUpdate} onDelete={handleDeleteEntry} />
                   ))}
                   {perspEntries.length > 5 && (
                     <p className="text-xs text-muted-foreground text-center">+{perspEntries.length - 5} more — switch to Browse All to see them</p>

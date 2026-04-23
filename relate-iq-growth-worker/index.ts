@@ -6,29 +6,29 @@ import {
   type AppState,
   type PersonId,
   type QuestionnaireSummary,
+  type PublicUser,
+  type Relationship,
+  type RelationshipInvite,
+  type RelationshipMembership,
+  type RelationshipOnboarding,
+  type RelationshipSummary,
   type RelationshipType,
   type UploadedQuestionnaire,
+  type User,
   buildCoachResponse,
   buildCheckInResponse,
   buildRepairResponse,
   buildFtueExplain,
   buildFtueResponse,
-  createRelationshipForUser,
-  createRelationshipInvite,
-  createUserAccount,
-  findInviteByToken,
-  getInviteLookup,
-  getRelationship,
-  getRelationshipMembershipsForUser,
-  getRelationshipState,
   getRelationshipsForUser,
   getFtueState,
-  getUserByEmail,
-  getUserById,
   logFtueEvent,
-  submitRelationshipOnboarding,
-  acceptRelationshipInvite,
+  RELATEIQ_MEMBERSHIPS,
+  RELATEIQ_ONBOARDING,
+  RELATEIQ_RELATIONSHIPS,
+  RELATEIQ_USERS,
   sanitizeUser,
+  sha256Hex,
 } from "../shared/relateiq";
 
 type Env = {
@@ -329,6 +329,53 @@ function buildQuestionnaireContext(questionnaire: UploadedQuestionnaire | null, 
   return `${person} questionnaire (${questionnaire.responses.length} responses):\n${lines.join("\n")}`;
 }
 
+function buildQuestionnaireContextFromRecords(records: Record<string, unknown>[], person: PersonId): string {
+  if (!records.length) {
+    return `${person}: no questionnaire responses available yet for this relationship.`;
+  }
+
+  const lines = records.map((response) => formatResponseLine(response));
+  return `${person} questionnaire (${records.length} responses):\n${lines.join("\n")}`;
+}
+
+function getScopedParticipants(source?: { participants?: string[] } | null): [string, string] {
+  const merged = mergeParticipantNames(source?.participants);
+  if (merged.length >= 2) return [merged[0], merged[1]];
+  if (merged.length === 1) return [merged[0], "Other Person"];
+  return ["Tony", "Drew"];
+}
+
+function normalizeScopedPerson(
+  value: unknown,
+  participants: [string, string],
+  fallbackIndex = 0,
+): PersonId {
+  const normalized = normalizeText(value);
+  if (!normalized) return participants[fallbackIndex] || participants[0];
+
+  const directMatch = participants.find(
+    (participant) => normalizeText(participant).toLowerCase() === normalized.toLowerCase(),
+  );
+  if (directMatch) return directMatch;
+  if (normalized === "Tony") return participants[0];
+  if (normalized === "Drew") return participants[1] || participants[0];
+  return normalized;
+}
+
+function getScopedPartner(person: PersonId, participants: [string, string]): PersonId {
+  return participants.find((participant) => participant !== person) || participants[1] || participants[0] || person;
+}
+
+function normalizeScopedScope(value: unknown, participants: [string, string]) {
+  const normalized = normalizeText(value);
+  if (!normalized || normalized === "Tony+Drew") return `${participants[0]}+${participants[1]}`;
+  if (normalized === "Tony→Drew") return `${participants[0]}→${participants[1]}`;
+  if (normalized === "Drew→Tony") return `${participants[1]}→${participants[0]}`;
+  if (normalized === "Tony") return participants[0];
+  if (normalized === "Drew") return participants[1];
+  return normalized;
+}
+
 function parseJsonObject(text: string): Record<string, unknown> | null {
   const trimmed = text.trim();
   if (!trimmed) return null;
@@ -534,14 +581,14 @@ async function readSessionUser(request: Request, env: Env, allowDefault = true) 
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
   if (!token.startsWith("relateiq.")) {
     if (!allowDefault) return null;
-    const fallback = getUserById(DEFAULT_USER_ID);
+    const fallback = await getUserByIdPersistent(env, DEFAULT_USER_ID);
     return fallback ? sanitizeUser(fallback) : null;
   }
 
   const [, payload, signature] = token.split(".");
   if (!payload || !signature) {
     if (!allowDefault) return null;
-    const fallback = getUserById(DEFAULT_USER_ID);
+    const fallback = await getUserByIdPersistent(env, DEFAULT_USER_ID);
     return fallback ? sanitizeUser(fallback) : null;
   }
 
@@ -550,7 +597,7 @@ async function readSessionUser(request: Request, env: Env, allowDefault = true) 
 
   try {
     const parsed = JSON.parse(base64UrlDecode(payload)) as SessionPayload;
-    const user = getUserById(parsed.user_id);
+    const user = await getUserByIdPersistent(env, parsed.user_id);
     return user ? sanitizeUser(user) : null;
   } catch {
     return null;
@@ -559,13 +606,13 @@ async function readSessionUser(request: Request, env: Env, allowDefault = true) 
 
 function relationshipIdFrom(request: Request, url: URL, body?: unknown) {
   const headerValue = request.headers.get("x-relationship-id");
-  if (headerValue) return headerValue;
+  if (headerValue) return normalizeText(headerValue);
   const queryValue = url.searchParams.get("relationship_id");
-  if (queryValue) return queryValue;
+  if (queryValue) return normalizeText(queryValue);
   if (body && typeof body === "object" && "relationship_id" in body && body.relationship_id) {
-    return String(body.relationship_id);
+    return normalizeText(body.relationship_id);
   }
-  return DEFAULT_RELATIONSHIP_ID;
+  return "";
 }
 
 async function requireScopedRelationship(
@@ -574,7 +621,7 @@ async function requireScopedRelationship(
   url: URL,
   body?: unknown,
 ) {
-  const user = await readSessionUser(request, env);
+  const user = await readSessionUser(request, env, false);
   if (!user) return { error: "unauthorized", status: 401 as const };
 
   const relationshipId = relationshipIdFrom(request, url, body);
@@ -582,12 +629,12 @@ async function requireScopedRelationship(
     return { error: "relationship_id_required", status: 400 as const };
   }
 
-  const relationship = getRelationship(relationshipId);
+  const relationship = await getRelationshipPersistent(env, relationshipId);
   if (!relationship) {
     return { error: "relationship_not_found", status: 404 as const };
   }
 
-  const memberships = getRelationshipMembershipsForUser(user.id);
+  const memberships = await getMembershipsForUserPersistent(env, user.id);
   if (!memberships.some((membership) => membership.relationship_id === relationshipId)) {
     return { error: "forbidden", status: 403 as const };
   }
@@ -629,6 +676,478 @@ async function kvPutJson(env: Env, key: string, value: unknown): Promise<void> {
   await env.QUESTIONNAIRES.put(key, JSON.stringify(value));
 }
 
+function authKey(entity: string, id: string) {
+  return `auth:${entity}:${id}`;
+}
+
+async function listAuthRecords<T extends { id: string }>(env: Env, entity: string): Promise<T[]> {
+  if (!env.QUESTIONNAIRES) return [];
+  const prefix = `auth:${entity}:`;
+  const list = await env.QUESTIONNAIRES.list({ prefix, limit: 1000 });
+  const values = await Promise.all(list.keys.map((item) => kvGetJson<T>(env, item.name)));
+  return values.filter((value): value is T => Boolean(value));
+}
+
+function dedupeById<T extends { id: string }>(records: T[]) {
+  return [...new Map(records.map((record) => [record.id, record])).values()];
+}
+
+async function saveAuthRecord<T extends { id: string }>(env: Env, entity: string, record: T) {
+  await kvPutJson(env, authKey(entity, record.id), record);
+  return record;
+}
+
+async function listUsers(env: Env): Promise<User[]> {
+  return dedupeById<User>([...RELATEIQ_USERS, ...(await listAuthRecords<User>(env, "user"))]);
+}
+
+async function getUserByEmailPersistent(env: Env, email: string) {
+  const normalized = normalizeText(email).toLowerCase();
+  const users = await listUsers(env);
+  return users.find((user) => user.email.toLowerCase() === normalized) || null;
+}
+
+async function getUserByIdPersistent(env: Env, id: string) {
+  const users = await listUsers(env);
+  return users.find((user) => user.id === id) || null;
+}
+
+async function listRelationships(env: Env): Promise<Relationship[]> {
+  const deduped = dedupeById<Relationship>([
+    ...RELATEIQ_RELATIONSHIPS,
+    ...(await listAuthRecords<Relationship>(env, "relationship")),
+  ]);
+  return Promise.all(deduped.map((relationship) => reconcileRelationshipParticipantsPersistent(env, relationship)));
+}
+
+async function getRelationshipPersistent(env: Env, id: string) {
+  const relationships = await listRelationships(env);
+  return relationships.find((relationship) => relationship.id === id) || null;
+}
+
+async function listMemberships(env: Env): Promise<RelationshipMembership[]> {
+  return dedupeById<RelationshipMembership>([
+    ...RELATEIQ_MEMBERSHIPS,
+    ...(await listAuthRecords<RelationshipMembership>(env, "membership")),
+  ]);
+}
+
+async function getMembershipsForUserPersistent(env: Env, userId: string) {
+  const memberships = await listMemberships(env);
+  return memberships.filter((membership) => membership.user_id === userId);
+}
+
+async function listInvites(env: Env): Promise<RelationshipInvite[]> {
+  return dedupeById<RelationshipInvite>([
+    ...(await listAuthRecords<RelationshipInvite>(env, "invite")),
+  ]);
+}
+
+async function listOnboardingRecords(env: Env): Promise<RelationshipOnboarding[]> {
+  return dedupeById<RelationshipOnboarding>([
+    ...RELATEIQ_ONBOARDING,
+    ...(await listAuthRecords<RelationshipOnboarding>(env, "onboarding")),
+  ]);
+}
+
+function getInviteStatusPersistent(invite: RelationshipInvite): RelationshipInvite["status"] {
+  if (invite.status === "accepted") return "accepted";
+  if (new Date(invite.expires_at).getTime() < Date.now()) return "expired";
+  return invite.status;
+}
+
+async function findInviteByTokenPersistent(env: Env, token: string) {
+  const invites = await listInvites(env);
+  const invite = invites.find((entry) => entry.invite_token === token) || null;
+  if (!invite) return null;
+  invite.status = getInviteStatusPersistent(invite);
+  return invite;
+}
+
+async function getLatestOnboardingPersistent(env: Env, relationshipId: string, userId: string) {
+  const records = await listOnboardingRecords(env);
+  return (
+    records
+      .filter((entry) => entry.relationship_id === relationshipId && entry.user_id === userId)
+      .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0] || null
+  );
+}
+
+async function buildRelationshipSummaryPersistent(
+  env: Env,
+  relationship: Relationship,
+  userId: string,
+): Promise<RelationshipSummary> {
+  const memberships = await listMemberships(env);
+  const users = await listUsers(env);
+  const relationshipMemberships = memberships
+    .filter((membership) => membership.relationship_id === relationship.id)
+  const memberIds = relationshipMemberships.map((membership) => membership.user_id);
+  const memberNames = users
+    .filter((user) => memberIds.includes(user.id))
+    .map((user) => user.name);
+  const participantNames =
+    relationship.participants?.length >= 2
+      ? mergeParticipantNames(relationship.participants)
+      : mergeParticipantNames(relationship.participants, memberNames);
+  return {
+    ...relationship,
+    member_count: relationshipMemberships.length,
+    participant_names: participantNames,
+    needs_onboarding: !(await getLatestOnboardingPersistent(env, relationship.id, userId)),
+  };
+}
+
+async function getRelationshipsForUserPersistent(env: Env, userId: string): Promise<RelationshipSummary[]> {
+  const memberships = await getMembershipsForUserPersistent(env, userId);
+  const relationshipIds = new Set(memberships.map((membership) => membership.relationship_id));
+  const relationships = await listRelationships(env);
+  const allowed = relationships.filter((relationship) => relationshipIds.has(relationship.id));
+  return Promise.all(allowed.map((relationship) => buildRelationshipSummaryPersistent(env, relationship, userId)));
+}
+
+function defaultProcessingStyle(value: string) {
+  return value.includes("time") ? "needs_time" : value.includes("mixed") ? "mixed" : "mixed";
+}
+
+function mergeParticipantNames(...groups: Array<Array<string> | undefined>) {
+  return [...new Set(groups.flat().map((value) => normalizeText(value)).filter(Boolean))];
+}
+
+function parseRelationshipParticipants(name: string, creatorName: string) {
+  const normalizedName = normalizeText(name);
+  const creator = normalizeText(creatorName);
+  const parts = normalizedName
+    .split(/\s*(?:&|and|\/|\+)\s*/i)
+    .map((value) => normalizeText(value))
+    .filter(Boolean);
+
+  if (parts.length >= 2) {
+    return mergeParticipantNames([parts[0], parts[1]]);
+  }
+
+  return mergeParticipantNames([creator, "Other Person"]);
+}
+
+function parseParticipantNamesFromRelationshipName(name: string) {
+  const normalizedName = normalizeText(name)
+    .replace(/\s+[·•|-]\s+(romantic|friendship|family|other)$/i, "")
+    .replace(/\s+—\s+(friendship lens|romantic lens|family lens)$/i, "");
+  const parts = normalizedName
+    .split(/\s*(?:&|and|\/|\+)\s*/i)
+    .map((value) => normalizeText(value))
+    .filter(Boolean);
+
+  return parts.length >= 2 ? mergeParticipantNames([parts[0], parts[1]]) : [];
+}
+
+function shouldRepairRelationshipParticipants(relationship: Relationship, parsedNames: string[]) {
+  if (parsedNames.length < 2) return false;
+  const current = mergeParticipantNames(relationship.participants);
+  if (current.length !== 2) return true;
+  if (current.join("|").toLowerCase() === parsedNames.join("|").toLowerCase()) return false;
+
+  const currentIsLegacyPair =
+    current.length === 2 &&
+    current.some((name) => name.toLowerCase() === "tony") &&
+    current.some((name) => name.toLowerCase() === "drew");
+  const parsedIsDifferentPair =
+    parsedNames.join("|").toLowerCase() !== "tony|drew" &&
+    parsedNames.join("|").toLowerCase() !== "drew|tony";
+
+  return currentIsLegacyPair && parsedIsDifferentPair;
+}
+
+async function reconcileRelationshipParticipantsPersistent(env: Env, relationship: Relationship) {
+  const parsedNames = parseParticipantNamesFromRelationshipName(relationship.name);
+  if (!shouldRepairRelationshipParticipants(relationship, parsedNames)) {
+    return relationship;
+  }
+
+  const repaired: Relationship = {
+    ...relationship,
+    participants: parsedNames,
+    updated_at: nowIso(),
+  };
+  await saveAuthRecord(env, "relationship", repaired);
+  return repaired;
+}
+
+async function upsertOnboardingProfile(
+  env: Env,
+  relationshipId: string,
+  relationshipType: RelationshipType,
+  user: PublicUser,
+  onboarding: RelationshipOnboarding,
+) {
+  const id = `profile_${relationshipId}_${normalizeText(user.name).toLowerCase().replace(/[^a-z0-9]+/g, "_")}`;
+  const existing = await getEntityRecord(env, "UserProfile", id, relationshipId);
+  const summary =
+    [onboarding.self_description, onboarding.communication_note]
+      .filter(Boolean)
+      .join(" ")
+      .trim() || `${user.name}'s profile will deepen as more relationship-specific data is collected.`;
+  const payload = {
+    id,
+    relationship_id: relationshipId,
+    person_name: user.name,
+    communication_style: onboarding.self_description || existing?.communication_style || "Still learning communication style",
+    conflict_tendencies: existing?.conflict_tendencies || "Still learning conflict tendencies",
+    emotional_triggers: existing?.emotional_triggers || [],
+    needs_during_conflict: onboarding.support_style || existing?.needs_during_conflict || "Still learning support needs",
+    processing_style:
+      existing?.processing_style ||
+      defaultProcessingStyle(`${onboarding.support_style} ${onboarding.communication_note}`.toLowerCase()),
+    values_priorities: existing?.values_priorities || [],
+    personality_traits: existing?.personality_traits || [],
+    growth_areas: existing?.growth_areas || [],
+    past_patterns: existing?.past_patterns || "",
+    partner_perception: existing?.partner_perception || "",
+    love_language: existing?.love_language || (relationshipType === "friendship" ? "Quality time" : "Not yet inferred"),
+    ai_behavioral_summary: summary,
+  };
+
+  if (existing) {
+    await updateEntityRecord(env, "UserProfile", id, payload, relationshipId);
+  } else {
+    await createEntityRecord(env, "UserProfile", payload, relationshipId);
+  }
+}
+
+async function createUserAccountPersistent(env: Env, input: {
+  email: string;
+  password: string;
+  name: string;
+}) {
+  const email = normalizeText(input.email).toLowerCase();
+  const name = normalizeText(input.name);
+  if (!email || !name || !input.password) {
+    return { ok: false as const, error: "missing_required_fields" };
+  }
+  if (await getUserByEmailPersistent(env, email)) {
+    return { ok: false as const, error: "email_already_exists" };
+  }
+  const user: User = {
+    id: createId("user"),
+    email,
+    password_hash: await sha256Hex(input.password),
+    name,
+  };
+  await saveAuthRecord(env, "user", user);
+  return { ok: true as const, user };
+}
+
+async function createRelationshipForUserPersistent(env: Env, input: {
+  creatorUserId: string;
+  name: string;
+  type: RelationshipType;
+}) {
+  const creator = await getUserByIdPersistent(env, input.creatorUserId);
+  if (!creator) return { ok: false as const, error: "creator_not_found" };
+  const trimmedName = normalizeText(input.name);
+  if (!trimmedName) return { ok: false as const, error: "relationship_name_required" };
+  const timestamp = nowIso();
+  const relationship: Relationship = {
+    id: `relationship_${trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, "_")}_${crypto.randomUUID().slice(0, 8)}`,
+    name: trimmedName,
+    type: input.type,
+    participants: parseRelationshipParticipants(trimmedName, creator.name),
+    created_at: timestamp,
+    updated_at: timestamp,
+  };
+  const membership: RelationshipMembership = {
+    id: createId("membership"),
+    relationship_id: relationship.id,
+    user_id: creator.id,
+    role: "participant",
+  };
+  await saveAuthRecord(env, "relationship", relationship);
+  await saveAuthRecord(env, "membership", membership);
+  return {
+    ok: true as const,
+    relationship,
+    summary: await buildRelationshipSummaryPersistent(env, relationship, creator.id),
+  };
+}
+
+async function createRelationshipInvitePersistent(env: Env, input: {
+  relationshipId: string;
+  invitedEmail: string;
+  invitedName?: string;
+}) {
+  const relationship = await getRelationshipPersistent(env, input.relationshipId);
+  if (!relationship) return { ok: false as const, error: "relationship_not_found" };
+  const invited_email = normalizeText(input.invitedEmail).toLowerCase();
+  if (!invited_email) return { ok: false as const, error: "invite_email_required" };
+  const inferredName =
+    normalizeText(input.invitedName) ||
+    normalizeText(invited_email.split("@")[0]).replace(/\b\w/g, (match) => match.toUpperCase());
+  if (inferredName && (!relationship.participants || relationship.participants.length < 2)) {
+    relationship.participants = mergeParticipantNames(relationship.participants, [inferredName]);
+    relationship.updated_at = nowIso();
+    await saveAuthRecord(env, "relationship", relationship);
+  }
+  const invites = await listInvites(env);
+  const existingPending = invites.find(
+    (invite) =>
+      invite.relationship_id === input.relationshipId &&
+      invite.invited_email === invited_email &&
+      getInviteStatusPersistent(invite) === "pending",
+  );
+  if (existingPending) {
+    return { ok: true as const, invite: existingPending, reused: true };
+  }
+  const invite: RelationshipInvite = {
+    id: createId("invite"),
+    relationship_id: relationship.id,
+    invited_email,
+    invite_token: crypto.randomUUID().replace(/-/g, ""),
+    status: "pending",
+    created_at: nowIso(),
+    expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(),
+  };
+  await saveAuthRecord(env, "invite", invite);
+  return { ok: true as const, invite, reused: false };
+}
+
+async function getInviteLookupPersistent(env: Env, token: string, currentUserId?: string) {
+  const invite = await findInviteByTokenPersistent(env, token);
+  if (!invite) return null;
+  const relationship = await getRelationshipPersistent(env, invite.relationship_id);
+  if (!relationship) return null;
+  const memberships = await listMemberships(env);
+  const currentUser = currentUserId ? await getUserByIdPersistent(env, currentUserId) : null;
+  const inviterMembership = memberships.find((membership) => membership.relationship_id === relationship.id);
+  const inviter = inviterMembership ? await getUserByIdPersistent(env, inviterMembership.user_id) : null;
+  return {
+    invite,
+    relationship: await buildRelationshipSummaryPersistent(env, relationship, currentUser?.id || DEFAULT_USER_ID),
+    inviter: inviter ? sanitizeUser(inviter) : null,
+    already_member: !!currentUser && memberships.some(
+      (membership) => membership.relationship_id === relationship.id && membership.user_id === currentUser.id,
+    ),
+  };
+}
+
+async function acceptRelationshipInvitePersistent(env: Env, input: { token: string; userId: string }) {
+  const invite = await findInviteByTokenPersistent(env, input.token);
+  if (!invite) return { ok: false as const, error: "invite_not_found" };
+  if (invite.status === "expired") return { ok: false as const, error: "invite_expired" };
+  const user = await getUserByIdPersistent(env, input.userId);
+  const relationship = await getRelationshipPersistent(env, invite.relationship_id);
+  if (!user || !relationship) return { ok: false as const, error: "relationship_not_found" };
+  const memberships = await listMemberships(env);
+  let alreadyMember = memberships.some(
+    (membership) => membership.relationship_id === relationship.id && membership.user_id === user.id,
+  );
+  if (!alreadyMember) {
+    await saveAuthRecord(env, "membership", {
+      id: createId("membership"),
+      relationship_id: relationship.id,
+      user_id: user.id,
+      role: "participant",
+    } satisfies RelationshipMembership);
+    if (!relationship.participants || relationship.participants.length < 2) {
+      relationship.participants = mergeParticipantNames(relationship.participants, [user.name]);
+      relationship.updated_at = nowIso();
+      await saveAuthRecord(env, "relationship", relationship);
+    }
+  }
+  invite.status = "accepted";
+  await saveAuthRecord(env, "invite", invite);
+  return {
+    ok: true as const,
+    relationship,
+    summary: await buildRelationshipSummaryPersistent(env, relationship, user.id),
+    alreadyMember,
+  };
+}
+
+async function submitRelationshipOnboardingPersistent(env: Env, input: {
+  relationshipId: string;
+  userId: string;
+  selfDescription: string;
+  supportStyle: string;
+  supportNotes: string;
+  communicationNote: string;
+  skipped?: boolean;
+}) {
+  const relationship = await getRelationshipPersistent(env, input.relationshipId);
+  const user = await getUserByIdPersistent(env, input.userId);
+  if (!relationship || !user) {
+    return { ok: false as const, error: "relationship_not_found" };
+  }
+  const entry: RelationshipOnboarding = {
+    id: createId("onboarding"),
+    relationship_id: relationship.id,
+    user_id: user.id,
+    self_description: normalizeText(input.selfDescription),
+    support_style: normalizeText(input.supportStyle),
+    support_notes: normalizeText(input.supportNotes),
+    communication_note: normalizeText(input.communicationNote),
+    skipped: Boolean(input.skipped),
+    created_at: nowIso(),
+    updated_at: nowIso(),
+  };
+  await saveAuthRecord(env, "onboarding", entry);
+  await upsertOnboardingProfile(env, relationship.id, relationship.type, sanitizeUser(user), entry);
+  return { ok: true as const, onboarding: entry };
+}
+
+async function buildDynamicRelationshipState(env: Env, relationshipId: string): Promise<AppState | null> {
+  const relationship = await getRelationshipPersistent(env, relationshipId);
+  if (!relationship) return null;
+  const participantNames = relationship.participants?.length > 0 ? relationship.participants : ["Participant", "Other Person"];
+  const profiles = await queryEntityCollection(env, "UserProfile", new URL("https://local/api/data/UserProfile"), relationshipId);
+  const questionnaireRecords = await listQuestionnaireResponseRecords(env);
+  const counts = new Map<string, number>();
+  questionnaireRecords
+    .filter((record) => normalizeText(record.relationship_id) === relationshipId)
+    .forEach((record) => {
+      const person = normalizeText(record.person_name);
+      if (!person) return;
+      counts.set(person, (counts.get(person) || 0) + 1);
+    });
+
+  return {
+    relationship_id: relationship.id,
+    relationship,
+    productName: "RelateIQ",
+    migrationState: `${relationship.type} relationship context with isolated intelligence and memory.`,
+    questionnaireImported: participantNames.every((person) => (counts.get(person) || 0) >= 94),
+    profiles: participantNames.map((person) => {
+      const existing = profiles.find((profile) => normalizeText(profile.person_name) === person);
+      return {
+        relationship_id: relationship.id,
+        person,
+        relationshipRole: relationship.type === "friendship" ? "Friend" : "Participant",
+        communicationStyle: normalizeText(existing?.communication_style) || "Still learning from onboarding and future sessions",
+        likelyNeedsUnderStress: [normalizeText(existing?.needs_during_conflict) || "Complete onboarding or questionnaire to seed support preferences"],
+        repairPreferences: ["No repair preferences recorded yet"],
+        appreciationLanguage: [normalizeText(existing?.love_language) || "Not captured yet"],
+        summary:
+          normalizeText(existing?.ai_behavioral_summary) ||
+          `${person}'s profile for this relationship starts clean and grows only from this relationship's onboarding, questionnaire, and interaction history.`,
+      };
+    }),
+    questionnaires: participantNames.map((person) => ({
+      relationship_id: relationship.id,
+      person,
+      totalQuestions: 94,
+      importedQuestions: counts.get(person) || 0,
+      sourceFile: "",
+      importReady: (counts.get(person) || 0) >= 94,
+      notes: [
+        "No cross-relationship data is used here.",
+        "This participant's analysis will grow only from this relationship's questionnaire and activity.",
+      ],
+    } satisfies QuestionnaireSummary)),
+    triggers: [],
+    insights: [],
+    tools: RELATEIQ_STATE.tools.map((tool) => ({ ...tool, relationship_id: relationship.id })),
+  };
+}
+
 async function loadUploadedQuestionnaire(env: Env, person: PersonId): Promise<UploadedQuestionnaire | null> {
   return kvGetJson<UploadedQuestionnaire>(env, `questionnaire:${person}`);
 }
@@ -641,11 +1160,17 @@ async function listEntityRecords(env: Env, entity: string): Promise<StoredRecord
   return values.filter((value): value is StoredRecord => Boolean(value));
 }
 
-function toQuestionnaireRecord(person: PersonId, response: Record<string, unknown>, uploadedAt?: string): StoredRecord {
+function toQuestionnaireRecord(
+  person: PersonId,
+  response: Record<string, unknown>,
+  uploadedAt?: string,
+  relationshipId = DEFAULT_RELATIONSHIP_ID,
+): StoredRecord {
   const questionId = normalizeText(response.question_id) || createId("question");
   return {
     ...response,
     id: `${person}:${questionId}`,
+    relationship_id: relationshipId,
     person_name: response.person_name || person,
     created_date: normalizeText(response.created_date) || uploadedAt || nowIso(),
     updated_date: normalizeText(response.updated_date) || uploadedAt || nowIso(),
@@ -658,12 +1183,41 @@ async function listQuestionnaireResponseRecords(env: Env): Promise<StoredRecord[
     loadUploadedQuestionnaire(env, "Drew"),
   ]);
 
-  return questionnaires.flatMap((questionnaire) => {
+  const uploadedRecords = questionnaires.flatMap((questionnaire) => {
     if (!questionnaire) return [];
     return questionnaire.responses.map((response) =>
-      toQuestionnaireRecord(questionnaire.person, response, questionnaire.uploadedAt),
+      toQuestionnaireRecord(questionnaire.person, response, questionnaire.uploadedAt, DEFAULT_RELATIONSHIP_ID),
     );
   });
+
+  const persistedRecords = await listEntityRecords(env, "QuestionnaireResponse");
+  return [...uploadedRecords, ...persistedRecords];
+}
+
+async function getRelationshipQuestionnaireRecords(
+  env: Env,
+  relationshipId: string,
+  person: PersonId,
+) {
+  const records = await listQuestionnaireResponseRecords(env);
+  return records.filter(
+    (record) =>
+      normalizeText(record.relationship_id) === relationshipId &&
+      normalizeText(record.person_name).toLowerCase() === normalizeText(person).toLowerCase(),
+  );
+}
+
+async function getQuestionnaireContextForRelationshipParticipant(
+  env: Env,
+  relationshipId: string,
+  person: PersonId,
+) {
+  if (relationshipId === DEFAULT_RELATIONSHIP_ID && (person === "Tony" || person === "Drew")) {
+    return buildQuestionnaireContext(await loadUploadedQuestionnaire(env, person), person);
+  }
+
+  const records = await getRelationshipQuestionnaireRecords(env, relationshipId, person);
+  return buildQuestionnaireContextFromRecords(records, person);
 }
 
 async function getQuestionnaireResponseRecord(env: Env, id: string): Promise<StoredRecord | null> {
@@ -675,7 +1229,33 @@ async function upsertQuestionnaireResponse(
   env: Env,
   incoming: Record<string, unknown>,
   existingId?: string,
+  relationshipId = DEFAULT_RELATIONSHIP_ID,
 ): Promise<StoredRecord> {
+  if (relationshipId !== DEFAULT_RELATIONSHIP_ID) {
+    const person = normalizeText(incoming.person_name) || normalizeText(existingId?.split(":")[0]) || "Participant";
+    const questionId =
+      normalizeText(incoming.question_id) ||
+      normalizeText(existingId?.split(":").slice(1).join(":")) ||
+      createId("question");
+    const baseId =
+      normalizeText(existingId) ||
+      `question_${slugifyEntity(relationshipId)}_${slugifyEntity(person)}_${slugifyEntity(questionId)}`;
+    const current = existingId ? await getEntityRecord(env, "QuestionnaireResponse", baseId, relationshipId) : null;
+    const timestamp = nowIso();
+    const record: StoredRecord = {
+      ...(current || {}),
+      ...withRelationshipScope(incoming, relationshipId),
+      id: baseId,
+      relationship_id: relationshipId,
+      person_name: person,
+      question_id: questionId,
+      created_date: normalizeText(current?.created_date) || timestamp,
+      updated_date: timestamp,
+    };
+    await kvPutJson(env, `data:${slugifyEntity("QuestionnaireResponse")}:${record.id}`, record);
+    return record;
+  }
+
   const person = incoming.person_name === "Drew" || existingId?.startsWith("Drew:") ? "Drew" : "Tony";
   const questionnaire = (await loadUploadedQuestionnaire(env, person)) || {
     person,
@@ -721,6 +1301,15 @@ async function upsertQuestionnaireResponse(
 }
 
 async function deleteQuestionnaireResponse(env: Env, id: string): Promise<boolean> {
+  if (id.startsWith("question_")) {
+    if (!env.QUESTIONNAIRES) return false;
+    const key = `data:${slugifyEntity("QuestionnaireResponse")}:${id}`;
+    const existing = await kvGetJson<StoredRecord>(env, key);
+    if (!existing) return false;
+    await env.QUESTIONNAIRES.delete(key);
+    return true;
+  }
+
   const [personPrefix, questionId] = id.split(":");
   const person: PersonId = personPrefix === "Drew" ? "Drew" : "Tony";
   const questionnaire = await loadUploadedQuestionnaire(env, person);
@@ -837,9 +1426,6 @@ async function queryEntityCollection(
     entity === "QuestionnaireResponse"
       ? await listQuestionnaireResponseRecords(env)
       : await listEntityRecords(env, entity);
-  if (entity === "QuestionnaireResponse" && relationshipId !== DEFAULT_RELATIONSHIP_ID) {
-    return [];
-  }
 
   const queryValue = requestUrl.searchParams.get("q");
   let filtered = dedupeMetricStateRecords(entity, records);
@@ -854,11 +1440,9 @@ async function queryEntityCollection(
     }
   }
 
-  if (entity !== "QuestionnaireResponse") {
-    filtered = filtered.filter(
-      (record) => normalizeText(record.relationship_id) === relationshipId,
-    );
-  }
+  filtered = filtered.filter(
+    (record) => normalizeText(record.relationship_id) === relationshipId,
+  );
 
   const sorted = sortRecords(filtered, requestUrl.searchParams.get("sort"));
   const sliced = sliceRecords(sorted, requestUrl.searchParams.get("skip"), requestUrl.searchParams.get("limit"));
@@ -872,8 +1456,9 @@ async function getEntityRecord(
   relationshipId = DEFAULT_RELATIONSHIP_ID,
 ): Promise<StoredRecord | null> {
   if (entity === "QuestionnaireResponse") {
-    if (relationshipId !== DEFAULT_RELATIONSHIP_ID) return null;
-    return getQuestionnaireResponseRecord(env, id);
+    const record = await getQuestionnaireResponseRecord(env, id);
+    if (!record) return null;
+    return normalizeText(record.relationship_id) === relationshipId ? record : null;
   }
   const record = await kvGetJson<StoredRecord>(env, `data:${slugifyEntity(entity)}:${id}`);
   if (!record) return null;
@@ -887,10 +1472,7 @@ async function createEntityRecord(
   relationshipId = DEFAULT_RELATIONSHIP_ID,
 ): Promise<StoredRecord> {
   if (entity === "QuestionnaireResponse") {
-    if (relationshipId !== DEFAULT_RELATIONSHIP_ID) {
-      throw new Error("questionnaire_scope_not_supported");
-    }
-    return upsertQuestionnaireResponse(env, body);
+    return upsertQuestionnaireResponse(env, body, undefined, relationshipId);
   }
 
   const timestamp = nowIso();
@@ -912,8 +1494,7 @@ async function updateEntityRecord(
   relationshipId = DEFAULT_RELATIONSHIP_ID,
 ): Promise<StoredRecord | null> {
   if (entity === "QuestionnaireResponse") {
-    if (relationshipId !== DEFAULT_RELATIONSHIP_ID) return null;
-    return upsertQuestionnaireResponse(env, body, id);
+    return upsertQuestionnaireResponse(env, body, id, relationshipId);
   }
 
   const current = await getEntityRecord(env, entity, id, relationshipId);
@@ -937,7 +1518,8 @@ async function deleteEntityRecord(
 ): Promise<boolean> {
   if (!env.QUESTIONNAIRES) return false;
   if (entity === "QuestionnaireResponse") {
-    if (relationshipId !== DEFAULT_RELATIONSHIP_ID) return false;
+    const existing = await getEntityRecord(env, entity, id, relationshipId);
+    if (!existing) return false;
     return deleteQuestionnaireResponse(env, id);
   }
   const key = `data:${slugifyEntity(entity)}:${id}`;
@@ -949,16 +1531,30 @@ async function deleteEntityRecord(
 }
 
 async function buildState(env: Env, relationshipId = DEFAULT_RELATIONSHIP_ID): Promise<AppState> {
-  const baseState = RELATEIQ_STATES[relationshipId] || RELATEIQ_STATE;
+  const baseState =
+    RELATEIQ_STATES[relationshipId] ||
+    (await buildDynamicRelationshipState(env, relationshipId)) ||
+    RELATEIQ_STATE;
   if (relationshipId !== DEFAULT_RELATIONSHIP_ID) {
+    const records = await listQuestionnaireResponseRecords(env);
+    const participantCounts = new Map<string, number>();
+    records
+      .filter((record) => normalizeText(record.relationship_id) === relationshipId)
+      .forEach((record) => {
+        const person = normalizeText(record.person_name) || "Participant";
+        participantCounts.set(person, (participantCounts.get(person) || 0) + 1);
+      });
+
     return {
       ...baseState,
       questionnaires: baseState.questionnaires.map((summary) => ({
         ...summary,
-        importedQuestions: 0,
-        importReady: false,
+        importedQuestions: participantCounts.get(summary.person) || 0,
+        importReady: (participantCounts.get(summary.person) || 0) >= summary.totalQuestions,
       })),
-      questionnaireImported: false,
+      questionnaireImported: baseState.questionnaires.every(
+        (summary) => (participantCounts.get(summary.person) || 0) >= summary.totalQuestions,
+      ),
     };
   }
 
@@ -992,14 +1588,17 @@ async function buildState(env: Env, relationshipId = DEFAULT_RELATIONSHIP_ID): P
 
 async function buildAiCoachResponse(
   env: Env,
+  relationshipId: string,
   speaker: PersonId,
+  partner: PersonId,
   topic: string,
   goal: string,
 ): Promise<Record<string, unknown> | null> {
-  const speakerQuestionnaire = await loadUploadedQuestionnaire(env, speaker);
-  const partner = speaker === "Tony" ? "Drew" : "Tony";
-  const partnerQuestionnaire = await loadUploadedQuestionnaire(env, partner);
   const fallback = buildCoachResponse({ speaker, topic, goal });
+  const [speakerQuestionnaire, partnerQuestionnaire] = await Promise.all([
+    getQuestionnaireContextForRelationshipParticipant(env, relationshipId, speaker),
+    getQuestionnaireContextForRelationshipParticipant(env, relationshipId, partner),
+  ]);
   const sharedInterpretation = await runSharedInterpretation(env, {
     sourceType: "ai_coach",
     moduleContext: "AI Coach",
@@ -1025,8 +1624,8 @@ async function buildAiCoachResponse(
         sharedInterpretation
           ? `Shared interpretation: ${sharedInterpretation.finalInterpretation.whatThisLikelyMeans}\nWhy: ${sharedInterpretation.finalInterpretation.whyAiThinksThat}\nMisread risk: ${sharedInterpretation.finalInterpretation.whatThePartnerMayBeMisreading}\nNext: ${sharedInterpretation.finalInterpretation.whatToDoNext}`
           : "",
-        buildQuestionnaireContext(speakerQuestionnaire, speaker),
-        buildQuestionnaireContext(partnerQuestionnaire, partner),
+        speakerQuestionnaire,
+        partnerQuestionnaire,
       ].join("\n\n"),
     },
   ];
@@ -1056,14 +1655,17 @@ async function buildAiCoachResponse(
 
 async function buildAiCheckInResponse(
   env: Env,
+  relationshipId: string,
   speaker: PersonId,
+  partner: PersonId,
   mood: string,
   notes: string,
 ): Promise<Record<string, unknown> | null> {
-  const speakerQuestionnaire = await loadUploadedQuestionnaire(env, speaker);
-  const partner = speaker === "Tony" ? "Drew" : "Tony";
-  const partnerQuestionnaire = await loadUploadedQuestionnaire(env, partner);
   const fallback = buildCheckInResponse({ speaker, mood, notes });
+  const [speakerQuestionnaire, partnerQuestionnaire] = await Promise.all([
+    getQuestionnaireContextForRelationshipParticipant(env, relationshipId, speaker),
+    getQuestionnaireContextForRelationshipParticipant(env, relationshipId, partner),
+  ]);
   const sharedInterpretation = await runSharedInterpretation(env, {
     sourceType: "check_in",
     moduleContext: "Check-In",
@@ -1088,8 +1690,8 @@ async function buildAiCheckInResponse(
         sharedInterpretation
           ? `Shared interpretation: ${sharedInterpretation.finalInterpretation.whatThisLikelyMeans}\nNext: ${sharedInterpretation.finalInterpretation.whatToDoNext}`
           : "",
-        buildQuestionnaireContext(speakerQuestionnaire, speaker),
-        buildQuestionnaireContext(partnerQuestionnaire, partner),
+        speakerQuestionnaire,
+        partnerQuestionnaire,
       ].join("\n\n"),
     },
   ];
@@ -1118,14 +1720,17 @@ async function buildAiCheckInResponse(
 
 async function buildAiRepairResponse(
   env: Env,
+  relationshipId: string,
   speaker: PersonId,
+  partner: PersonId,
   issue: string,
   desiredOutcome: string,
 ): Promise<Record<string, unknown> | null> {
-  const speakerQuestionnaire = await loadUploadedQuestionnaire(env, speaker);
-  const partner = speaker === "Tony" ? "Drew" : "Tony";
-  const partnerQuestionnaire = await loadUploadedQuestionnaire(env, partner);
   const fallback = buildRepairResponse({ speaker, issue, desiredOutcome });
+  const [speakerQuestionnaire, partnerQuestionnaire] = await Promise.all([
+    getQuestionnaireContextForRelationshipParticipant(env, relationshipId, speaker),
+    getQuestionnaireContextForRelationshipParticipant(env, relationshipId, partner),
+  ]);
   const sharedInterpretation = await runSharedInterpretation(env, {
     sourceType: "repair",
     moduleContext: "Repair",
@@ -1151,8 +1756,8 @@ async function buildAiRepairResponse(
         sharedInterpretation
           ? `Shared interpretation: ${sharedInterpretation.finalInterpretation.whatThisLikelyMeans}\nMisread risk: ${sharedInterpretation.finalInterpretation.whatThePartnerMayBeMisreading}\nNext: ${sharedInterpretation.finalInterpretation.whatToDoNext}`
           : "",
-        buildQuestionnaireContext(speakerQuestionnaire, speaker),
-        buildQuestionnaireContext(partnerQuestionnaire, partner),
+        speakerQuestionnaire,
+        partnerQuestionnaire,
       ].join("\n\n"),
     },
   ];
@@ -1181,11 +1786,12 @@ async function buildAiRepairResponse(
 }
 
 function toPersonId(value: unknown, fallback: PersonId = "Tony"): PersonId {
-  return value === "Drew" ? "Drew" : fallback;
+  const normalized = normalizeText(value);
+  return normalized || fallback;
 }
 
-function resolvePlayLabPartner(person: PersonId): PersonId {
-  return person === "Tony" ? "Drew" : "Tony";
+function resolvePlayLabPartner(person: PersonId, participants: [string, string] = ["Tony", "Drew"]): PersonId {
+  return getScopedPartner(person, participants);
 }
 
 function humanizeValue(value: string): string {
@@ -2120,11 +2726,16 @@ async function buildPlayLabMemory(env: Env, scope: string, relationshipId = DEFA
       listEntityRecords(env, "PlayLabResult"),
     ]);
 
-  const tonyQuestionnaire = await loadUploadedQuestionnaire(env, "Tony");
-  const drewQuestionnaire = await loadUploadedQuestionnaire(env, "Drew");
+  const relationship = await getRelationshipPersistent(env, relationshipId);
+  const participants = getScopedParticipants(relationship);
+  const [primaryQuestionnaireRecords, secondaryQuestionnaireRecords] = await Promise.all([
+    getRelationshipQuestionnaireRecords(env, relationshipId, participants[0]),
+    getRelationshipQuestionnaireRecords(env, relationshipId, participants[1]),
+  ]);
 
   return {
     relationship_id: relationshipId,
+    participants,
     scope,
     profiles: profiles.filter((record) => normalizeText(record.relationship_id) === relationshipId),
     sessions: sortRecords(sessions.filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date").slice(0, 12),
@@ -2137,12 +2748,12 @@ async function buildPlayLabMemory(env: Env, scope: string, relationshipId = DEFA
     playLabResults: sortRecords(playLabResults.filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date").slice(0, 20),
     relationshipDynamic,
     questionnaireCounts: {
-      Tony: tonyQuestionnaire?.responses.length || 0,
-      Drew: drewQuestionnaire?.responses.length || 0,
+      [participants[0]]: primaryQuestionnaireRecords.length || 0,
+      [participants[1]]: secondaryQuestionnaireRecords.length || 0,
     },
     questionnaireContext: [
-      buildQuestionnaireContext(tonyQuestionnaire, "Tony"),
-      buildQuestionnaireContext(drewQuestionnaire, "Drew"),
+      buildQuestionnaireContextFromRecords(primaryQuestionnaireRecords, participants[0]),
+      buildQuestionnaireContextFromRecords(secondaryQuestionnaireRecords, participants[1]),
     ].join("\n\n"),
   };
 }
@@ -2277,6 +2888,7 @@ function buildPlayLabDeterministicResult(input: {
   predictedNeed?: string;
   initiatedBy: PersonId;
   scope: string;
+  participants?: [string, string];
 }) {
   const moduleLabel = PLAY_LAB_MODULE_LABELS[input.moduleType];
   const actualAnswer = normalizeText(input.actualAnswer);
@@ -2287,7 +2899,7 @@ function buildPlayLabDeterministicResult(input: {
   const unresolved = normalizeText(input.unresolved);
   const selectedMisread = normalizeText(input.selectedMisread);
   const stressSource = normalizeText(input.stressSource);
-  const partner = resolvePlayLabPartner(input.initiatedBy);
+  const partner = resolvePlayLabPartner(input.initiatedBy, input.participants || ["Tony", "Drew"]);
 
   const matchScore = computeMatchScore(actualAnswer || currentNeed || situation, guessedAnswer || predictedNeed || selectedMisread);
   const mismatchType =
@@ -2423,7 +3035,7 @@ async function buildPlayLabAiResult(
   },
   memory: Awaited<ReturnType<typeof buildPlayLabMemory>>,
 ) {
-  const partner = resolvePlayLabPartner(input.initiatedBy);
+  const partner = resolvePlayLabPartner(input.initiatedBy, memory.participants || ["Tony", "Drew"]);
   const sharedInterpretation = await runSharedInterpretation(
     env,
     {
@@ -2453,7 +3065,10 @@ async function buildPlayLabAiResult(
     memory,
   ).catch(() => null);
 
-  const fallback = buildPlayLabDeterministicResult(input);
+  const fallback = buildPlayLabDeterministicResult({
+    ...input,
+    participants: memory.participants,
+  });
   const messages: GroqMessage[] = [
     {
       role: "system",
@@ -2770,7 +3385,7 @@ export default {
       const body = await readJson(request);
       const email = String(body?.email || "").trim().toLowerCase();
       const password = String(body?.password || "");
-      const user = getUserByEmail(email);
+      const user = await getUserByEmailPersistent(env, email);
       if (!user) {
         return json({ error: "invalid_credentials" }, request, env, 401);
       }
@@ -2780,7 +3395,7 @@ export default {
         return json({ error: "invalid_credentials" }, request, env, 401);
       }
 
-      const relationships = getRelationshipsForUser(user.id);
+      const relationships = await getRelationshipsForUserPersistent(env, user.id);
       const token = await createSessionToken(
         {
           user_id: user.id,
@@ -2806,7 +3421,7 @@ export default {
 
     if (url.pathname === "/api/auth/register" && request.method === "POST") {
       const body = await readJson(request);
-      const created = await createUserAccount({
+      const created = await createUserAccountPersistent(env, {
         email: String(body?.email || ""),
         password: String(body?.password || ""),
         name: String(body?.name || ""),
@@ -2817,7 +3432,7 @@ export default {
       }
 
       const user = created.user;
-      const relationships = getRelationshipsForUser(user.id);
+      const relationships = await getRelationshipsForUserPersistent(env, user.id);
       const token = await createSessionToken(
         {
           user_id: user.id,
@@ -2842,9 +3457,9 @@ export default {
     }
 
     if (url.pathname === "/api/auth/me" && request.method === "GET") {
-      const user = await readSessionUser(request, env, true);
+      const user = await readSessionUser(request, env, false);
       if (!user) return json({ error: "unauthorized" }, request, env, 401);
-      const relationships = getRelationshipsForUser(user.id);
+      const relationships = await getRelationshipsForUserPersistent(env, user.id);
       return json(
         {
           ok: true,
@@ -2858,16 +3473,16 @@ export default {
     }
 
     if (url.pathname === "/api/relationships" && request.method === "GET") {
-      const user = await readSessionUser(request, env, true);
+      const user = await readSessionUser(request, env, false);
       if (!user) return json({ error: "unauthorized" }, request, env, 401);
-      return json({ relationships: getRelationshipsForUser(user.id) }, request, env);
+      return json({ relationships: await getRelationshipsForUserPersistent(env, user.id) }, request, env);
     }
 
     if (url.pathname === "/api/relationships/create" && request.method === "POST") {
-      const user = await readSessionUser(request, env, true);
+      const user = await readSessionUser(request, env, false);
       if (!user) return json({ error: "unauthorized" }, request, env, 401);
       const body = await readJson(request);
-      const created = createRelationshipForUser({
+      const created = await createRelationshipForUserPersistent(env, {
         creatorUserId: user.id,
         name: String(body?.name || ""),
         type: (body?.type || "romantic") as RelationshipType,
@@ -2879,7 +3494,7 @@ export default {
         {
           ok: true,
           relationship: created.summary,
-          relationships: getRelationshipsForUser(user.id),
+          relationships: await getRelationshipsForUserPersistent(env, user.id),
         },
         request,
         env,
@@ -2893,7 +3508,7 @@ export default {
         return json({ error: scoped.error }, request, env, scoped.status);
       }
 
-      const created = createRelationshipInvite({
+      const created = await createRelationshipInvitePersistent(env, {
         relationshipId: scoped.relationshipId,
         invitedEmail: String(body?.email || ""),
       });
@@ -2917,9 +3532,9 @@ export default {
     if (url.pathname.startsWith("/api/invite/") && request.method === "GET") {
       const token = url.pathname.split("/").pop() || "";
       const currentUser = await readSessionUser(request, env, true);
-      const result = getInviteLookup(token, currentUser?.id);
+      const result = await getInviteLookupPersistent(env, token, currentUser?.id);
       if (!result) return json({ error: "invite_not_found" }, request, env, 404);
-      if (findInviteByToken(token)?.status === "expired") {
+      if ((await findInviteByTokenPersistent(env, token))?.status === "expired") {
         return json({ error: "invite_expired" }, request, env, 410);
       }
       return json(
@@ -2940,7 +3555,7 @@ export default {
       const user = await readSessionUser(request, env, false);
       if (!user) return json({ error: "unauthorized" }, request, env, 401);
 
-      const accepted = acceptRelationshipInvite({ token, userId: user.id });
+      const accepted = await acceptRelationshipInvitePersistent(env, { token, userId: user.id });
       if (!accepted.ok) {
         const status = accepted.error === "invite_expired" ? 410 : 400;
         return json({ error: accepted.error }, request, env, status);
@@ -2950,7 +3565,7 @@ export default {
         {
           ok: true,
           relationship: accepted.summary,
-          relationships: getRelationshipsForUser(user.id),
+          relationships: await getRelationshipsForUserPersistent(env, user.id),
           already_member: accepted.alreadyMember,
           default_relationship_id: accepted.relationship.id,
         },
@@ -2966,7 +3581,7 @@ export default {
         return json({ error: scoped.error }, request, env, scoped.status);
       }
 
-      const saved = submitRelationshipOnboarding({
+      const saved = await submitRelationshipOnboardingPersistent(env, {
         relationshipId: scoped.relationshipId,
         userId: scoped.user.id,
         selfDescription: String(body?.self_description || ""),
@@ -2984,7 +3599,7 @@ export default {
         {
           ok: true,
           onboarding: saved.onboarding,
-          relationships: getRelationshipsForUser(scoped.user.id),
+          relationships: await getRelationshipsForUserPersistent(env, scoped.user.id),
         },
         request,
         env,
@@ -3217,13 +3832,15 @@ export default {
       if (!isObject(body) || !normalizeText(body.rawInput)) {
         return json({ error: "invalid_payload" }, request, env, 400);
       }
-
-      const speaker = toPersonId(body.speaker);
-      const partner = toPersonId(body.partner, resolvePlayLabPartner(speaker));
+      const relationshipId = relationshipIdFrom(request, url, body) || DEFAULT_RELATIONSHIP_ID;
+      const relationship = await getRelationshipPersistent(env, relationshipId);
+      const participants = getScopedParticipants(relationship);
+      const speaker = normalizeScopedPerson(body.speaker, participants, 0);
+      const partner = normalizeScopedPerson(body.partner, participants, speaker === participants[0] ? 1 : 0);
       const result = await runSharedInterpretation(env, {
         sourceType: normalizeText(body.sourceType) || "manual",
         moduleContext: normalizeText(body.moduleContext) || "Shared Interpretation",
-        scope: normalizeText(body.scope) || `${speaker}+${partner}`,
+        scope: normalizeScopedScope(body.scope, participants) || `${speaker}+${partner}`,
         speaker,
         partner,
         rawInput: normalizeText(body.rawInput),
@@ -3256,10 +3873,12 @@ export default {
       if ("error" in scoped) {
         return json({ error: scoped.error }, request, env, scoped.status);
       }
-      const speaker = body?.speaker === "Drew" ? "Drew" : "Tony";
+      const participants = getScopedParticipants(scoped.relationship);
+      const speaker = normalizeScopedPerson(body?.speaker, participants, 0);
+      const partner = getScopedPartner(speaker, participants);
       const topic = String(body?.topic || "");
       const goal = String(body?.goal || "");
-      const aiResponse = await buildAiCoachResponse(env, speaker, topic, goal);
+      const aiResponse = await buildAiCoachResponse(env, scoped.relationshipId, speaker, partner, topic, goal);
       return json(
         aiResponse || {
           ...buildCoachResponse({ relationshipId: scoped.relationshipId, speaker, topic, goal }),
@@ -3278,10 +3897,12 @@ export default {
       if ("error" in scoped) {
         return json({ error: scoped.error }, request, env, scoped.status);
       }
-      const speaker = body?.speaker === "Drew" ? "Drew" : "Tony";
+      const participants = getScopedParticipants(scoped.relationship);
+      const speaker = normalizeScopedPerson(body?.speaker, participants, 0);
+      const partner = getScopedPartner(speaker, participants);
       const mood = String(body?.mood || "");
       const notes = String(body?.notes || "");
-      const aiResponse = await buildAiCheckInResponse(env, speaker, mood, notes);
+      const aiResponse = await buildAiCheckInResponse(env, scoped.relationshipId, speaker, partner, mood, notes);
       return json(
         aiResponse || {
           ...buildCheckInResponse({ relationshipId: scoped.relationshipId, speaker, mood, notes }),
@@ -3300,10 +3921,12 @@ export default {
       if ("error" in scoped) {
         return json({ error: scoped.error }, request, env, scoped.status);
       }
-      const speaker = body?.speaker === "Drew" ? "Drew" : "Tony";
+      const participants = getScopedParticipants(scoped.relationship);
+      const speaker = normalizeScopedPerson(body?.speaker, participants, 0);
+      const partner = getScopedPartner(speaker, participants);
       const issue = String(body?.issue || "");
       const desiredOutcome = String(body?.desiredOutcome || "");
-      const aiResponse = await buildAiRepairResponse(env, speaker, issue, desiredOutcome);
+      const aiResponse = await buildAiRepairResponse(env, scoped.relationshipId, speaker, partner, issue, desiredOutcome);
       return json(
         aiResponse || {
           ...buildRepairResponse({ relationshipId: scoped.relationshipId, speaker, issue, desiredOutcome }),
@@ -3355,16 +3978,24 @@ export default {
       if (!isObject(body)) {
         return json({ error: "invalid_payload" }, request, env, 400);
       }
+      const scoped = await requireScopedRelationship(request, env, url, body);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
 
       const moduleType = normalizeText(body.moduleType) as PlayLabModuleType;
       if (!PLAY_LAB_MODULE_LABELS[moduleType]) {
         return json({ error: "invalid_module_type" }, request, env, 400);
       }
 
-      const initiatedBy = toPersonId(body.initiatedBy);
-      const answeringPerson = toPersonId(body.answeringPerson, initiatedBy);
-      const scope = normalizeText(body.scope) || "Tony+Drew";
-      const relationshipId = relationshipIdFrom(request, url, body);
+      const participants = getScopedParticipants(scoped.relationship);
+      const initiatedBy = normalizeScopedPerson(body.initiatedBy, participants, 0);
+      const answeringPerson = normalizeScopedPerson(
+        body.answeringPerson,
+        participants,
+        initiatedBy === participants[0] ? 0 : 1,
+      );
+      const scope = normalizeScopedScope(body.scope, participants) || `${participants[0]}+${participants[1]}`;
       const promptText = pickPrompt(moduleType, `${moduleType}:${scope}:${initiatedBy}`);
 
       const record = await createEntityRecord(env, "PlayLabSession", {
@@ -3380,7 +4011,7 @@ export default {
           createdFrom: normalizeText(body.createdFrom) || "play_lab",
         },
         related_session_id: normalizeText(body.relatedSessionId) || null,
-      }, relationshipId);
+      }, scoped.relationshipId);
 
       return json(
         {
@@ -3399,18 +4030,26 @@ export default {
       if (!isObject(body)) {
         return json({ error: "invalid_payload" }, request, env, 400);
       }
+      const scoped = await requireScopedRelationship(request, env, url, body);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
 
       const moduleType = normalizeText(body.moduleType) as PlayLabModuleType;
       if (!PLAY_LAB_MODULE_LABELS[moduleType]) {
         return json({ error: "invalid_module_type" }, request, env, 400);
       }
 
-      const scope = normalizeText(body.scope) || "Tony+Drew";
-      const initiatedBy = toPersonId(body.initiatedBy);
-      const answeringPerson = toPersonId(body.answeringPerson, initiatedBy);
-      const relationshipId = relationshipIdFrom(request, url, body);
+      const participants = getScopedParticipants(scoped.relationship);
+      const scope = normalizeScopedScope(body.scope, participants) || `${participants[0]}+${participants[1]}`;
+      const initiatedBy = normalizeScopedPerson(body.initiatedBy, participants, 0);
+      const answeringPerson = normalizeScopedPerson(
+        body.answeringPerson,
+        participants,
+        initiatedBy === participants[0] ? 0 : 1,
+      );
       const currentContextObject = isObject(body.currentContextObject) ? body.currentContextObject : null;
-      const memory = await buildPlayLabMemory(env, scope, relationshipId);
+      const memory = await buildPlayLabMemory(env, scope, scoped.relationshipId);
       const promptText = pickAdaptivePlayLabPrompt(moduleType, memory, scope);
 
       const record = await createEntityRecord(env, "PlayLabSession", {
@@ -3427,7 +4066,7 @@ export default {
           previousContext: currentContextObject,
         },
         related_session_id: normalizeText(body.relatedSessionId) || null,
-      }, relationshipId);
+      }, scoped.relationshipId);
 
       return json(
         {
@@ -3447,11 +4086,17 @@ export default {
       if (!isObject(body) || !normalizeText(body.sessionId) || !normalizeText(body.responseValue)) {
         return json({ error: "invalid_payload" }, request, env, 400);
       }
-      const relationshipId = relationshipIdFrom(request, url, body);
+      const scoped = await requireScopedRelationship(request, env, url, body);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
+      const participants = getScopedParticipants(scoped.relationship);
 
       const responseRecord = await createEntityRecord(env, "PlayLabResponse", {
         session_id: normalizeText(body.sessionId),
-        user_id: normalizeText(body.userId) || toPersonId(body.userId || body.person || body.roleInSession).toString(),
+        user_id:
+          normalizeText(body.userId) ||
+          normalizeScopedPerson(body.userId || body.person || body.roleInSession, participants, 0),
         role_in_session: normalizeText(body.roleInSession) || "participant",
         response_type: normalizeText(body.responseType) || "text",
         response_value: normalizeText(body.responseValue),
@@ -3459,12 +4104,12 @@ export default {
         confidence: typeof body.confidence === "number" ? body.confidence : null,
         tags: Array.isArray(body.tags) ? body.tags.filter(Boolean).map((tag) => normalizeText(tag)) : [],
         metadata: isObject(body.metadata) ? body.metadata : null,
-      }, relationshipId);
+      }, scoped.relationshipId);
 
       await updateEntityRecord(env, "PlayLabSession", normalizeText(body.sessionId), {
         status: "in_progress",
         last_input_at: nowIso(),
-      }, relationshipId);
+      }, scoped.relationshipId);
 
       return json({ ok: true, response: responseRecord }, request, env, 201);
     }
@@ -3477,10 +4122,14 @@ export default {
       if (!isObject(body) || !normalizeText(body.sessionId)) {
         return json({ error: "invalid_payload" }, request, env, 400);
       }
+      const scoped = await requireScopedRelationship(request, env, url, body);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
 
       const sessionId = normalizeText(body.sessionId);
-      const relationshipId = relationshipIdFrom(request, url, body);
-      const session = await getEntityRecord(env, "PlayLabSession", sessionId, relationshipId);
+      const participants = getScopedParticipants(scoped.relationship);
+      const session = await getEntityRecord(env, "PlayLabSession", sessionId, scoped.relationshipId);
       if (!session) {
         return json({ error: "session_not_found" }, request, env, 404);
       }
@@ -3490,9 +4139,9 @@ export default {
         return json({ error: "invalid_module_type" }, request, env, 400);
       }
 
-      const initiatedBy = toPersonId(body.initiatedBy || session.initiated_by);
-      const scope = normalizeText(body.scope || session.scope) || "Tony+Drew";
-      const memory = await buildPlayLabMemory(env, scope, relationshipId);
+      const initiatedBy = normalizeScopedPerson(body.initiatedBy || session.initiated_by, participants, 0);
+      const scope = normalizeScopedScope(body.scope || session.scope, participants) || `${participants[0]}+${participants[1]}`;
+      const memory = await buildPlayLabMemory(env, scope, scoped.relationshipId);
       const sourceInputs = {
         promptText: normalizeText(body.promptText || session.prompt_text),
         actualAnswer: normalizeText(body.actualAnswer),
@@ -3565,7 +4214,7 @@ export default {
         provider: resultCore.provider,
         model: resultCore.model || null,
         key_index: resultCore.keyIndex ?? null,
-      }, relationshipId);
+      }, scoped.relationshipId);
 
       await safelyCaptureMetricSignals(env, buildPlayLabMetricSignals(resultRecord));
 
@@ -3577,10 +4226,13 @@ export default {
         related_session_id: sessionId,
         inferred_tags: resultCore.inferredTags,
         saved_by_user: initiatedBy,
-      }, relationshipId);
+      }, scoped.relationshipId);
 
       await createEntityRecord(env, "InsightEntry", {
-        perspective: scope === "Tony+Drew" ? `${initiatedBy}→${resolvePlayLabPartner(initiatedBy)}` : scope,
+        perspective:
+          scope === `${participants[0]}+${participants[1]}`
+            ? `${initiatedBy}→${resolvePlayLabPartner(initiatedBy, participants)}`
+            : scope,
         mode: "play-lab",
         core_insight: resultCore.summary,
         behavioral_patterns: (resultCore.sections || []).slice(0, 2).map((section) => normalizeText(section.body)),
@@ -3597,14 +4249,14 @@ export default {
         note: "",
         source_type: "play_lab",
         related_session_id: sessionId,
-      }, relationshipId);
+      }, scoped.relationshipId);
 
       await updateEntityRecord(env, "PlayLabSession", sessionId, {
         status: "completed",
         result_id: resultRecord.id,
         aha_card_id: ahaRecord.id,
         context_object: contextObject,
-      }, relationshipId);
+      }, scoped.relationshipId);
 
       return json(
         {
@@ -3631,14 +4283,17 @@ export default {
       if (!isObject(body)) {
         return json({ error: "invalid_payload" }, request, env, 400);
       }
-
-      const relationshipId = relationshipIdFrom(request, url, body);
-      const scope = normalizeText(body.scope) || "Tony+Drew";
+      const scoped = await requireScopedRelationship(request, env, url, body);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
+      const participants = getScopedParticipants(scoped.relationship);
+      const scope = normalizeScopedScope(body.scope, participants) || `${participants[0]}+${participants[1]}`;
       const relatedSessionId = normalizeText(body.relatedSessionId);
       const result =
         relatedSessionId
-          ? (await queryEntityCollection(env, "PlayLabResult", new URL(`${url.origin}/?q=${encodeURIComponent(JSON.stringify({ session_id: relatedSessionId }))}`), relationshipId))[0]
-          : sortRecords((await listEntityRecords(env, "PlayLabResult")).filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date")[0];
+          ? (await queryEntityCollection(env, "PlayLabResult", new URL(`${url.origin}/?q=${encodeURIComponent(JSON.stringify({ session_id: relatedSessionId }))}`), scoped.relationshipId))[0]
+          : sortRecords((await listEntityRecords(env, "PlayLabResult")).filter((record) => normalizeText(record.relationship_id) === scoped.relationshipId), "-updated_date")[0];
 
       const resultSummary = isObject(result) ? normalizeText(result.ai_summary) : "A new pattern is becoming clearer.";
       const ahaRecord = await createEntityRecord(env, "AhaCard", {
@@ -3648,8 +4303,8 @@ export default {
         source_type: normalizeText(body.sourceType) || "play_lab",
         related_session_id: relatedSessionId || normalizeText(result?.session_id),
         inferred_tags: Array.isArray(body.inferredTags) ? body.inferredTags : result?.inferred_tags || [],
-        saved_by_user: normalizeText(body.savedByUser) || "Tony",
-      }, relationshipId);
+        saved_by_user: normalizeScopedPerson(body.savedByUser, participants, 0),
+      }, scoped.relationshipId);
 
       return json({ ok: true, ahaCard: ahaRecord }, request, env, 201);
     }
@@ -3659,11 +4314,14 @@ export default {
       if (!isObject(body)) {
         return json({ error: "invalid_payload" }, request, env, 400);
       }
-
-      const relationshipId = relationshipIdFrom(request, url, body);
-      const scope = normalizeText(body.scope) || "Tony";
-      const userId = normalizeText(body.userId) || (scope.includes("Drew") && !scope.includes("Tony") ? "Drew" : "Tony");
-      const memory = await buildPlayLabMemory(env, scope, relationshipId);
+      const scoped = await requireScopedRelationship(request, env, url, body);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
+      const participants = getScopedParticipants(scoped.relationship);
+      const scope = normalizeScopedScope(body.scope, participants) || participants[0];
+      const userId = normalizeScopedPerson(body.userId || scope, participants, 0);
+      const memory = await buildPlayLabMemory(env, scope, scoped.relationshipId);
       const topTag =
         Array.isArray(body.focusTags) && body.focusTags.length > 0
           ? normalizeText(body.focusTags[0])
@@ -3679,7 +4337,7 @@ export default {
         title: normalizeText(body.title) || `One Degree of Change: ${humanizeValue(topTag)}`,
         description:
           normalizeText(body.description) ||
-          `Try one small behavior that makes ${userId === "Tony" ? "Drew" : "Tony"} feel more understood when pressure is high.`,
+          `Try one small behavior that makes ${getScopedPartner(userId, participants)} feel more understood when pressure is high.`,
         why_chosen:
           normalizeText(body.whyChosen) ||
           `Chosen because recent Play Lab results suggest ${humanizeValue(topTag)} is a high-leverage area right now.`,
@@ -3696,7 +4354,7 @@ export default {
             questionnaireCounts: memory.questionnaireCounts,
           },
         },
-      }, relationshipId);
+      }, scoped.relationshipId);
 
       return json({ ok: true, sideQuest: quest }, request, env, 201);
     }
@@ -3706,30 +4364,33 @@ export default {
       if (!isObject(body)) {
         return json({ error: "invalid_payload" }, request, env, 400);
       }
-
-      const relationshipId = relationshipIdFrom(request, url, body);
+      const scoped = await requireScopedRelationship(request, env, url, body);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
+      const participants = getScopedParticipants(scoped.relationship);
       const outcome = await createEntityRecord(env, "OutcomeLog", {
         source_type: normalizeText(body.sourceType) || "play_lab",
         related_id: normalizeText(body.relatedId),
-        scope: normalizeText(body.scope) || "Tony+Drew",
+        scope: normalizeScopedScope(body.scope, participants) || `${participants[0]}+${participants[1]}`,
         attempted: Boolean(body.attempted),
         helped: Boolean(body.helped),
         tension_change: Number(body.tensionChange || 0),
         connection_change: Number(body.connectionChange || 0),
         felt_natural: Boolean(body.feltNatural),
         notes: normalizeText(body.notes),
-      }, relationshipId);
+      }, scoped.relationshipId);
 
       await safelyCaptureMetricSignals(env, buildOutcomeMetricSignals(outcome));
 
-      const scope = normalizeText(body.scope) || "Tony+Drew";
-      const speaker = scope.includes("Drew") && !scope.includes("Tony") ? "Drew" : "Tony";
+      const scope = normalizeScopedScope(body.scope, participants) || `${participants[0]}+${participants[1]}`;
+      const speaker = scope.includes("+") ? participants[0] : normalizeScopedPerson(scope, participants, 0);
       await runSharedInterpretation(env, {
         sourceType: "outcome_tracking",
         moduleContext: "Outcome Tracking",
         scope,
         speaker,
-        partner: resolvePlayLabPartner(speaker),
+        partner: resolvePlayLabPartner(speaker, participants),
         rawInput: [
           `Attempted: ${Boolean(body.attempted)}`,
           `Helped: ${Boolean(body.helped)}`,
@@ -3748,29 +4409,38 @@ export default {
     }
 
     if (url.pathname === "/api/play-lab/history" && request.method === "GET") {
-      const relationshipId = relationshipIdFrom(request, url);
+      const scoped = await requireScopedRelationship(request, env, url);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
       const scope = normalizeText(url.searchParams.get("scope")) || "";
       const limit = Number(url.searchParams.get("limit") || 24) || 24;
-      const sessions = sortRecords((await listEntityRecords(env, "PlayLabSession")).filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date")
+      const sessions = sortRecords((await listEntityRecords(env, "PlayLabSession")).filter((record) => normalizeText(record.relationship_id) === scoped.relationshipId), "-updated_date")
         .filter((record) => !scope || normalizeText(record.scope).includes(scope) || normalizeText(record.initiated_by) === scope)
         .slice(0, limit);
-      const results = sortRecords((await listEntityRecords(env, "PlayLabResult")).filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date").slice(0, limit);
+      const results = sortRecords((await listEntityRecords(env, "PlayLabResult")).filter((record) => normalizeText(record.relationship_id) === scoped.relationshipId), "-updated_date").slice(0, limit);
       return json({ sessions, results }, request, env);
     }
 
     if (url.pathname === "/api/play-lab/aha-cards" && request.method === "GET") {
-      const relationshipId = relationshipIdFrom(request, url);
+      const scoped = await requireScopedRelationship(request, env, url);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
       const scope = normalizeText(url.searchParams.get("scope")) || "";
-      const cards = sortRecords((await listEntityRecords(env, "AhaCard")).filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date").filter(
+      const cards = sortRecords((await listEntityRecords(env, "AhaCard")).filter((record) => normalizeText(record.relationship_id) === scoped.relationshipId), "-updated_date").filter(
         (record) => !scope || normalizeText(record.scope).includes(scope) || normalizeText(record.saved_by_user) === scope,
       );
       return json({ cards }, request, env);
     }
 
     if (url.pathname === "/api/play-lab/side-quests" && request.method === "GET") {
-      const relationshipId = relationshipIdFrom(request, url);
+      const scoped = await requireScopedRelationship(request, env, url);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
       const scope = normalizeText(url.searchParams.get("scope")) || "";
-      const quests = sortRecords((await listEntityRecords(env, "SideQuest")).filter((record) => normalizeText(record.relationship_id) === relationshipId), "-updated_date").filter(
+      const quests = sortRecords((await listEntityRecords(env, "SideQuest")).filter((record) => normalizeText(record.relationship_id) === scoped.relationshipId), "-updated_date").filter(
         (record) => !scope || normalizeText(record.scope).includes(scope) || normalizeText(record.user_id) === scope,
       );
       return json({ quests }, request, env);

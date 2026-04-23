@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { api } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,8 @@ import { safeInvokeLLM } from "@/lib/aiSafe";
 import AILoadingState from "@/components/ui/AILoadingState";
 import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getPartnerName } from "@/lib/relationshipParticipants";
 
 const SITUATION_TAGS = [
   "misunderstanding", "shutdown", "defensiveness", "hurt feelings",
@@ -77,7 +79,7 @@ function RepairScriptCard({ script }) {
   );
 }
 
-function RepairOutput({ repair, repairEntryId, person }) {
+function RepairOutput({ repair, repairEntryId, person, partnerName }) {
   return (
     <div className="space-y-5">
       {/* What likely happened */}
@@ -92,13 +94,13 @@ function RepairOutput({ repair, repairEntryId, person }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card>
           <CardContent className="p-4 space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">What Tony needs now</p>
+            <p className="text-xs font-medium text-muted-foreground">What {person} needs now</p>
             <p className="text-sm text-foreground leading-relaxed">{repair.what_tony_needs_now}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">What Drew needs now</p>
+            <p className="text-xs font-medium text-muted-foreground">What {partnerName} needs now</p>
             <p className="text-sm text-foreground leading-relaxed">{repair.what_drew_needs_now}</p>
           </CardContent>
         </Card>
@@ -205,7 +207,7 @@ function RepairOutput({ repair, repairEntryId, person }) {
       <OutcomeLogger
         sourceType="Proactive Repair"
         relatedSessionId={repairEntryId}
-        scope={person === "Tony" ? "Tony" : person === "Drew" ? "Drew" : "Tony_Drew"}
+        scope={person}
         recommendationSummary={repair.best_repair_move}
       />
     </div>
@@ -213,7 +215,8 @@ function RepairOutput({ repair, repairEntryId, person }) {
 }
 
 export default function ProactiveRepair() {
-  const [person, setPerson] = useState("Tony");
+  const { activeRelationshipId, participants } = useRelationshipAuth();
+  const [person, setPerson] = useState(participants[0]);
   const [tags, setTags] = useState([]);
   const [whatHappened, setWhatHappened] = useState("");
   const [howFeeling, setHowFeeling] = useState("");
@@ -229,12 +232,18 @@ export default function ProactiveRepair() {
   const queryClient = useQueryClient();
   const repairRef = useRef(null);
 
-  const partnerName = person === "Tony" ? "Drew" : "Tony";
+  useEffect(() => {
+    if (!participants.includes(person)) {
+      setPerson(participants[0]);
+    }
+  }, [participants, person]);
 
-  const { data: profiles = [] } = useQuery({ queryKey: ["profiles-repair"], queryFn: () => api.entities.UserProfile.list() });
-  const { data: triggers = [] } = useQuery({ queryKey: ["triggers-repair"], queryFn: () => api.entities.TriggerEntry.list() });
-  const { data: outcomeLogs = [] } = useQuery({ queryKey: ["outcomes-repair"], queryFn: () => api.entities.OutcomeLog.list("-created_date", 20) });
-  const { data: repairEntries = [] } = useQuery({ queryKey: ["repair-entries"], queryFn: () => api.entities.RepairEntry.list("-created_date", 10) });
+  const partnerName = getPartnerName(person, participants);
+
+  const { data: profiles = [] } = useQuery({ queryKey: ["profiles-repair", activeRelationshipId], queryFn: () => api.entities.UserProfile.list() });
+  const { data: triggers = [] } = useQuery({ queryKey: ["triggers-repair", activeRelationshipId], queryFn: () => api.entities.TriggerEntry.list() });
+  const { data: outcomeLogs = [] } = useQuery({ queryKey: ["outcomes-repair", activeRelationshipId], queryFn: () => api.entities.OutcomeLog.list("-created_date", 20) });
+  const { data: repairEntries = [] } = useQuery({ queryKey: ["repair-entries", activeRelationshipId], queryFn: () => api.entities.RepairEntry.list("-created_date", 10) });
 
   const speakerProfile = profiles.find((p) => p.person_name === person);
   const targetProfile = profiles.find((p) => p.person_name === partnerName);
@@ -316,7 +325,7 @@ export default function ProactiveRepair() {
 
     // Persist the repair entry
     const payload = {
-      owner: person === "Tony" ? "Tony" : "Drew",
+      owner: person,
       situation_type: tags.join(", ") || "unspecified",
       situation_tags: tags,
       what_happened: whatHappened,
@@ -336,12 +345,12 @@ export default function ProactiveRepair() {
     setRepairEntryId(entry.id);
     setEditingEntryId(entry.id);
     setLoading(false);
-    queryClient.invalidateQueries({ queryKey: ["repair-entries"] });
+    queryClient.invalidateQueries({ queryKey: ["repair-entries", activeRelationshipId] });
   };
 
   const handleEditEntry = (entry) => {
     setEditingEntryId(entry.id);
-    setPerson(entry.owner === "Drew" ? "Drew" : "Tony");
+    setPerson(entry.owner || participants[0]);
     setTags(Array.isArray(entry.situation_tags) ? entry.situation_tags : []);
     setWhatHappened(entry.what_happened || "");
     setHowFeeling(entry.how_feeling_now || "");
@@ -364,7 +373,7 @@ export default function ProactiveRepair() {
       setRepairEntryId(null);
       setEditingEntryId(null);
     }
-    queryClient.invalidateQueries({ queryKey: ["repair-entries"] });
+    queryClient.invalidateQueries({ queryKey: ["repair-entries", activeRelationshipId] });
     toast.success("Repair session deleted");
   };
 
@@ -387,8 +396,9 @@ export default function ProactiveRepair() {
             <Label className="text-sm font-medium">This is</Label>
             <Tabs value={person} onValueChange={(v) => setPerson(v)}>
               <TabsList>
-                <TabsTrigger value="Tony">Tony</TabsTrigger>
-                <TabsTrigger value="Drew">Drew</TabsTrigger>
+                {participants.map((participant) => (
+                  <TabsTrigger key={participant} value={participant}>{participant}</TabsTrigger>
+                ))}
               </TabsList>
             </Tabs>
           </div>
@@ -489,7 +499,7 @@ export default function ProactiveRepair() {
               showEmail={false}
             />
             <div ref={repairRef}>
-              <RepairOutput repair={repair} repairEntryId={repairEntryId} person={person} />
+              <RepairOutput repair={repair} repairEntryId={repairEntryId} person={person} partnerName={partnerName} />
             </div>
           </motion.div>
         )}
@@ -529,7 +539,7 @@ export default function ProactiveRepair() {
       <AskCoachDrawer ctx={buildContextObject({
         page: "Proactive Repair",
         sectionTitle: "Repair Guidance",
-        scope: person === "Tony" ? "Tony" : "Drew",
+        scope: person,
         sourceInputs: { situation: whatHappened, tags },
         originalOutput: repair ? JSON.stringify(repair) : null,
         profiles,

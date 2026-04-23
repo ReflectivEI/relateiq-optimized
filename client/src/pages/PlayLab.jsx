@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   PLAY_LAB_MODULES,
-  PLAY_LAB_SCOPE_OPTIONS,
   assignSideQuest,
   buildPlayLabExportContent,
   createPlayLabSession,
@@ -47,6 +46,8 @@ import {
   CheckCircle2,
   RefreshCw,
 } from "lucide-react";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getPartnerName } from "@/lib/relationshipParticipants";
 
 const MODULE_ICONS = {
   guess_my_inner_world: Brain,
@@ -209,11 +210,12 @@ function OptionChips({ options, value, onSelect }) {
 }
 
 export default function PlayLab() {
+  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
   const queryClient = useQueryClient();
   const [moduleType, setModuleType] = useState("guess_my_inner_world");
   const [scope, setScope] = useState("Tony+Drew");
-  const [initiatedBy, setInitiatedBy] = useState("Tony");
-  const [answeringPerson, setAnsweringPerson] = useState("Tony");
+  const [initiatedBy, setInitiatedBy] = useState(participants[0]);
+  const [answeringPerson, setAnsweringPerson] = useState(participants[0]);
   const [session, setSession] = useState(null);
   const [form, setForm] = useState(DEFAULT_FORM);
   const [result, setResult] = useState(null);
@@ -234,21 +236,25 @@ export default function PlayLab() {
     feltNatural: true,
     notes: "",
   });
+  useEffect(() => {
+    setInitiatedBy((current) => (participants.includes(current) ? current : participants[0]));
+    setAnsweringPerson((current) => (participants.includes(current) ? current : participants[0]));
+  }, [participants]);
 
   const activeModule = getPlayLabModule(moduleType);
 
   const { data: historyData = { sessions: [], results: [] }, refetch: refetchHistory } = useQuery({
-    queryKey: ["play-lab-history", scope],
+    queryKey: ["play-lab-history", activeRelationshipId, scope],
     queryFn: () => fetchPlayLabHistory({ scope, limit: 16 }),
   });
 
   const { data: ahaData = { cards: [] }, refetch: refetchAha } = useQuery({
-    queryKey: ["play-lab-aha-cards", scope],
+    queryKey: ["play-lab-aha-cards", activeRelationshipId, scope],
     queryFn: () => fetchAhaCards({ scope }),
   });
 
   const { data: questData = { quests: [] }, refetch: refetchQuests } = useQuery({
-    queryKey: ["play-lab-side-quests", scope],
+    queryKey: ["play-lab-side-quests", activeRelationshipId, scope],
     queryFn: () => fetchSideQuests({ scope }),
   });
 
@@ -293,7 +299,7 @@ export default function PlayLab() {
   };
 
   const buildResponsesFromForm = () => {
-    const otherPerson = answeringPerson === "Tony" ? "Drew" : "Tony";
+    const otherPerson = getPartnerName(answeringPerson, participants);
     switch (moduleType) {
       case "guess_my_inner_world":
       case "love_map_sprint":
@@ -467,7 +473,7 @@ export default function PlayLab() {
     }, 500);
 
     return () => window.clearTimeout(timeout);
-  }, [form, hasAnyInput, moduleType, scope, initiatedBy, answeringPerson]);
+  }, [form, hasAnyInput, moduleType, scope, initiatedBy, answeringPerson, participants]);
 
   const handleRunModule = async () => {
     setLoading(true);
@@ -650,7 +656,7 @@ export default function PlayLab() {
         notes: outcomeForm.notes,
       });
       toast.success("Outcome saved");
-      await queryClient.invalidateQueries({ queryKey: ["play-lab-history"] });
+      await queryClient.invalidateQueries({ queryKey: ["play-lab-history", activeRelationshipId] });
     } catch (error) {
       console.error(error);
       toast.error("Unable to save outcome right now.");
@@ -859,7 +865,7 @@ export default function PlayLab() {
             </div>
           </div>
           <div className="grid gap-2">
-            <Label>{answeringPerson === "Tony" ? "Drew" : "Tony"}'s guess</Label>
+            <Label>{getPartnerName(answeringPerson, participants)}'s guess</Label>
             <Textarea
               value={form.guessedAnswer}
               onChange={(event) => setForm((current) => ({ ...current, guessedAnswer: event.target.value }))}
@@ -960,9 +966,9 @@ export default function PlayLab() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {PLAY_LAB_SCOPE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                    ))}
+                    <SelectItem value="Tony">{participants[0]}</SelectItem>
+                    <SelectItem value="Drew">{participants[1]}</SelectItem>
+                    <SelectItem value="Tony+Drew">{relationshipLabel}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -973,8 +979,8 @@ export default function PlayLab() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Tony">Tony</SelectItem>
-                    <SelectItem value="Drew">Drew</SelectItem>
+                    <SelectItem value="Tony">{participants[0]}</SelectItem>
+                    <SelectItem value="Drew">{participants[1]}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -985,8 +991,8 @@ export default function PlayLab() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Tony">Tony</SelectItem>
-                    <SelectItem value="Drew">Drew</SelectItem>
+                    <SelectItem value="Tony">{participants[0]}</SelectItem>
+                    <SelectItem value="Drew">{participants[1]}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

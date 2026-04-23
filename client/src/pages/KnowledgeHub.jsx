@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import AIInsightsSection from "@/components/knowledge/AIInsightsSection";
 import { computePatternProfile } from "@/lib/patternEngine";
 import { getRiskSummary } from "@/lib/earlyWarningEngine";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 
 const RESOURCES = {
   core: [
@@ -138,30 +139,31 @@ function ResourceCard({ resource }) {
 
 export default function KnowledgeHub() {
   const [activeTab, setActiveTab] = useState("insights");
+  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
 
   const { data: checkIns = [] } = useQuery({
-    queryKey: ["checkins-knowledge"],
+    queryKey: ["checkins-knowledge", activeRelationshipId],
     queryFn: () => api.entities.CheckIn.list("-created_date", 14),
   });
 
   const { data: sessions = [] } = useQuery({
-    queryKey: ["sessions-knowledge"],
+    queryKey: ["sessions-knowledge", activeRelationshipId],
     queryFn: () => api.entities.CoachSession.list("-created_date", 20),
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles-knowledge"],
+    queryKey: ["profiles-knowledge", activeRelationshipId],
     queryFn: () => api.entities.UserProfile.list(),
   });
 
   const { data: tonyResponses = [] } = useQuery({
-    queryKey: ["tony-responses-knowledge"],
-    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Tony" }),
+    queryKey: ["person-a-responses-knowledge", activeRelationshipId, participants[0]],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: participants[0] }),
   });
 
   const { data: drewResponses = [] } = useQuery({
-    queryKey: ["drew-responses-knowledge"],
-    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Drew" }),
+    queryKey: ["person-b-responses-knowledge", activeRelationshipId, participants[1]],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: participants[1] }),
   });
 
   return (
@@ -172,7 +174,7 @@ export default function KnowledgeHub() {
           Relationship Knowledge Hub
         </h1>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          AI-generated insights + credible psychology resources, specifically designed for same-sex male couples and all relationship types.
+          AI-generated insights + credible psychology resources for {relationshipLabel}, tailored to how you both communicate and connect.
         </p>
       </motion.div>
 

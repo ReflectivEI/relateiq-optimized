@@ -13,22 +13,24 @@ import SentimentTrendChart from "@/components/health-report/SentimentTrendChart"
 import ThemeCloud from "@/components/health-report/ThemeCloud";
 import AIHealthReport from "@/components/health-report/AIHealthReport";
 import CommunicationPatterns from "@/components/health-report/CommunicationPatterns";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 
 export default function HealthReport() {
+  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
   const [viewMode, setViewMode] = useState("compare");
 
   const { data: checkIns = [] } = useQuery({
-    queryKey: ["health-checkins"],
+    queryKey: ["health-checkins", activeRelationshipId],
     queryFn: () => api.entities.CheckIn.list("-created_date", 30),
   });
 
   const { data: reflections = [] } = useQuery({
-    queryKey: ["health-reflections"],
+    queryKey: ["health-reflections", activeRelationshipId],
     queryFn: () => api.entities.DailyReflection.list("-created_date", 50),
   });
 
   const { data: coachSessions = [] } = useQuery({
-    queryKey: ["health-sessions"],
+    queryKey: ["health-sessions", activeRelationshipId],
     queryFn: () => api.entities.CoachSession.list("-created_date", 30),
   });
 
@@ -57,14 +59,14 @@ export default function HealthReport() {
             </div>
             <h1 className="font-display text-4xl font-bold text-white md:text-5xl">Relationship Health Report</h1>
             <p className="max-w-3xl text-base leading-7 text-slate-200">
-              A cleaner, enterprise-grade snapshot of your relationship health. This page is meant to surface
+              A cleaner, enterprise-grade snapshot of {relationshipLabel}. This page is meant to surface
               traction, friction, and recurring patterns in a way that is easier to read and easier to use.
             </p>
             <div className="flex flex-wrap gap-2 pt-2">
               {[
                 { value: "compare", label: "Compare Side by Side" },
-                { value: "Tony", label: "Tony" },
-                { value: "Drew", label: "Drew" },
+                { value: participants[0], label: participants[0] },
+                { value: participants[1], label: participants[1] },
               ].map((option) => (
                 <Button
                   key={option.value}
@@ -118,7 +120,7 @@ export default function HealthReport() {
         transition={{ delay: 0.15 }}
         className="grid grid-cols-1 lg:grid-cols-2 gap-6"
       >
-        <SentimentTrendChart checkIns={visibleData.checkIns} />
+        <SentimentTrendChart checkIns={visibleData.checkIns} participants={participants} />
         <ThemeCloud
           checkIns={visibleData.checkIns}
           reflections={visibleData.reflections}
@@ -128,7 +130,7 @@ export default function HealthReport() {
 
       {/* Communication Patterns */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-        <CommunicationPatterns checkIns={visibleData.checkIns} coachSessions={visibleData.coachSessions} />
+        <CommunicationPatterns checkIns={visibleData.checkIns} coachSessions={visibleData.coachSessions} participants={participants} />
       </motion.div>
 
       {/* AI Narrative Report */}
@@ -138,6 +140,8 @@ export default function HealthReport() {
           reflections={visibleData.reflections}
           coachSessions={visibleData.coachSessions}
           viewMode={viewMode}
+          participants={participants}
+          relationshipLabel={relationshipLabel}
         />
       </motion.div>
 

@@ -15,6 +15,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 
 const TRIGGER_TYPES = [
   { value: "tone", label: "Tone" },
@@ -331,7 +332,8 @@ function TriggerForm({ initial, onSave, onCancel, person }) {
 }
 
 export default function TriggerLibrary() {
-  const [person, setPerson] = useState("Tony");
+  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
+  const [person, setPerson] = useState(participants[0]);
   const [showForm, setShowForm] = useState(false);
   const [editingTrigger, setEditingTrigger] = useState(null);
   const queryClient = useQueryClient();
@@ -349,12 +351,16 @@ export default function TriggerLibrary() {
     window.localStorage.setItem("relateiq-dismissed-starters", JSON.stringify(dismissedStarterIds));
   }, [dismissedStarterIds]);
 
+  useEffect(() => {
+    setPerson((current) => (participants.includes(current) ? current : participants[0]));
+  }, [participants]);
+
   const { data: triggers = [] } = useQuery({
-    queryKey: ["triggers", person],
+    queryKey: ["triggers", activeRelationshipId, person],
     queryFn: () => api.entities.TriggerEntry.filter({ owner: person }, "-created_date"),
   });
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["triggers", person] });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["triggers", activeRelationshipId, person] });
 
   const handleConfirm = async (id) => {
     await api.entities.TriggerEntry.update(id, { confirmed: true, confidence: "high" });
@@ -387,12 +393,27 @@ export default function TriggerLibrary() {
   const confirmedTitles = new Set(confirmedBase.map((trigger) => trigger.title.trim().toLowerCase()));
   const starterConfirmed = useMemo(
     () =>
-      (STARTER_TRIGGERS[person] || []).filter(
+      ((person === participants[0] ? STARTER_TRIGGERS.Tony : STARTER_TRIGGERS.Drew) || []).map((trigger) => ({
+        ...trigger,
+        owner: person,
+        description: String(trigger.description || "")
+          .replace(/\bTony\b/g, participants[0])
+          .replace(/\bDrew\b/g, participants[1]),
+        common_reaction: String(trigger.common_reaction || "")
+          .replace(/\bTony\b/g, participants[0])
+          .replace(/\bDrew\b/g, participants[1]),
+        what_helps: String(trigger.what_helps || "")
+          .replace(/\bTony\b/g, participants[0])
+          .replace(/\bDrew\b/g, participants[1]),
+        what_worsens: String(trigger.what_worsens || "")
+          .replace(/\bTony\b/g, participants[0])
+          .replace(/\bDrew\b/g, participants[1]),
+      })).filter(
         (trigger) =>
           !confirmedTitles.has(trigger.title.trim().toLowerCase()) &&
           !dismissedStarterIds.includes(trigger.id)
       ),
-    [person, confirmedTitles, dismissedStarterIds]
+    [person, participants, confirmedTitles, dismissedStarterIds]
   );
   const confirmed = [...confirmedBase, ...starterConfirmed];
 
@@ -401,7 +422,7 @@ export default function TriggerLibrary() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight">Trigger Library</h1>
-          <p className="text-muted-foreground mt-1">Known triggers, sensitivities, and support preferences — confirmed and AI-inferred</p>
+          <p className="text-muted-foreground mt-1">Known triggers, sensitivities, and support preferences for {relationshipLabel} — confirmed and AI-inferred</p>
         </div>
         <Button onClick={() => { setShowForm(true); setEditingTrigger(null); }} className="gap-2">
           <Plus className="w-4 h-4" /> Add Trigger
@@ -410,8 +431,9 @@ export default function TriggerLibrary() {
 
       <Tabs value={person} onValueChange={(v) => { setPerson(v); setShowForm(false); setEditingTrigger(null); }}>
         <TabsList>
-          <TabsTrigger value="Tony">Tony</TabsTrigger>
-          <TabsTrigger value="Drew">Drew</TabsTrigger>
+          {participants.map((name) => (
+            <TabsTrigger key={name} value={name}>{name}</TabsTrigger>
+          ))}
         </TabsList>
       </Tabs>
 

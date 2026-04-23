@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -34,22 +34,30 @@ import EmptyState from "@/components/ui/EmptyState";
 import FallbackBadge from "@/components/ui/FallbackBadge";
 import PrivacyBanner from "@/components/ui/PrivacyBanner";
 import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 
 export default function Profiles() {
-  const [activePerson, setActivePerson] = useState("Tony");
+  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
+  const [activePerson, setActivePerson] = useState(participants[0]);
   const [generating, setGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [profileCtx, setProfileCtx] = useState(null);
   const [creditError, setCreditError] = useState(false);
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    if (!participants.includes(activePerson)) {
+      setActivePerson(participants[0]);
+    }
+  }, [participants, activePerson]);
+
   const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles"],
+    queryKey: ["profiles", activeRelationshipId],
     queryFn: () => api.entities.UserProfile.list(),
   });
 
   const { data: responses = [] } = useQuery({
-    queryKey: ["all-responses", activePerson],
+    queryKey: ["all-responses", activeRelationshipId, activePerson],
     queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: activePerson }),
   });
 
@@ -65,7 +73,7 @@ export default function Profiles() {
   const generateProfile = async () => {
     setGenerating(true);
     setCreditError(false);
-    const partnerName = activePerson === "Tony" ? "Drew" : "Tony";
+    const partnerName = participants.find((person) => person !== activePerson) || participants[1] || "Other Person";
     const answersText = responses
       .map((r) => `Q (${r.category}): ${r.question_text}\nA: ${r.answer}`)
       .join("\n\n");
@@ -125,7 +133,7 @@ export default function Profiles() {
       await api.entities.UserProfile.create({ ...result, person_name: activePerson });
     }
 
-    queryClient.invalidateQueries({ queryKey: ["profiles"] });
+    queryClient.invalidateQueries({ queryKey: ["profiles", activeRelationshipId] });
     setProfileCtx(buildContextObject({
       page: "Profiles",
       sectionTitle: `${activePerson}'s Behavioral Profile`,
@@ -133,8 +141,8 @@ export default function Profiles() {
       sourceInputs: { responseCount: responses.length },
       originalOutput: result.ai_behavioral_summary || JSON.stringify(result, null, 2),
       profiles: profile ? [profile] : [],
-      tonyResponses: activePerson === "Tony" ? responses : [],
-      drewResponses: activePerson === "Drew" ? responses : [],
+      tonyResponses: activePerson === participants[0] ? responses : [],
+      drewResponses: activePerson === participants[1] ? responses : [],
     }));
     setGenerating(false);
     setActiveTab("my-profile");
@@ -210,8 +218,8 @@ export default function Profiles() {
     sourceInputs: {},
     originalOutput: profile?.ai_behavioral_summary || null,
     profiles: profile ? [profile] : [],
-    tonyResponses: activePerson === "Tony" ? responses : [],
-    drewResponses: activePerson === "Drew" ? responses : [],
+    tonyResponses: activePerson === participants[0] ? responses : [],
+    drewResponses: activePerson === participants[1] ? responses : [],
   });
 
   return (
@@ -221,7 +229,7 @@ export default function Profiles() {
           <p className="enterprise-section-label">Behavioral Profiles</p>
           <h1 className="font-display text-3xl font-bold tracking-tight">Profiles</h1>
           <p className="max-w-3xl text-muted-foreground">
-            Clean, readable behavioral profiles for Tony and Drew. Use the overview for the summary, the profile
+            Clean, readable behavioral profiles for {relationshipLabel}. Use the overview for the summary, the profile
             tab for deeper interpretation, and the trait map for the data underneath it.
           </p>
         </div>
@@ -246,8 +254,9 @@ export default function Profiles() {
 
       <Tabs value={activePerson} onValueChange={(v) => { setActivePerson(v); setActiveTab("overview"); }}>
         <TabsList className="rounded-full border border-border bg-muted/40 p-1">
-          <TabsTrigger value="Tony">Tony</TabsTrigger>
-          <TabsTrigger value="Drew">Drew</TabsTrigger>
+          {participants.map((participant) => (
+            <TabsTrigger key={participant} value={participant}>{participant}</TabsTrigger>
+          ))}
         </TabsList>
       </Tabs>
 

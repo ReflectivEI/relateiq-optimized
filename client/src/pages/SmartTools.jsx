@@ -26,6 +26,8 @@ import PrivacyBanner from "@/components/ui/PrivacyBanner";
 import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
 import { suggestSmartTools } from "@/lib/toolTriggerEngine";
 import { computePatternProfile } from "@/lib/patternEngine";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getPartnerName } from "@/lib/relationshipParticipants";
 
 const tools = [
   { id: "before_you_react", label: "Before You React", icon: Shield, description: "Feeling activated? Pause and get grounding advice before responding." },
@@ -37,8 +39,9 @@ const tools = [
 const EMOTIONS = ["Angry", "Frustrated", "Hurt", "Anxious", "Defensive", "Shut Down", "Overwhelmed", "Resentful"];
 
 export default function SmartTools() {
+  const { activeRelationshipId, participants } = useRelationshipAuth();
   const [activeTool, setActiveTool] = useState("before_you_react");
-  const [person, setPerson] = useState("Tony");
+  const [person, setPerson] = useState(participants[0]);
   const [input, setInput] = useState("");
   const [emotion, setEmotion] = useState("");
   const [loading, setLoading] = useState(false);
@@ -46,43 +49,50 @@ export default function SmartTools() {
   const [toolCtx, setToolCtx] = useState(null);
   const [creditError, setCreditError] = useState(false);
 
+  useEffect(() => {
+    if (!participants.includes(person)) {
+      setPerson(participants[0]);
+      setResult(null);
+    }
+  }, [participants, person]);
+
   const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles-tools"],
+    queryKey: ["profiles-tools", activeRelationshipId],
     queryFn: () => api.entities.UserProfile.list(),
   });
 
   const { data: tonyResponses = [] } = useQuery({
-    queryKey: ["responses-tools-tony"],
-    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Tony" }),
+    queryKey: ["responses-tools-person-a", activeRelationshipId, participants[0]],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: participants[0] }),
   });
 
   const { data: drewResponses = [] } = useQuery({
-    queryKey: ["responses-tools-drew"],
-    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Drew" }),
+    queryKey: ["responses-tools-person-b", activeRelationshipId, participants[1]],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: participants[1] }),
   });
 
   const { data: sessions = [] } = useQuery({
-    queryKey: ["sessions-tools"],
+    queryKey: ["sessions-tools", activeRelationshipId],
     queryFn: () => api.entities.CoachSession.list("-created_date", 10),
   });
 
   const { data: triggers = [] } = useQuery({
-    queryKey: ["triggers-tools"],
+    queryKey: ["triggers-tools", activeRelationshipId],
     queryFn: () => api.entities.TriggerEntry.list(),
   });
 
   const { data: checkIns = [] } = useQuery({
-    queryKey: ["checkins-tools"],
+    queryKey: ["checkins-tools", activeRelationshipId],
     queryFn: () => api.entities.CheckIn.list("-created_date", 5),
   });
 
   const [autoSuggestions, setAutoSuggestions] = useState([]);
 
   const userProfile = profiles.find((p) => p.person_name === person);
-  const partnerName = person === "Tony" ? "Drew" : "Tony";
+  const partnerName = getPartnerName(person, participants);
   const partnerProfile = profiles.find((p) => p.person_name === partnerName);
-  const userResponses = person === "Tony" ? tonyResponses : drewResponses;
-  const partnerResponses = partnerName === "Tony" ? tonyResponses : drewResponses;
+  const userResponses = person === participants[0] ? tonyResponses : drewResponses;
+  const partnerResponses = partnerName === participants[0] ? tonyResponses : drewResponses;
 
   // Auto-suggest tools based on recent session
   useEffect(() => {
@@ -153,8 +163,8 @@ export default function SmartTools() {
       sourceInputs: { tool: activeTool, emotion, input },
       originalOutput: aiResult,
       profiles,
-      tonyResponses,
-      drewResponses,
+      tonyResponses: participants[0] === person ? userResponses : partnerResponses,
+      drewResponses: participants[1] === person ? userResponses : partnerResponses,
     }));
     setLoading(false);
   };
@@ -231,8 +241,9 @@ export default function SmartTools() {
       {/* Person Selector */}
       <Tabs value={person} onValueChange={(v) => { setPerson(v); setResult(null); }}>
         <TabsList>
-          <TabsTrigger value="Tony">I'm Tony</TabsTrigger>
-          <TabsTrigger value="Drew">I'm Drew</TabsTrigger>
+          {participants.map((participant) => (
+            <TabsTrigger key={participant} value={participant}>I'm {participant}</TabsTrigger>
+          ))}
         </TabsList>
       </Tabs>
 
@@ -321,8 +332,8 @@ export default function SmartTools() {
         scope: person,
         sourceInputs: {},
         profiles,
-        tonyResponses,
-        drewResponses,
+        tonyResponses: person === participants[0] ? userResponses : partnerResponses,
+        drewResponses: person === participants[1] ? userResponses : partnerResponses,
       })} />
     </div>
   );

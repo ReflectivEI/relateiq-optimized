@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
 import { BookText, Clock3, NotebookPen, Save, FileText, UserRound, Trash2, Pencil, X } from "lucide-react";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 
 function JournalPreview({ personName, title, content, timestamp }) {
   return (
@@ -42,10 +43,11 @@ function JournalPreview({ personName, title, content, timestamp }) {
 }
 
 export default function RelationshipJournal() {
+  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
   const queryClient = useQueryClient();
   const previewRef = useRef(null);
   const editorRef = useRef(null);
-  const [personName, setPersonName] = useState("Tony");
+  const [personName, setPersonName] = useState(participants[0]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
@@ -54,7 +56,7 @@ export default function RelationshipJournal() {
   const timestamp = useMemo(() => new Date(), [title, content, personName]);
 
   const { data: entries = [] } = useQuery({
-    queryKey: ["journal-entries"],
+    queryKey: ["journal-entries", activeRelationshipId],
     queryFn: () => api.entities.JournalEntry.list("-created_date", 50),
   });
 
@@ -71,7 +73,7 @@ export default function RelationshipJournal() {
 
   const loadEntryIntoEditor = (entry) => {
     setEditingEntryId(entry.id);
-    setPersonName(entry.person_name || "Tony");
+    setPersonName(entry.person_name || participants[0]);
     setTitle(entry.title || "");
     setContent(entry.content || "");
     window.requestAnimationFrame(() => {
@@ -103,7 +105,7 @@ export default function RelationshipJournal() {
       }
 
       resetEditor();
-      queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["journal-entries", activeRelationshipId] });
     } catch (error) {
       toast.error(`Could not ${editingEntryId ? "update" : "save"} the journal entry.`);
     } finally {
@@ -118,7 +120,7 @@ export default function RelationshipJournal() {
         resetEditor();
       }
       toast.success("Journal entry deleted.");
-      queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["journal-entries", activeRelationshipId] });
     } catch (error) {
       toast.error("Could not delete the journal entry.");
     }
@@ -133,7 +135,7 @@ export default function RelationshipJournal() {
             <div className="max-w-3xl space-y-3">
               <h1 className="font-display text-4xl font-bold text-white md:text-5xl">Journal</h1>
               <p className="max-w-2xl text-base leading-7 text-slate-200">
-                A private writing space for Tony and Drew. Capture what happened, what you felt, and what you
+                A private writing space for {relationshipLabel}. Capture what happened, what you felt, and what you
                 want to remember without the noise of analytics or prompts.
               </p>
             </div>
@@ -170,8 +172,9 @@ export default function RelationshipJournal() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Tony">Tony</SelectItem>
-                      <SelectItem value="Drew">Drew</SelectItem>
+                      {participants.map((participant) => (
+                        <SelectItem key={participant} value={participant}>{participant}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

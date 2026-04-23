@@ -17,6 +17,7 @@ import {
   WandSparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 
 function bulletize(value, fallback) {
   if (Array.isArray(value) && value.length > 0) return value;
@@ -67,13 +68,14 @@ function PersonCard({ name, profile, colorClass }) {
 }
 
 export default function RelationshipPlaybook() {
+  const { participants, relationshipLabel } = useRelationshipAuth();
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-playbook"],
     queryFn: () => api.entities.UserProfile.list(),
   });
 
-  const tony = profiles.find((profile) => profile.person_name === "Tony");
-  const drew = profiles.find((profile) => profile.person_name === "Drew");
+  const primaryProfile = profiles.find((profile) => profile.person_name === participants[0]);
+  const secondaryProfile = profiles.find((profile) => profile.person_name === participants[1]);
   const templateDefaults = useMemo(() => ({
     conversationType: "repair",
     desiredTone: "steady",
@@ -176,7 +178,7 @@ export default function RelationshipPlaybook() {
             <div className="space-y-3">
               <h1 className="font-display text-4xl font-bold text-white md:text-5xl">Relationship Playbook</h1>
               <p className="max-w-3xl text-base leading-7 text-slate-200">
-                This page is your working operating manual. It explains how Tony and Drew tend to communicate,
+                This page is your working operating manual. It explains how the people in {relationshipLabel} tend to communicate,
                 what helps when pressure rises, and gives you practical scripts and routines you can actually use.
               </p>
             </div>
@@ -205,19 +207,19 @@ export default function RelationshipPlaybook() {
             </p>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="tony" className="space-y-5">
+            <Tabs defaultValue={participants[0].toLowerCase()} className="space-y-5">
               <TabsList className="w-full justify-start">
-                <TabsTrigger value="tony">Tony</TabsTrigger>
-                <TabsTrigger value="drew">Drew</TabsTrigger>
+                <TabsTrigger value={participants[0].toLowerCase()}>{participants[0]}</TabsTrigger>
+                <TabsTrigger value={participants[1].toLowerCase()}>{participants[1]}</TabsTrigger>
                 <TabsTrigger value="together">Together</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="tony">
-                <PersonCard name="Tony" profile={tony} colorClass="text-primary" />
+              <TabsContent value={participants[0].toLowerCase()}>
+                <PersonCard name={participants[0]} profile={primaryProfile} colorClass="text-primary" />
               </TabsContent>
 
-              <TabsContent value="drew">
-                <PersonCard name="Drew" profile={drew} colorClass="text-primary" />
+              <TabsContent value={participants[1].toLowerCase()}>
+                <PersonCard name={participants[1]} profile={secondaryProfile} colorClass="text-primary" />
               </TabsContent>
 
               <TabsContent value="together">
@@ -321,7 +323,7 @@ export default function RelationshipPlaybook() {
               <CardTitle className="text-xl">What This Page Will Eventually Hold</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground leading-7">
-              <p>Profile-informed talking points for Tony and Drew.</p>
+              <p>Profile-informed talking points for the people in {relationshipLabel}.</p>
               <p>Repair scripts tied to your actual conflict patterns.</p>
               <p>Weekly rhythms and decision rules you can reuse.</p>
               <p>A living set of templates you can edit over time.</p>

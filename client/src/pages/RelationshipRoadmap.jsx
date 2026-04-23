@@ -17,6 +17,7 @@ import MilestoneCard from "@/components/roadmap/MilestoneCard";
 import AskAIButton from "@/components/askAI/AskAIButton";
 import { buildContext } from "@/lib/contextBuilder";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 
 function buildMonthResources(milestone, tonyName = "Tony", drewName = "Drew") {
   const resourcesByMonth = {
@@ -192,44 +193,45 @@ function buildMonthResources(milestone, tonyName = "Tony", drewName = "Drew") {
 }
 
 export default function RelationshipRoadmap() {
+  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
   const [selectedMonth, setSelectedMonth] = useState(1);
   const resourcesRef = useRef(null);
   const roadmapRef = useRef(null);
 
   // Fetch data
   const { data: tonyResponses = [] } = useQuery({
-    queryKey: ["tony-responses-roadmap"],
-    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Tony" }),
+    queryKey: ["tony-responses-roadmap", activeRelationshipId, participants[0]],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: participants[0] }),
   });
 
   const { data: drewResponses = [] } = useQuery({
-    queryKey: ["drew-responses-roadmap"],
-    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Drew" }),
+    queryKey: ["drew-responses-roadmap", activeRelationshipId, participants[1]],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: participants[1] }),
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles-roadmap"],
+    queryKey: ["profiles-roadmap", activeRelationshipId],
     queryFn: () => api.entities.UserProfile.list(),
   });
 
   const { data: checkIns = [] } = useQuery({
-    queryKey: ["checkins-roadmap"],
+    queryKey: ["checkins-roadmap", activeRelationshipId],
     queryFn: () => api.entities.CheckIn.list("-created_date", 30),
   });
 
   const { data: sessions = [] } = useQuery({
-    queryKey: ["sessions-roadmap"],
+    queryKey: ["sessions-roadmap", activeRelationshipId],
     queryFn: () => api.entities.CoachSession.list("-created_date", 20),
   });
 
   const { data: triggers = [] } = useQuery({
-    queryKey: ["triggers-roadmap"],
+    queryKey: ["triggers-roadmap", activeRelationshipId],
     queryFn: () => api.entities.TriggerEntry.list(),
   });
 
   // Compute patterns and roadmap
-  const tonyProfile = profiles.find((p) => p.person_name === "Tony");
-  const drewProfile = profiles.find((p) => p.person_name === "Drew");
+  const tonyProfile = profiles.find((p) => p.person_name === participants[0]);
+  const drewProfile = profiles.find((p) => p.person_name === participants[1]);
 
   const roadmap = useMemo(() => {
     if (!tonyResponses.length || !drewResponses.length) return null;
@@ -283,7 +285,7 @@ export default function RelationshipRoadmap() {
           <AlertCircle className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
           <h2 className="text-2xl font-bold text-foreground mb-2">Data Required</h2>
           <p className="text-muted-foreground max-w-lg mx-auto mb-4">
-            Complete both questionnaires to generate your personalized 6-month relationship roadmap.
+            Complete both questionnaires to generate your personalized 6-month roadmap for {relationshipLabel}.
           </p>
           <Button asChild>
             <Link to="/questionnaire">Complete Questionnaire</Link>
@@ -308,7 +310,7 @@ export default function RelationshipRoadmap() {
               Your Growth Roadmap
             </h1>
             <p className="text-muted-foreground text-lg mt-2">
-              A 6-month plan tailored to your relationship patterns and goals
+              A 6-month plan tailored to the patterns and goals in {relationshipLabel}
             </p>
           </div>
           <AskAIButton context={askAIContext} modalTitle="Ask About Your Roadmap" />

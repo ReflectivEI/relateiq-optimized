@@ -26,10 +26,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import AskAIButton from "@/components/askAI/AskAIButton";
 import { buildContext } from "@/lib/contextBuilder";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getPerspectiveLabels } from "@/lib/relationshipParticipants";
 
 const PERSPECTIVES = ["Tony", "Drew", "Tony→Drew", "Drew→Tony"];
 
 export default function AnalysisEngine() {
+  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
   const [perspective, setPerspective] = useState("Tony→Drew");
   const [mode, setMode] = useState("deep");
   const [baseAnalysis, setBaseAnalysis] = useState(null);
@@ -44,30 +47,31 @@ export default function AnalysisEngine() {
   const prevAnalysisRef = useRef(null);
   const prevPerspectiveRef = useRef(null);
   const analysisRef = useRef(null);
+  const perspectiveLabels = getPerspectiveLabels(participants);
 
   const { data: tonyResponses = [] } = useQuery({
-    queryKey: ["tony-responses-engine"],
-    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Tony" }),
+    queryKey: ["tony-responses-engine", activeRelationshipId, participants[0]],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: participants[0] }),
   });
   const { data: drewResponses = [] } = useQuery({
-    queryKey: ["drew-responses-engine"],
-    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: "Drew" }),
+    queryKey: ["drew-responses-engine", activeRelationshipId, participants[1]],
+    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: participants[1] }),
   });
   const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles-engine"],
+    queryKey: ["profiles-engine", activeRelationshipId],
     queryFn: () => api.entities.UserProfile.list(),
   });
   const { data: sessions = [] } = useQuery({
-    queryKey: ["sessions-engine"],
+    queryKey: ["sessions-engine", activeRelationshipId],
     queryFn: () => api.entities.CoachSession.list("-created_date", 20),
   });
   const { data: triggers = [] } = useQuery({
-    queryKey: ["triggers-engine"],
+    queryKey: ["triggers-engine", activeRelationshipId],
     queryFn: () => api.entities.TriggerEntry.list(),
   });
 
-  const tonyProfile = profiles.find((p) => p.person_name === "Tony");
-  const drewProfile = profiles.find((p) => p.person_name === "Drew");
+  const tonyProfile = profiles.find((p) => p.person_name === participants[0]);
+  const drewProfile = profiles.find((p) => p.person_name === participants[1]);
   const tonyPatterns = computePatternProfile("Tony", tonyResponses);
   const drewPatterns = computePatternProfile("Drew", drewResponses);
   const misalignments = detectMisalignments(tonyPatterns, "Tony", drewPatterns, "Drew");
@@ -185,7 +189,7 @@ export default function AnalysisEngine() {
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">Analysis Engine</h1>
           <p className="mt-2 text-base text-muted-foreground">
-            Structured intelligence — {tonyResponses.length + drewResponses.length} data points loaded
+            Structured intelligence for {relationshipLabel} — {tonyResponses.length + drewResponses.length} data points loaded
           </p>
         </div>
         <AskAIButton context={askAIContext} modalTitle="Analysis Engine" />
@@ -205,7 +209,7 @@ export default function AnalysisEngine() {
           <div className="grid gap-4 xl:grid-cols-2">
             <div className="enterprise-control-surface p-5 space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Perspective</p>
-              <PerspectiveToggle value={perspective} onChange={handlePerspectiveSwitch} options={PERSPECTIVES} />
+              <PerspectiveToggle value={perspective} onChange={handlePerspectiveSwitch} options={PERSPECTIVES} labels={perspectiveLabels} />
               {/* Active perspective label */}
               <div className="flex items-center gap-2 mt-1">
                 {perspectiveSwitching ? (
@@ -215,7 +219,7 @@ export default function AnalysisEngine() {
                   </span>
                 ) : (
                   <span className="text-xs text-muted-foreground">
-                    Active: <span className="font-semibold text-foreground">{perspective}</span>
+                    Active: <span className="font-semibold text-foreground">{perspectiveLabels[perspective]}</span>
                     {isDirectional && (
                       <span className="ml-2 text-primary/70">
                         — directional analysis (distinct inputs per side)
@@ -295,8 +299,8 @@ export default function AnalysisEngine() {
                   confidenceScore: displayAnalysis.confidence_score,
                   frameworksUsed: displayAnalysis.frameworks_used || [],
                 }}
-                filename={`analysis-${perspective.replace(/\\s+/g, "-")}.pdf`}
-                title={`${perspective} Analysis`}
+                filename={`analysis-${perspectiveLabels[perspective].replace(/\\s+/g, "-")}.pdf`}
+                title={`${perspectiveLabels[perspective]} Analysis`}
                 showEmail={false}
               />
               <div ref={analysisRef}>
@@ -312,8 +316,8 @@ export default function AnalysisEngine() {
             Deterministic rule-based scores. Same questionnaire data always produces the same scores.
           </p>
           <div className="grid gap-4 lg:grid-cols-2">
-            <PatternScoreCard profile={tonyPatterns} person="Tony" />
-            <PatternScoreCard profile={drewPatterns} person="Drew" />
+            <PatternScoreCard profile={tonyPatterns} person={participants[0]} />
+            <PatternScoreCard profile={drewPatterns} person={participants[1]} />
           </div>
           {misalignments.misalignments.length > 0 && (
             <div className="rounded-xl border border-border/60 bg-card p-5 space-y-3">
@@ -359,7 +363,7 @@ export default function AnalysisEngine() {
             </div>
             <div className="space-y-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actor → Target</p>
-              <PerspectiveToggle value={perspective} onChange={setPerspective} options={PERSPECTIVES} />
+              <PerspectiveToggle value={perspective} onChange={setPerspective} options={PERSPECTIVES} labels={perspectiveLabels} />
               <p className="text-[11px] text-muted-foreground">Actor drives behavior prediction. Target influences misinterpretation and emotional state.</p>
             </div>
             <Button onClick={handlePredict} disabled={!scenario.trim()} className="gap-2">

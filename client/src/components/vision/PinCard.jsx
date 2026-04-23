@@ -27,7 +27,13 @@ const PROGRESS_CONFIG = {
   achieved:    { icon: Check,  label: "Achieved ✨",  color: "text-green-400" },
 };
 
-export default function PinCard({ pin, onUpdate, onDelete }) {
+export default function PinCard({
+  pin,
+  participants = ["Tony", "Drew"],
+  sharedScope = `${participants[0]}_${participants[1]}`,
+  onUpdate,
+  onDelete,
+}) {
   const style = CATEGORY_STYLES[pin.category] || CATEGORY_STYLES.dream;
   const progress = PROGRESS_CONFIG[pin.progress] || PROGRESS_CONFIG.not_started;
   const ProgressIcon = progress.icon;
@@ -100,7 +106,7 @@ export default function PinCard({ pin, onUpdate, onDelete }) {
           </button>
 
           <span className="text-[11px] text-muted-foreground">
-            {pin.pinned_by === "Tony_Drew" ? "Shared 💑" : pin.pinned_by}
+            {pin.pinned_by === sharedScope ? `${participants[0]} & ${participants[1]}` : pin.pinned_by}
           </span>
         </div>
       </CardContent>

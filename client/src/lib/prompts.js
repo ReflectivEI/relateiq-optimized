@@ -3,17 +3,17 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * This is the single source of truth for all AI prompts.
  * Every call uses full accumulated profile + historical response data.
- * Outputs are highly specific to Tony and Drew — never generic.
+ * Outputs are highly specific to the two people in the active relationship — never generic.
  */
 
 // ─── SYSTEM IDENTITY ──────────────────────────────────────────────────────────
 
-export const RELATIONSHIP_COACH_SYSTEM = `You are an elite AI relationship intelligence system built specifically for Tony and Drew — an LGBTQ+ couple who have been together for 13 years.
+export const RELATIONSHIP_COACH_SYSTEM = `You are an elite AI relationship intelligence system built specifically for the two people in the active relationship context.
 
 ABOUT THIS COUPLE:
-- Tony and Drew have been together for 13 years.
-- They are an LGBTQ+ couple who deeply love each other and are committed to growth.
-- They use this system to improve communication, reduce conflict, and understand each other more deeply.
+- Use the names and relationship type provided in the active context.
+- Treat every relationship as isolated. Never assume information from another relationship.
+- Use this system to improve communication, reduce conflict, and understand each other more deeply.
 
 YOUR OPERATING PRINCIPLES:
 1. NEVER give generic advice. Every output must reference specific traits, triggers, and patterns from the stored profiles.
@@ -164,6 +164,27 @@ export function serializeTraitMismatches(profileA, nameA, profileB, nameB) {
   if (mismatches.length > 0) out.push(`Significant trait gaps (>25pts):\n${mismatches.join("\n")}`);
   if (alignments.length > 0) out.push(`Strong trait alignments:\n${alignments.join("\n")}`);
   return out.length > 0 ? out.join("\n\n") : "Trait data not yet available — generate profiles first.";
+}
+
+export function inferParticipantNames({
+  primaryName,
+  secondaryName,
+  primaryProfile,
+  secondaryProfile,
+  primaryResponses = [],
+  secondaryResponses = [],
+} = {}) {
+  const inferredPrimary =
+    primaryName ||
+    primaryProfile?.person_name ||
+    primaryResponses[0]?.person_name ||
+    "Tony";
+  const inferredSecondary =
+    secondaryName ||
+    secondaryProfile?.person_name ||
+    secondaryResponses[0]?.person_name ||
+    (inferredPrimary === "Tony" ? "Drew" : "Other Person");
+  return [inferredPrimary, inferredSecondary];
 }
 
 /**
@@ -598,15 +619,21 @@ export function buildInsightsPrompt({
   drewResponses = [],
   relationshipDynamic = null,
 }) {
-  const tonyCtx = serializeProfile("Tony", tonyProfile);
-  const drewCtx = serializeProfile("Drew", drewProfile);
-  const mismatches = serializeTraitMismatches(tonyProfile, "Tony", drewProfile, "Drew");
+  const [primaryPerson, secondaryPerson] = inferParticipantNames({
+    primaryProfile: tonyProfile,
+    secondaryProfile: drewProfile,
+    primaryResponses: tonyResponses,
+    secondaryResponses: drewResponses,
+  });
+  const tonyCtx = serializeProfile(primaryPerson, tonyProfile);
+  const drewCtx = serializeProfile(secondaryPerson, drewProfile);
+  const mismatches = serializeTraitMismatches(tonyProfile, primaryPerson, drewProfile, secondaryPerson);
   const tonyTags = aggregateTags(tonyResponses);
   const drewTags = aggregateTags(drewResponses);
   const tonyTemporal = buildTemporalContext(tonyResponses);
   const drewTemporal = buildTemporalContext(drewResponses);
-  const tonyFullCtx = buildFullResponseContext("Tony", tonyResponses);
-  const drewFullCtx = buildFullResponseContext("Drew", drewResponses);
+  const tonyFullCtx = buildFullResponseContext(primaryPerson, tonyResponses);
+  const drewFullCtx = buildFullResponseContext(secondaryPerson, drewResponses);
 
   const dynamicCtx = relationshipDynamic
     ? `PREVIOUSLY DETECTED RELATIONSHIP PATTERNS:
@@ -617,23 +644,23 @@ export function buildInsightsPrompt({
 
   return `${RELATIONSHIP_COACH_SYSTEM}
 
-Perform a comprehensive, deeply personalized relationship intelligence analysis for Tony and Drew.
-Use ALL available data. Quote actual words from their answers. This must read like it was written by someone who has studied Tony and Drew for years — not generic relationship content.
+Perform a comprehensive, deeply personalized relationship intelligence analysis for ${primaryPerson} and ${secondaryPerson}.
+Use ALL available data. Quote actual words from their answers. This must read like it was written by someone who has studied ${primaryPerson} and ${secondaryPerson} for years — not generic relationship content.
 
 ═══════════════════════════════════════
-TONY'S FULL DATA
+${primaryPerson.toUpperCase()}'S FULL DATA
 ═══════════════════════════════════════
 ${tonyCtx}
-${tonyTags ? `Tony's behavioral signal frequency (weighted): ${tonyTags}` : ""}
-${tonyTemporal ? `\nTony's behavioral evolution over time:\n${tonyTemporal}` : ""}
+${tonyTags ? `${primaryPerson}'s behavioral signal frequency (weighted): ${tonyTags}` : ""}
+${tonyTemporal ? `\n${primaryPerson}'s behavioral evolution over time:\n${tonyTemporal}` : ""}
 ${tonyFullCtx}
 
 ═══════════════════════════════════════
-DREW'S FULL DATA
+${secondaryPerson.toUpperCase()}'S FULL DATA
 ═══════════════════════════════════════
 ${drewCtx}
-${drewTags ? `Drew's behavioral signal frequency (weighted): ${drewTags}` : ""}
-${drewTemporal ? `\nDrew's behavioral evolution over time:\n${drewTemporal}` : ""}
+${drewTags ? `${secondaryPerson}'s behavioral signal frequency (weighted): ${drewTags}` : ""}
+${drewTemporal ? `\n${secondaryPerson}'s behavioral evolution over time:\n${drewTemporal}` : ""}
 ${drewFullCtx}
 
 ═══════════════════════════════════════
@@ -644,11 +671,11 @@ ${mismatches}
 ${dynamicCtx}
 
 ANALYSIS INSTRUCTIONS:
-- Quote actual response language when describing patterns (e.g., Tony: "I need to step away and process before…")
+- Quote actual response language when describing patterns (e.g., ${primaryPerson}: "I need to step away and process before…")
 - Name specific attachment styles, conflict loops, and communication mismatches
 - Apply named frameworks: Gottman, Attachment Theory, NVC, Polyvagal Theory, Demand-Withdraw
 - For comparison_table: compare actual documented differences, not assumptions
-- For predictions: ground each in specific documented behaviors ("When Tony goes quiet, Drew's pattern of X means Y is likely")
+- For predictions: ground each in specific documented behaviors ("When ${primaryPerson} goes quiet, ${secondaryPerson}'s pattern of X means Y is likely")
 - Where temporal data shows change, name it explicitly: "Earlier data shows X; more recent answers show Y — indicating growth/regression"
 - DO NOT produce generic advice applicable to any couple
 
@@ -660,7 +687,7 @@ Generate valid JSON with these exact fields:
 - comparison_table: array of objects {category, tony, drew, insight} — 6–8 rows covering key dynamic differences
 - predictions: array of 4–6 specific behavioral predictions ("When X happens, Y is likely because...")
 - recommendations: array of 5–7 specific, actionable recommendations for the couple
-- growth_summary: 4–5 sentence relationship portrait that feels uniquely like Tony and Drew
+- growth_summary: 4–5 sentence relationship portrait that feels uniquely like ${primaryPerson} and ${secondaryPerson}
 - conflict_loops: array of 3–5 named recurring conflict patterns detected
 - shared_strengths: array of 4–6 shared values or behavioral strengths`;
 }
@@ -676,8 +703,14 @@ export function buildContextInsightsPrompt({
   checkIns = [],
   relationshipDynamic = null,
 }) {
-  const tonyCtx = serializeProfile("Tony", tonyProfile);
-  const drewCtx = serializeProfile("Drew", drewProfile);
+  const [primaryPerson, secondaryPerson] = inferParticipantNames({
+    primaryProfile: tonyProfile,
+    secondaryProfile: drewProfile,
+    primaryResponses: tonyResponses,
+    secondaryResponses: drewResponses,
+  });
+  const tonyCtx = serializeProfile(primaryPerson, tonyProfile);
+  const drewCtx = serializeProfile(secondaryPerson, drewProfile);
   const tonyTags = aggregateTags(tonyResponses);
   const drewTags = aggregateTags(drewResponses);
 
@@ -711,31 +744,31 @@ export function buildContextInsightsPrompt({
 
   const tonyTemporalCtx = buildTemporalContext(tonyResponses);
   const drewTemporalCtx = buildTemporalContext(drewResponses);
-  const traitMismatches = serializeTraitMismatches(tonyProfile, "Tony", drewProfile, "Drew");
+  const traitMismatches = serializeTraitMismatches(tonyProfile, primaryPerson, drewProfile, secondaryPerson);
 
   return `${RELATIONSHIP_COACH_SYSTEM}
 
-You are generating deeply personalized CONTEXT-BASED RELATIONSHIP INSIGHTS for Tony and Drew.
+You are generating deeply personalized CONTEXT-BASED RELATIONSHIP INSIGHTS for ${primaryPerson} and ${secondaryPerson}.
 Use ALL data injected below — questionnaire responses, coach sessions, check-ins, and profiles.
 Be concrete and specific. Reference actual words and patterns from their answers.
 Name things directly. Do NOT hedge unnecessarily.
-These insights should feel like they were written by someone who has known Tony and Drew for years.
+These insights should feel like they were written by someone who has known ${primaryPerson} and ${secondaryPerson} for years.
 
 ═══════════════════════════════════════
-TONY'S FULL PROFILE & DATA
+${primaryPerson.toUpperCase()}'S FULL PROFILE & DATA
 ═══════════════════════════════════════
 ${tonyCtx}
-${tonyTags ? `Tony's behavioral signal patterns (weighted): ${tonyTags}` : ""}
-${tonyTemporalCtx ? `\nTony's behavioral evolution over time:\n${tonyTemporalCtx}` : ""}
-${tonyResponses.length > 0 ? `\nTONY'S COMPLETE QUESTIONNAIRE RESPONSES (${tonyResponses.length} answers):\n${fullResponses(tonyResponses, "Tony")}` : ""}
+${tonyTags ? `${primaryPerson}'s behavioral signal patterns (weighted): ${tonyTags}` : ""}
+${tonyTemporalCtx ? `\n${primaryPerson}'s behavioral evolution over time:\n${tonyTemporalCtx}` : ""}
+${tonyResponses.length > 0 ? `\n${primaryPerson.toUpperCase()}'S COMPLETE QUESTIONNAIRE RESPONSES (${tonyResponses.length} answers):\n${fullResponses(tonyResponses, primaryPerson)}` : ""}
 
 ═══════════════════════════════════════
-DREW'S FULL PROFILE & DATA
+${secondaryPerson.toUpperCase()}'S FULL PROFILE & DATA
 ═══════════════════════════════════════
 ${drewCtx}
-${drewTags ? `Drew's behavioral signal patterns (weighted): ${drewTags}` : ""}
-${drewTemporalCtx ? `\nDrew's behavioral evolution over time:\n${drewTemporalCtx}` : ""}
-${drewResponses.length > 0 ? `\nDREW'S COMPLETE QUESTIONNAIRE RESPONSES (${drewResponses.length} answers):\n${fullResponses(drewResponses, "Drew")}` : ""}
+${drewTags ? `${secondaryPerson}'s behavioral signal patterns (weighted): ${drewTags}` : ""}
+${drewTemporalCtx ? `\n${secondaryPerson}'s behavioral evolution over time:\n${drewTemporalCtx}` : ""}
+${drewResponses.length > 0 ? `\n${secondaryPerson.toUpperCase()}'S COMPLETE QUESTIONNAIRE RESPONSES (${drewResponses.length} answers):\n${fullResponses(drewResponses, secondaryPerson)}` : ""}
 
 ═══════════════════════════════════════
 TRAIT DYNAMICS
@@ -758,7 +791,7 @@ PREVIOUSLY DETECTED DYNAMIC
 ${dynamicCtx}` : ""}
 
 ANALYSIS INSTRUCTIONS:
-- Quote actual words from their answers when describing patterns (e.g., Tony: "need to step away and process before…")
+- Quote actual words from their answers when describing patterns (e.g., ${primaryPerson}: "need to step away and process before…")
 - Identify the pursuer-distancer dynamic, attachment styles, and processing tempo mismatches
 - Cross-reference both partners' data to find interaction loops
 - Reference named psychological frameworks (Gottman, NVC, Polyvagal, Attachment Theory)
@@ -767,10 +800,10 @@ ANALYSIS INSTRUCTIONS:
 
 Generate a JSON object with these exact fields:
 - what_system_sees: string — 4–6 sentences describing what the data reveals. MUST name the dynamic explicitly (e.g., "You have a classic mismatch in stress and closeness rhythms"), quote actual answer language, and reference both people by name with specific observed behaviors. Do NOT hedge or speak in generalities.
-- what_this_means: string — 3–4 sentences interpreting WHY this dynamic exists and what it means for Tony and Drew specifically. Name the underlying mechanism (e.g., "Neither is malicious — both are meeting their needs in the ways they know — but each interprets the other's coping as rejection or pressure.").
-- signals_tony: array of 5–7 strings — Tony's specific needs, triggers, blind spots, and strengths. MUST quote or paraphrase actual answer language. Format each as: "[Category label]: [specific observation from data]" e.g. "Strength: flexible in plans ('go with the flow') which helps during travel and logistical stressors." or "Trigger: sustained emotional intensity or being asked to talk before he's had space — can escalate to internal resentment."
-- signals_drew: array of 5–7 strings — Drew's specific needs, triggers, blind spots, and strengths in the same format. MUST quote or paraphrase actual answer language. e.g. "Blind spot: tends to give hints and wait for partner to notice instead of making direct emotional requests — hints often go unnoticed."
-- signals_together: array of 4–6 strings — named couple dynamic patterns, mismatch points, and opportunities unique to Tony and Drew. Each must name the dynamic (e.g., pursuer-distancer, processing tempo mismatch).
+- what_this_means: string — 3–4 sentences interpreting WHY this dynamic exists and what it means for ${primaryPerson} and ${secondaryPerson} specifically. Name the underlying mechanism (e.g., "Neither is malicious — both are meeting their needs in the ways they know — but each interprets the other's coping as rejection or pressure.").
+- signals_tony: array of 5–7 strings — ${primaryPerson}'s specific needs, triggers, blind spots, and strengths. MUST quote or paraphrase actual answer language. Format each as: "[Category label]: [specific observation from data]".
+- signals_drew: array of 5–7 strings — ${secondaryPerson}'s specific needs, triggers, blind spots, and strengths in the same format. MUST quote or paraphrase actual answer language.
+- signals_together: array of 4–6 strings — named couple dynamic patterns, mismatch points, and opportunities unique to ${primaryPerson} and ${secondaryPerson}. Each must name the dynamic (e.g., pursuer-distancer, processing tempo mismatch).
 - what_seems_to_help: array of 3–5 strings — specific strategies grounded in their history
 - friction_sources: array of 3–5 strings — named causes of recurring friction with framework references
 - what_to_try_next: array of 4–5 strings — EACH ITEM MUST contain: (1) a complete word-for-word ready-to-use script in quotes, (2) the named psychological framework in parentheses, and (3) a plain-English "why" explanation. FORMAT EXACTLY LIKE: "Try this script for [person] when [situation]: '[complete sentence they can say verbatim]' ([Framework name]: why — [plain explanation of why this works])". Do NOT give vague suggestions — give complete scripts.
@@ -783,8 +816,12 @@ Generate a JSON object with these exact fields:
 // ─── RELATIONSHIP DYNAMIC UPDATE PROMPT ──────────────────────────────────────
 
 export function buildDynamicUpdatePrompt({ tonyProfile, drewProfile, recentSessions = [], recentCheckIns = [] }) {
-  const tonyCtx = serializeProfile("Tony", tonyProfile);
-  const drewCtx = serializeProfile("Drew", drewProfile);
+  const [primaryPerson, secondaryPerson] = inferParticipantNames({
+    primaryProfile: tonyProfile,
+    secondaryProfile: drewProfile,
+  });
+  const tonyCtx = serializeProfile(primaryPerson, tonyProfile);
+  const drewCtx = serializeProfile(secondaryPerson, drewProfile);
 
   const sessionsCtx = recentSessions
     .slice(0, 8)
@@ -798,7 +835,7 @@ export function buildDynamicUpdatePrompt({ tonyProfile, drewProfile, recentSessi
 
   return `${RELATIONSHIP_COACH_SYSTEM}
 
-Analyze all available session and check-in history to update the detected couple-level dynamic patterns.
+Analyze all available session and check-in history to update the detected couple-level dynamic patterns for ${primaryPerson} and ${secondaryPerson}.
 
 ${tonyCtx}
 ${drewCtx}
