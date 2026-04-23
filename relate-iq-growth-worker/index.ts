@@ -635,7 +635,9 @@ async function requireScopedRelationship(
   }
 
   const memberships = await getMembershipsForUserPersistent(env, user.id);
-  if (!memberships.some((membership) => membership.relationship_id === relationshipId)) {
+  const hasMembership = memberships.some((membership) => membership.relationship_id === relationshipId);
+  const derivedRole = hasMembership ? null : await inferRelationshipRolePersistent(env, relationship, user.id, [], user);
+  if (!hasMembership && derivedRole !== "owner") {
     return { error: "forbidden", status: 403 as const };
   }
 
