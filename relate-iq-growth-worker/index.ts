@@ -747,6 +747,10 @@ async function listRelationships(env: Env): Promise<Relationship[]> {
 }
 
 async function getRelationshipPersistent(env: Env, id: string) {
+  const direct = await kvGetJson<Relationship>(env, authKey("relationship", id));
+  if (direct) {
+    return reconcileRelationshipParticipantsPersistent(env, direct);
+  }
   const relationships = await listRelationships(env);
   return relationships.find((relationship) => relationship.id === id) || null;
 }
