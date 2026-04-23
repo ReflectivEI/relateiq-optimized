@@ -26,10 +26,27 @@ export function RelationshipAuthProvider({ children }) {
     queryClientInstance.clear();
   };
 
+  const resetToSignedOut = () => {
+    setUser(null);
+    setRelationships([]);
+    setActiveRelationshipId("");
+    setError("");
+    api.session.clearStoredSession();
+    queryClientInstance.clear();
+  };
+
   const refresh = async () => {
-    const payload = await api.auth.bootstrap();
-    syncBootstrap(payload);
-    return payload;
+    try {
+      const payload = await api.auth.bootstrap();
+      syncBootstrap(payload);
+      return payload;
+    } catch (err) {
+      if (err?.status === 401) {
+        resetToSignedOut();
+        return null;
+      }
+      throw err;
+    }
   };
 
   useEffect(() => {
@@ -39,7 +56,9 @@ export function RelationshipAuthProvider({ children }) {
         const payload = await api.auth.bootstrap();
         if (!cancelled) syncBootstrap(payload);
       } catch (err) {
-        if (!cancelled) {
+        if (!cancelled && err?.status === 401) {
+          resetToSignedOut();
+        } else if (!cancelled) {
           setError(err instanceof Error ? err.message : "Unable to load relationship context.");
         }
       } finally {
