@@ -708,6 +708,12 @@ function authKey(entity: string, id: string) {
   return `auth:${entity}:${id}`;
 }
 
+function getFrontendOrigin(request: Request) {
+  const origin = normalizeText(request.headers.get("Origin"));
+  if (origin) return origin.replace(/\/$/, "");
+  return "https://relateiq-growth.pages.dev";
+}
+
 async function listAuthRecords<T extends { id: string }>(env: Env, entity: string): Promise<T[]> {
   if (!env.QUESTIONNAIRES) return [];
   const prefix = `auth:${entity}:`;
@@ -3686,7 +3692,7 @@ export default {
           reused: created.reused,
           provisional_user: created.provisionalUser || null,
           invite_link: `/invite/${created.invite.invite_token}`,
-          absolute_invite_link: `${url.origin}/invite/${created.invite.invite_token}`,
+          absolute_invite_link: `${getFrontendOrigin(request)}/invite/${created.invite.invite_token}`,
         },
         request,
         env,
