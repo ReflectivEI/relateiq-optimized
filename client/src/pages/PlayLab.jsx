@@ -45,6 +45,7 @@ import {
   ArrowUpRight,
   CheckCircle2,
   RefreshCw,
+  ChevronDown,
 } from "lucide-react";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import { getPartnerName } from "@/lib/relationshipParticipants";
@@ -124,19 +125,45 @@ function ModuleCard({ module, active, onSelect }) {
       }`}
     >
       <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#0e6f72]/20 bg-[#eef8f7]">
+        <div className="flex items-start gap-3">
+          <div className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#0e6f72]/20 bg-[#eef8f7]">
             <Icon className="h-5 w-5 text-[#0e6f72]" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-base font-semibold text-[#14263f]">{module.title}</p>
-            <p className="mt-1 text-sm leading-6 text-[#5c6b80]">{module.shortDescription}</p>
+            <p className="mt-2 text-sm leading-7 text-[#4e6077]">{module.teaserDescription || module.shortDescription}</p>
           </div>
         </div>
         <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-[#0e6f72]" />
       </div>
-      <p className="mt-4 text-sm leading-6 text-[#4e6077]">{module.whyItMatters}</p>
     </button>
+  );
+}
+
+function CollapsiblePanel({ title, icon: Icon, description, open, onToggle, children, defaultOpen = false }) {
+  const isOpen = open ?? defaultOpen;
+  return (
+    <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-white">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-start justify-between gap-4 p-5 text-left"
+      >
+        <div className="flex min-w-0 items-start gap-3">
+          {Icon ? (
+            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#0e6f72]/18 bg-[#eef8f7]">
+              <Icon className="h-4.5 w-4.5 text-[#0e6f72]" />
+            </div>
+          ) : null}
+          <div className="min-w-0">
+            <p className="text-xl font-semibold text-[#14263f]">{title}</p>
+            {description ? <p className="mt-2 text-sm leading-7 text-[#4e6077]">{description}</p> : null}
+          </div>
+        </div>
+        <ChevronDown className={`mt-1 h-5 w-5 shrink-0 text-[#0e6f72] transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+      {isOpen ? <div className="border-t border-[#0e6f72]/12 px-5 pb-5">{children}</div> : null}
+    </div>
   );
 }
 
@@ -227,6 +254,14 @@ export default function PlayLab() {
   const [outcomeSubmitting, setOutcomeSubmitting] = useState(false);
   const [refreshingPrompt, setRefreshingPrompt] = useState(false);
   const [selectedRepairAction, setSelectedRepairAction] = useState("");
+  const [moduleWorkspaceOpen, setModuleWorkspaceOpen] = useState(false);
+  const [howItWorksOpen, setHowItWorksOpen] = useState(false);
+  const [recentAhaOpen, setRecentAhaOpen] = useState(false);
+  const [sideQuestOpen, setSideQuestOpen] = useState(false);
+  const [resultOpen, setResultOpen] = useState(true);
+  const [outcomeOpen, setOutcomeOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [systemImpactOpen, setSystemImpactOpen] = useState(false);
   const lastSavedRef = useRef({});
   const [outcomeForm, setOutcomeForm] = useState({
     attempted: true,
@@ -283,6 +318,25 @@ export default function PlayLab() {
     setSectionSummary({});
     setSelectedRepairAction("");
     setForm(DEFAULT_FORM);
+    setResultOpen(true);
+    setOutcomeOpen(false);
+  };
+
+  const selectModule = (nextModule) => {
+    setModuleType((current) => {
+      if (current === nextModule) {
+        setModuleWorkspaceOpen((open) => !open);
+        return current;
+      }
+      return nextModule;
+    });
+    if (moduleType !== nextModule) {
+      setModuleWorkspaceOpen(true);
+      setHowItWorksOpen(false);
+      setResultOpen(true);
+      setOutcomeOpen(false);
+      resetRun();
+    }
   };
 
   const ensureSession = async () => {
@@ -930,22 +984,25 @@ export default function PlayLab() {
           <ModuleCard
             key={module.id}
             module={module}
-            active={moduleType === module.id}
-            onSelect={(nextModule) => {
-              setModuleType(nextModule);
-              resetRun();
-            }}
+            active={moduleType === module.id && moduleWorkspaceOpen}
+            onSelect={selectModule}
           />
         ))}
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(300px,0.8fr)]">
-        <Card className="enterprise-panel border-2">
-          <CardHeader className="pb-3">
+        <div className="space-y-6">
+        <CollapsiblePanel
+          title={activeModule.title}
+          icon={MODULE_ICONS[activeModule.id] || Gamepad2}
+          description={activeModule.teaserDescription || activeModule.shortDescription}
+          open={moduleWorkspaceOpen}
+          onToggle={() => setModuleWorkspaceOpen((current) => !current)}
+        >
+          <div className="space-y-5 pt-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <CardTitle className="text-2xl">{activeModule.title}</CardTitle>
-                <p className="mt-2 text-sm leading-7 text-[#5c6b80]">{activeModule.shortDescription}</p>
+              <div className="min-w-0">
+                <p className="text-sm leading-7 text-[#5c6b80]">{activeModule.shortDescription}</p>
               </div>
               <Button
                 type="button"
@@ -956,8 +1013,6 @@ export default function PlayLab() {
                 Reset
               </Button>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-5">
             <div className="grid gap-4 md:grid-cols-3">
               <div className="grid gap-2">
                 <Label>Scope</Label>
@@ -999,51 +1054,58 @@ export default function PlayLab() {
             </div>
 
             <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-[#f6fbfb] p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+                <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0e6f72]/80">Current Prompt</p>
-                  <p className="mt-2 text-base font-semibold text-[#14263f]">
+                  <p className="mt-2 max-w-2xl text-base font-semibold leading-8 text-[#14263f]">
                     {session?.prompt_text || "Start a round to pull a fresh prompt from the Play Lab prompt bank."}
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      const created = await createPlayLabSession({
-                        moduleType,
-                        scope,
-                        initiatedBy,
-                        answeringPerson,
-                        createdFrom: "play_lab_page",
-                      });
-                      setSession(created.session);
-                      toast.success("Fresh round ready");
-                    } catch (error) {
-                      console.error(error);
-                      toast.error("Unable to start a new round right now.");
-                    }
-                  }}
-                  className="rounded-full border-2 border-teal-500 bg-[#14263f] px-5 text-white hover:bg-[#0f1d31]"
-                >
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Start Round
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleRefreshPrompt}
-                  disabled={refreshingPrompt}
-                  className="rounded-full border-[#0e6f72]/35 bg-[#eef8f7] text-[#14263f] hover:bg-[#d8f2ef]"
-                >
-                  {refreshingPrompt ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4 text-[#0e6f72]" />}
-                  Try another
-                </Button>
+                <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+                  <Button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const created = await createPlayLabSession({
+                          moduleType,
+                          scope,
+                          initiatedBy,
+                          answeringPerson,
+                          createdFrom: "play_lab_page",
+                        });
+                        setSession(created.session);
+                        toast.success("Fresh round ready");
+                      } catch (error) {
+                        console.error(error);
+                        toast.error("Unable to start a new round right now.");
+                      }
+                    }}
+                    className="rounded-full border-2 border-teal-500 bg-[#14263f] px-5 text-white hover:bg-[#0f1d31]"
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Start Round
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleRefreshPrompt}
+                    disabled={refreshingPrompt}
+                    className="rounded-full border-[#0e6f72]/35 bg-[#eef8f7] text-[#14263f] hover:bg-[#d8f2ef]"
+                  >
+                    {refreshingPrompt ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4 text-[#0e6f72]" />}
+                    Try another
+                  </Button>
+                </div>
               </div>
             </div>
 
-            <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-white p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0e6f72]/80">How This Module Works</p>
+            <CollapsiblePanel
+              title="How This Module Works"
+              icon={CheckCircle2}
+              description="Open the steps if you want the flow spelled out before you start."
+              open={howItWorksOpen}
+              onToggle={() => setHowItWorksOpen((current) => !current)}
+            >
               <ul className="mt-4 space-y-2 text-sm leading-7 text-[#4e6077]">
                 {activeModule.instructions.map((step) => (
                   <li key={step} className="flex items-start gap-2">
@@ -1052,7 +1114,7 @@ export default function PlayLab() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </CollapsiblePanel>
 
             {renderModuleInputs()}
 
@@ -1078,67 +1140,25 @@ export default function PlayLab() {
                 </Button>
               ) : null}
             </div>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-6">
-          <Card className="enterprise-panel border-2">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xl">Recent Aha Cards</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {recentAhaCards.length === 0 ? (
-                <p className="text-sm leading-7 text-[#5c6b80]">No Aha cards saved yet. The first few rounds will start generating them automatically.</p>
-              ) : (
-                recentAhaCards.slice(0, 4).map((card) => (
-                  <div key={card.id} className="rounded-[1.25rem] border border-[#0e6f72]/15 bg-[#f6fbfb] p-4">
-                    <p className="font-semibold text-[#14263f]">{card.title}</p>
-                    <p className="mt-2 text-sm leading-6 text-[#4e6077]">{card.body}</p>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="enterprise-panel border-2">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xl">Current Side Quests</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {recentSideQuests.length === 0 ? (
-                <p className="text-sm leading-7 text-[#5c6b80]">No weekly micro-challenges assigned yet.</p>
-              ) : (
-                recentSideQuests.slice(0, 3).map((quest) => (
-                  <div key={quest.id} className="rounded-[1.25rem] border border-[#0e6f72]/15 bg-white p-4">
-                    <p className="font-semibold text-[#14263f]">{quest.title}</p>
-                    <p className="mt-2 text-sm leading-6 text-[#4e6077]">{quest.description}</p>
-                    <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#0e6f72]/80">Success looks like</p>
-                    <p className="mt-1 text-sm leading-6 text-[#4e6077]">{quest.success_definition}</p>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+          </div>
+        </CollapsiblePanel>
 
       {result ? (
-        <section className="space-y-6">
-          <Card className="enterprise-panel border-2">
-            <CardHeader className="pb-3">
+        <CollapsiblePanel
+          title={result.moduleLabel || activeModule.title}
+          icon={Sparkles}
+          description={result.summary || result.ai_summary}
+          open={resultOpen}
+          onToggle={() => setResultOpen((current) => !current)}
+        >
+            <div className="space-y-5 pt-5">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="text-2xl">{result.moduleLabel || activeModule.title}</CardTitle>
-                  <p className="mt-2 text-sm leading-7 text-[#5c6b80]">{result.summary || result.ai_summary}</p>
-                </div>
                 <div className="rounded-[1.25rem] border border-[#0e6f72]/20 bg-[#eef8f7] px-5 py-4 text-center">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0e6f72]/80">Match / confidence</p>
                   <p className="mt-2 font-display text-3xl font-bold text-[#14263f]">{result.matchScore || result.match_score || 0}%</p>
                   <p className="text-sm text-[#4e6077]">{result.confidenceLevel || result.confidence_level || "emerging"}</p>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-5">
               {(result.sections || []).map((section) => (
                 <ResultSectionCard
                   key={`${section.title}-${section.body}`}
@@ -1239,31 +1259,36 @@ export default function PlayLab() {
                   <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#22324a]">{elaborateText}</p>
                 </div>
               ) : null}
-            </CardContent>
-          </Card>
+            </div>
+        </CollapsiblePanel>
+      ) : null}
 
-          {ahaCard ? (
-            <Card className="enterprise-panel border-2">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-3 text-xl">
-                  <Sparkles className="h-5 w-5 text-[#0e6f72]" />
-                  Aha unlocked
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-[#f6fbfb] p-5">
-                  <p className="font-semibold text-[#14263f]">{ahaCard.title}</p>
-                  <p className="mt-3 text-sm leading-7 text-[#4e6077]">{ahaCard.body}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
+      {ahaCard ? (
+        <Card className="enterprise-panel border-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <Sparkles className="h-5 w-5 text-[#0e6f72]" />
+              Aha unlocked
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-[#f6fbfb] p-5">
+              <p className="font-semibold text-[#14263f]">{ahaCard.title}</p>
+              <p className="mt-3 text-sm leading-7 text-[#4e6077]">{ahaCard.body}</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
-          <Card className="enterprise-panel border-2">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xl">Outcome tracking</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
+      {result ? (
+        <CollapsiblePanel
+          title="Outcome tracking"
+          icon={ArrowRightLeft}
+          description="Log what happened after you tried the suggestion so Play Lab can learn what actually helps."
+          open={outcomeOpen}
+          onToggle={() => setOutcomeOpen((current) => !current)}
+        >
+            <div className="space-y-5 pt-5">
               <p className="text-sm leading-7 text-[#5c6b80]">
                 If you try the suggested move later, log the outcome here so the app can learn which approaches actually reduce tension and improve connection.
               </p>
@@ -1314,17 +1339,67 @@ export default function PlayLab() {
                 {outcomeSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowRightLeft className="mr-2 h-4 w-4" />}
                 Save Outcome
               </Button>
-            </CardContent>
-          </Card>
-        </section>
+            </div>
+        </CollapsiblePanel>
       ) : null}
+        </div>
+
+        <div className="space-y-6">
+          <CollapsiblePanel
+            title="Recent Aha Cards"
+            icon={Lightbulb}
+            description="Saved insight cards that keep the most useful patterns easy to revisit."
+            open={recentAhaOpen}
+            onToggle={() => setRecentAhaOpen((current) => !current)}
+          >
+            <div className="space-y-3 pt-5">
+              {recentAhaCards.length === 0 ? (
+                <p className="text-sm leading-7 text-[#5c6b80]">No Aha cards saved yet. The first few rounds will start generating them automatically.</p>
+              ) : (
+                recentAhaCards.slice(0, 4).map((card) => (
+                  <div key={card.id} className="rounded-[1.25rem] border border-[#0e6f72]/15 bg-[#f6fbfb] p-4">
+                    <p className="font-semibold text-[#14263f]">{card.title}</p>
+                    <p className="mt-2 text-sm leading-6 text-[#4e6077]">{card.body}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </CollapsiblePanel>
+
+          <CollapsiblePanel
+            title="Current Side Quests"
+            icon={Trophy}
+            description="Open the small weekly experiments that are currently active."
+            open={sideQuestOpen}
+            onToggle={() => setSideQuestOpen((current) => !current)}
+          >
+            <div className="space-y-3 pt-5">
+              {recentSideQuests.length === 0 ? (
+                <p className="text-sm leading-7 text-[#5c6b80]">No weekly micro-challenges assigned yet.</p>
+              ) : (
+                recentSideQuests.slice(0, 3).map((quest) => (
+                  <div key={quest.id} className="rounded-[1.25rem] border border-[#0e6f72]/15 bg-white p-4">
+                    <p className="font-semibold text-[#14263f]">{quest.title}</p>
+                    <p className="mt-2 text-sm leading-6 text-[#4e6077]">{quest.description}</p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[#0e6f72]/80">Success looks like</p>
+                    <p className="mt-1 text-sm leading-6 text-[#4e6077]">{quest.success_definition}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </CollapsiblePanel>
+        </div>
+      </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
-        <Card className="enterprise-panel border-2">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-2xl">Recent Play Lab activity</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <CollapsiblePanel
+          title="Recent Play Lab Activity"
+          icon={Gamepad2}
+          description="Open recent rounds, prompts, and outputs when you want to revisit what the app is learning."
+          open={historyOpen}
+          onToggle={() => setHistoryOpen((current) => !current)}
+        >
+          <div className="space-y-4 pt-5">
             {recentSessions.length === 0 ? (
               <p className="text-sm leading-7 text-[#5c6b80]">No Play Lab history yet. The first run will start building session memory right away.</p>
             ) : (
@@ -1333,14 +1408,17 @@ export default function PlayLab() {
                 return <HistoryCard key={item.id} session={item} result={related} />;
               })
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </CollapsiblePanel>
 
-        <Card className="enterprise-panel border-2">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-2xl">How Play Lab improves the rest of RelateIQ</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm leading-7 text-[#4e6077]">
+        <CollapsiblePanel
+          title="How Play Lab Improves the Rest of RelateIQ"
+          icon={Lightbulb}
+          description="Open the system view if you want to see how matches, misses, and outcomes feed coaching and insights."
+          open={systemImpactOpen}
+          onToggle={() => setSystemImpactOpen((current) => !current)}
+        >
+          <div className="space-y-4 pt-5 text-sm leading-7 text-[#4e6077]">
             <div className="rounded-[1.25rem] border border-[#0e6f72]/14 bg-[#f6fbfb] p-4">
               <p className="font-semibold text-[#14263f]">AI Coach</p>
               <p className="mt-2">Recent mismatch data can sharpen what the coach suggests when one partner feels misunderstood or unsupported.</p>
@@ -1353,8 +1431,8 @@ export default function PlayLab() {
               <p className="font-semibold text-[#14263f]">Repair + Support Matching</p>
               <p className="mt-2">The app can learn what actually works in real life instead of treating all support moves as equally useful.</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CollapsiblePanel>
       </section>
     </div>
   );

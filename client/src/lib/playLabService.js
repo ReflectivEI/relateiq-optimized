@@ -5,6 +5,7 @@ export const PLAY_LAB_MODULES = [
     id: "guess_my_inner_world",
     title: "Guess My Inner World",
     shortDescription: "One partner answers, the other guesses, then the app shows the emotional match or miss.",
+    teaserDescription: "Reveal what your partner most hopes you notice first, then see where your understanding is strong or still catching up.",
     whyItMatters: "Builds empathy, support accuracy, and stronger understanding of hidden needs.",
     instructions: [
       "Choose who is answering first.",
@@ -17,6 +18,7 @@ export const PLAY_LAB_MODULES = [
     id: "repair_quest",
     title: "Repair Quest",
     shortDescription: "Turn tension into one clear repair move, backups, and a follow-through plan.",
+    teaserDescription: "Turn a tense moment into one grounded repair move, realistic backups, and a next step that feels doable.",
     whyItMatters: "Improves repair timing and helps the system learn which moves reduce friction fastest.",
     instructions: [
       "Name what happened.",
@@ -29,6 +31,7 @@ export const PLAY_LAB_MODULES = [
     id: "stress_decoder",
     title: "Stress Decoder",
     shortDescription: "Capture what support is really needed under stress and compare it against what was guessed.",
+    teaserDescription: "Decode what support actually lands under pressure so you can stop guessing and respond in ways that help.",
     whyItMatters: "Improves support matching and helps AI Coach recommend better stress responses later.",
     instructions: [
       "Describe the stress source.",
@@ -41,6 +44,7 @@ export const PLAY_LAB_MODULES = [
     id: "two_truths_and_a_misread",
     title: "Two Truths and a Misread",
     shortDescription: "Use one hard moment to surface what was probably true and what was likely misread.",
+    teaserDescription: "Spot the likely misread inside a hard moment and reduce the storylines that keep conflict spinning.",
     whyItMatters: "Reduces blame and improves interpretation accuracy during conflict or shutdown.",
     instructions: [
       "Paste or summarize a recent tense moment.",
@@ -52,6 +56,7 @@ export const PLAY_LAB_MODULES = [
     id: "love_map_sprint",
     title: "Love Map Sprint",
     shortDescription: "Quickly test how well each partner understands the other’s current week, stressors, and needs.",
+    teaserDescription: "Check how current your understanding really is by testing what matters to your partner right now, not last month.",
     whyItMatters: "Keeps relationship knowledge current instead of static or outdated.",
     instructions: [
       "Start a current-life prompt.",
@@ -63,6 +68,7 @@ export const PLAY_LAB_MODULES = [
     id: "aha_cards",
     title: "Aha Cards",
     shortDescription: "Turn stored patterns into memorable insight cards you can save, export, and reuse later.",
+    teaserDescription: "Turn recurring patterns into memorable insight cards you can save, revisit, and use when it matters most.",
     whyItMatters: "Makes the app’s learning portable and easier to remember in the moments that matter.",
     instructions: [
       "Generate a fresh Aha card from stored patterns.",
@@ -74,6 +80,7 @@ export const PLAY_LAB_MODULES = [
     id: "side_quest",
     title: "One Degree of Change",
     shortDescription: "Get one small weekly behavior experiment tied to the patterns the app is already seeing.",
+    teaserDescription: "Get one small behavior shift the app believes is realistic enough to try and meaningful enough to matter.",
     whyItMatters: "Creates gentle behavior change without making the app feel like homework.",
     instructions: [
       "Assign one small challenge.",

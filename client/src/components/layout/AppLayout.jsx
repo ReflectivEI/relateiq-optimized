@@ -33,6 +33,7 @@ import {
   Trash2,
   RefreshCw,
   Copy,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -87,6 +88,15 @@ const navGroups = [
 function generateTemporaryPassword() {
   const base = crypto.randomUUID().replace(/-/g, "");
   return `${base.slice(0, 4)}${base.slice(4, 8)}!${base.slice(8, 11)}A`;
+}
+
+function formatRelationshipTypeLabel(type) {
+  const normalized = String(type || "").trim().toLowerCase();
+  if (normalized === "romantic") return "Partners";
+  if (normalized === "friendship") return "Friendship";
+  if (normalized === "family") return "Family";
+  if (normalized === "other") return "Other";
+  return normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : "Other";
 }
 
 export default function AppLayout() {
@@ -384,11 +394,11 @@ export default function AppLayout() {
               >
                 {relationships.map((relationship) => (
                   <option key={relationship.id} value={relationship.id}>
-                    {relationship.name} · {relationship.type}
+                    {relationship.name} · {formatRelationshipTypeLabel(relationship.type)}
                   </option>
                 ))}
               </select>
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_44px] gap-2 items-center">
                 <Button
                   variant="outline"
                   size="sm"
@@ -420,10 +430,10 @@ export default function AppLayout() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-primary/30 bg-transparent px-3 text-teal-100 hover:bg-primary/10"
+                  className="h-10 w-11 justify-center border-primary/30 bg-transparent px-0 text-teal-100 hover:bg-primary/10"
                   onClick={() => void openManageDialog()}
                 >
-                  <Settings2 className="h-3.5 w-3.5" />
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
@@ -533,7 +543,7 @@ export default function AppLayout() {
               >
                 {relationships.map((relationship) => (
                   <option key={relationship.id} value={relationship.id}>
-                    {relationship.name} · {relationship.type}
+                    {relationship.name} · {formatRelationshipTypeLabel(relationship.type)}
                   </option>
                 ))}
               </select>
@@ -548,9 +558,9 @@ export default function AppLayout() {
                 </Button>
               </div>
               <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={() => void openManageDialog()}>
-                <Settings2 className="mr-2 h-4 w-4" />
-                Manage Connections
-              </Button>
+                  <SlidersHorizontal className="mr-2 h-4 w-4" />
+                  Manage Connections
+                </Button>
             </div>
             {navGroups.map((group) => {
               const groupHasActiveItem = group.items.some((item) => location.pathname === item.path);
