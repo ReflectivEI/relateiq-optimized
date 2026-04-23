@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { useState } from "react";
 
@@ -33,6 +33,7 @@ import { RelationshipAuthProvider, useRelationshipAuth } from './context/Relatio
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Shield, Users, Sparkles } from "lucide-react";
 
 function AuthScreen() {
   const { login, register, error } = useRelationshipAuth();
@@ -61,22 +62,40 @@ function AuthScreen() {
 
   return (
     <div className="min-h-screen bg-background px-4 py-12">
-      <div className="mx-auto flex max-w-5xl flex-col gap-8 lg:flex-row lg:items-center">
-        <div className="flex-1 space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">ReflectIQ</p>
-          <h1 className="font-display text-4xl font-bold text-foreground md:text-5xl">
-            Private relationship intelligence, scoped to the right connection.
-          </h1>
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 lg:flex-row lg:items-center">
+        <div className="flex-1 space-y-5">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">ReflectIQ</p>
+            <h1 className="mt-3 font-display text-4xl font-bold tracking-tight text-foreground md:text-5xl">
+              Private relationship intelligence for the right connection.
+            </h1>
+          </div>
           <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-            Sign in to access only the relationships you belong to. Each connection keeps its own questionnaire,
-            memory, coaching, insights, and analysis with no cross-contamination between contexts.
+            Sign in to choose a relationship context. All coaching, memory, questionnaire responses, and
+            insights stay isolated inside the selected connection.
           </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              { icon: Shield, title: "Private by design", copy: "Only designated logins can access the relationship they belong to." },
+              { icon: Users, title: "Admin-managed", copy: "Owner/admin creates connections, assigns credentials, and sends the invite link." },
+              { icon: Sparkles, title: "Questionnaire-first", copy: "Each new connection starts clean and routes into the full 94-question setup." },
+            ].map(({ icon: Icon, title, copy }) => (
+              <div key={title} className="rounded-3xl border border-border/70 bg-card/70 p-4 shadow-sm">
+                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                  <Icon className="h-4 w-4" />
+                </div>
+                <p className="text-sm font-semibold text-foreground">{title}</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">{copy}</p>
+              </div>
+            ))}
+          </div>
         </div>
         <Card className="w-full max-w-xl border border-border/70 shadow-sm">
-          <CardHeader className="space-y-4">
-            <CardTitle className="font-display text-3xl">
-              {mode === "login" ? "Sign In" : "Create Account"}
-            </CardTitle>
+          <CardHeader className="space-y-3">
+            <CardTitle className="font-display text-4xl">ReflectIQ</CardTitle>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Sign in to choose a relationship context. All coaching, memory, and insights stay isolated inside the selected relationship.
+            </p>
             <div className="flex gap-2">
               <Button variant={mode === "login" ? "default" : "outline"} className="flex-1" onClick={() => setMode("login")}>
                 Sign In
@@ -87,11 +106,51 @@ function AuthScreen() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid gap-3">
+              <div className="rounded-3xl border border-border/70 bg-muted/20 p-4 text-sm leading-6">
+                <p className="font-semibold text-foreground">If you are the admin/owner</p>
+                <p className="mt-1 text-muted-foreground">
+                  Sign in with your owner account first. Then use <span className="font-medium text-foreground">Add Connection</span> to:
+                </p>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+                  <li>name the relationship</li>
+                  <li>choose romantic, friendship, family, or other</li>
+                  <li>assign the second person’s name, email, and password</li>
+                  <li>generate the private invite link to share with them</li>
+                </ul>
+              </div>
+              <div className="rounded-3xl border border-primary/20 bg-primary/5 p-4 text-sm leading-6">
+                <p className="font-semibold text-foreground">If you are the invited user</p>
+                <p className="mt-1 text-muted-foreground">
+                  Use the email and password given to you by the owner/admin, then open the invite link.
+                  After you join, the app will route you to the <span className="font-medium text-foreground">Questionnaire first</span>.
+                  Complete that before using the rest of the site so your analysis, AI Coach guidance, and insights are accurate.
+                </p>
+              </div>
+            </div>
             {mode === "register" ? (
-              <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Name</label>
+                <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Tony" />
+              </div>
             ) : null}
-            <Input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" />
-            <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Email</label>
+                <Input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="tony@relateiq.local" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Password</label>
+                <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••••" />
+              </div>
+            </div>
+            <div className="rounded-3xl border border-border/70 bg-muted/30 p-4 text-sm leading-6 text-muted-foreground">
+              <p className="font-semibold text-foreground">Admin setup flow</p>
+              <p>
+                After sign in, the owner/admin can create a private connection, assign the second person’s
+                name, email, and password, and generate an invite link that opens the live site.
+              </p>
+            </div>
             {localError || error ? <p className="text-sm text-red-600">{localError || error}</p> : null}
             <Button onClick={handleSubmit} disabled={submitting || !email || !password || (mode === "register" && !name)} className="w-full">
               {submitting ? "Working..." : mode === "login" ? "Sign In" : "Create Account"}
@@ -104,7 +163,8 @@ function AuthScreen() {
 }
 
 function ProtectedLayout() {
-  const { loading, user } = useRelationshipAuth();
+  const { loading, user, activeRelationship } = useRelationshipAuth();
+  const location = useLocation();
 
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Loading relationship context…</div>;
@@ -112,6 +172,10 @@ function ProtectedLayout() {
 
   if (!user) {
     return <AuthScreen />;
+  }
+
+  if (activeRelationship?.needs_questionnaire && location.pathname !== "/questionnaire") {
+    return <Navigate to="/questionnaire" replace state={{ gatedByQuestionnaire: true }} />;
   }
 
   return <AppLayout />;

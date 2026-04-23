@@ -23,7 +23,14 @@ export default function InviteAcceptPage() {
     const load = async () => {
       try {
         const result = await api.invites.lookup(token);
-        if (!cancelled) setLookup(result);
+        if (!cancelled) {
+          setLookup(result);
+          setEmail(result?.invite?.invited_email || "");
+          setName(result?.invite?.invited_name || "");
+          if (result?.invite?.provisional_user_id) {
+            setAuthMode("login");
+          }
+        }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load invite.");
       } finally {
@@ -86,6 +93,13 @@ export default function InviteAcceptPage() {
                   <p><span className="font-semibold">Type:</span> {lookup.relationship.type}</p>
                   <p><span className="font-semibold">Participants:</span> {lookup.relationship.participant_names?.join(", ")}</p>
                 </div>
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm leading-6 text-muted-foreground">
+                  <p className="font-semibold text-foreground">What happens next</p>
+                  <p className="mt-1">
+                    After you sign in and accept this invite, ReflectIQ will take you to the Questionnaire first.
+                    Complete that setup before relying on the other pages so the coaching, analysis, and insights are grounded in your own private responses.
+                  </p>
+                </div>
                 {hasSession ? (
                   <Button onClick={handleAccept} disabled={accepting} className="w-full">
                     {accepting ? "Joining…" : "Accept Invite"}
@@ -108,8 +122,15 @@ export default function InviteAcceptPage() {
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
                       placeholder="you@example.com"
+                      disabled={Boolean(lookup?.invite?.provisional_user_id)}
                       className="w-full rounded-2xl border border-border px-4 py-3"
                     />
+                    {lookup?.invite?.provisional_user_id ? (
+                      <p className="text-xs text-muted-foreground">
+                        This connection already has a private login assigned for {lookup?.invite?.invited_name || "you"}.
+                        Use the credentials shared by the owner/admin, then accept the invite.
+                      </p>
+                    ) : null}
                     <input
                       type="password"
                       value={password}

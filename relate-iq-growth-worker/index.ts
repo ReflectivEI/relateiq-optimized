@@ -525,7 +525,7 @@ function getCorsHeaders(request: Request, env: Env) {
   return {
     "access-control-allow-origin": allowOrigin,
     "access-control-allow-methods": "GET,POST,PUT,DELETE,OPTIONS",
-    "access-control-allow-headers": "Content-Type",
+    "access-control-allow-headers": "Content-Type, Authorization, X-Relationship-Id",
     "content-type": "application/json; charset=utf-8",
   };
 }
@@ -645,6 +645,21 @@ async function requireScopedRelationship(
   }
 
   return { user, relationship, state, relationshipId } as const;
+}
+
+async function requireRelationshipOwner(
+  request: Request,
+  env: Env,
+  url: URL,
+  body?: unknown,
+) {
+  const scoped = await requireScopedRelationship(request, env, url, body);
+  if ("error" in scoped) return scoped;
+  const membership = await getMembershipForUserPersistent(env, scoped.relationshipId, scoped.user.id);
+  if (!membership || membership.role !== "owner") {
+    return { error: "forbidden", status: 403 as const };
+  }
+  return { ...scoped, membership } as const;
 }
 
 function withRelationshipScope<T extends Record<string, unknown>>(
@@ -773,6 +788,37 @@ async function getLatestOnboardingPersistent(env: Env, relationshipId: string, u
   );
 }
 
+async function getMembershipForUserPersistent(env: Env, relationshipId: string, userId: string) {
+  const memberships = await listMemberships(env);
+  return (
+    memberships.find(
+      (membership) => membership.relationship_id === relationshipId && membership.user_id === userId,
+    ) || null
+  );
+}
+
+async function countQuestionnaireResponsesForPersonPersistent(
+  env: Env,
+  relationshipId: string,
+  personName: string,
+) {
+  const records = await listQuestionnaireResponseRecords(env);
+  const normalized = normalizeText(personName).toLowerCase();
+  return records.filter((record) => {
+    const entityRelationshipId =
+      normalizeText(
+        (record.relationship_id as string | undefined) ||
+          (record.data?.relationship_id as string | undefined),
+      );
+    const responsePerson = normalizeText(
+      (record.data?.person_name as string | undefined) ||
+        (record.data?.person as string | undefined) ||
+        (record.person_name as string | undefined),
+    ).toLowerCase();
+    return entityRelationshipId === relationshipId && responsePerson === normalized;
+  }).length;
+}
+
 async function buildRelationshipSummaryPersistent(
   env: Env,
   relationship: Relationship,
@@ -790,11 +836,20 @@ async function buildRelationshipSummaryPersistent(
     relationship.participants?.length >= 2
       ? mergeParticipantNames(relationship.participants)
       : mergeParticipantNames(relationship.participants, memberNames);
+  const membership = relationshipMemberships.find((entry) => entry.user_id === userId) || null;
+  const currentUser = users.find((user) => user.id === userId) || null;
+  const currentPersonName =
+    participantNames.find(
+      (participant) => participant.trim().toLowerCase() === (currentUser?.name || "").trim().toLowerCase(),
+    ) || participantNames[0] || currentUser?.name || "Tony";
   return {
     ...relationship,
     member_count: relationshipMemberships.length,
     participant_names: participantNames,
     needs_onboarding: !(await getLatestOnboardingPersistent(env, relationship.id, userId)),
+    needs_questionnaire: (await countQuestionnaireResponsesForPersonPersistent(env, relationship.id, currentPersonName)) < 94,
+    current_person_name: currentPersonName,
+    current_user_role: (membership?.role as "owner" | "participant" | undefined) || "participant",
   };
 }
 
@@ -959,7 +1014,7 @@ async function createRelationshipForUserPersistent(env: Env, input: {
     id: createId("membership"),
     relationship_id: relationship.id,
     user_id: creator.id,
-    role: "participant",
+    role: "owner",
   };
   await saveAuthRecord(env, "relationship", relationship);
   await saveAuthRecord(env, "membership", membership);
@@ -974,6 +1029,7 @@ async function createRelationshipInvitePersistent(env: Env, input: {
   relationshipId: string;
   invitedEmail: string;
   invitedName?: string;
+  provisionalPassword?: string;
 }) {
   const relationship = await getRelationshipPersistent(env, input.relationshipId);
   if (!relationship) return { ok: false as const, error: "relationship_not_found" };
@@ -986,6 +1042,21 @@ async function createRelationshipInvitePersistent(env: Env, input: {
     relationship.participants = mergeParticipantNames(relationship.participants, [inferredName]);
     relationship.updated_at = nowIso();
     await saveAuthRecord(env, "relationship", relationship);
+  }
+  let provisionalUser: User | null = null;
+  if (normalizeText(input.provisionalPassword)) {
+    const existingUser = await getUserByEmailPersistent(env, invited_email);
+    if (existingUser) {
+      provisionalUser = existingUser;
+    } else {
+      provisionalUser = {
+        id: createId("user"),
+        email: invited_email,
+        password_hash: await sha256Hex(String(input.provisionalPassword || "")),
+        name: inferredName || "Invited User",
+      };
+      await saveAuthRecord(env, "user", provisionalUser);
+    }
   }
   const invites = await listInvites(env);
   const existingPending = invites.find(
@@ -1001,13 +1072,20 @@ async function createRelationshipInvitePersistent(env: Env, input: {
     id: createId("invite"),
     relationship_id: relationship.id,
     invited_email,
+    invited_name: inferredName,
+    provisional_user_id: provisionalUser?.id,
     invite_token: crypto.randomUUID().replace(/-/g, ""),
     status: "pending",
     created_at: nowIso(),
     expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(),
   };
   await saveAuthRecord(env, "invite", invite);
-  return { ok: true as const, invite, reused: false };
+  return {
+    ok: true as const,
+    invite,
+    reused: false,
+    provisionalUser: provisionalUser ? sanitizeUser(provisionalUser) : null,
+  };
 }
 
 async function getInviteLookupPersistent(env: Env, token: string, currentUserId?: string) {
@@ -3503,7 +3581,7 @@ export default {
 
     if (url.pathname === "/api/relationships/invite" && request.method === "POST") {
       const body = await readJson(request);
-      const scoped = await requireScopedRelationship(request, env, url, body);
+      const scoped = await requireRelationshipOwner(request, env, url, body);
       if ("error" in scoped) {
         return json({ error: scoped.error }, request, env, scoped.status);
       }
@@ -3511,6 +3589,8 @@ export default {
       const created = await createRelationshipInvitePersistent(env, {
         relationshipId: scoped.relationshipId,
         invitedEmail: String(body?.email || ""),
+        invitedName: String(body?.name || ""),
+        provisionalPassword: String(body?.password || ""),
       });
       if (!created.ok) {
         return json({ error: created.error }, request, env, 400);
@@ -3521,6 +3601,7 @@ export default {
           ok: true,
           invite: created.invite,
           reused: created.reused,
+          provisional_user: created.provisionalUser || null,
           invite_link: `/invite/${created.invite.invite_token}`,
           absolute_invite_link: `${url.origin}/invite/${created.invite.invite_token}`,
         },

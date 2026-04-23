@@ -23,7 +23,7 @@ export type RelationshipMembership = {
   id: string;
   relationship_id: string;
   user_id: string;
-  role?: string;
+  role?: "owner" | "participant";
 };
 
 export type RelationshipInviteStatus = "pending" | "accepted" | "expired";
@@ -32,6 +32,8 @@ export type RelationshipInvite = {
   id: string;
   relationship_id: string;
   invited_email: string;
+  invited_name?: string;
+  provisional_user_id?: string;
   invite_token: string;
   status: RelationshipInviteStatus;
   created_at: string;
@@ -55,6 +57,9 @@ export type RelationshipSummary = Relationship & {
   member_count: number;
   participant_names: string[];
   needs_onboarding: boolean;
+  needs_questionnaire: boolean;
+  current_person_name: string;
+  current_user_role: "owner" | "participant";
 };
 
 export type InviteLookupResult = {
@@ -625,17 +630,46 @@ export function getLatestOnboardingForUser(relationshipId: string, userId: strin
     .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0] || null;
 }
 
+function getMembershipForUser(relationshipId: string, userId: string) {
+  return (
+    RELATEIQ_MEMBERSHIPS.find(
+      (membership) => membership.relationship_id === relationshipId && membership.user_id === userId,
+    ) || null
+  );
+}
+
+function inferCurrentPersonName(relationship: Relationship, userId: string, participantNames: string[]) {
+  const currentUser = getUserById(userId);
+  if (!currentUser) return participantNames[0] || "Tony";
+  const exact = participantNames.find(
+    (participant) => participant.trim().toLowerCase() === currentUser.name.trim().toLowerCase(),
+  );
+  return exact || participantNames[0] || currentUser.name || "Tony";
+}
+
+function countQuestionnaireResponsesForPerson(relationshipId: string, personName: string) {
+  const state = RELATEIQ_STATES[relationshipId];
+  const normalized = personName.trim().toLowerCase();
+  const summary = state?.questionnaires?.find((entry) => entry.person.trim().toLowerCase() === normalized);
+  return summary?.importedQuestions || 0;
+}
+
 function buildRelationshipSummary(relationship: Relationship, userId: string): RelationshipSummary {
   const members = getRelationshipMembers(relationship.id);
   const participantNames =
     relationship.participants?.length >= 2
       ? relationship.participants
       : Array.from(new Set([...(relationship.participants || []), ...members.map((member) => member.name)]));
+  const membership = getMembershipForUser(relationship.id, userId);
+  const currentPersonName = inferCurrentPersonName(relationship, userId, participantNames);
   return {
     ...relationship,
     member_count: members.length,
     participant_names: participantNames,
     needs_onboarding: !getLatestOnboardingForUser(relationship.id, userId),
+    needs_questionnaire: countQuestionnaireResponsesForPerson(relationship.id, currentPersonName) < 94,
+    current_person_name: currentPersonName,
+    current_user_role: membership?.role || "participant",
   };
 }
 
@@ -715,7 +749,7 @@ export function createRelationshipForUser(input: {
     id: randomId("membership"),
     relationship_id: relationship.id,
     user_id: creator.id,
-    role: "participant",
+    role: "owner",
   });
 
   RELATEIQ_STATES[relationship.id] = {
@@ -755,9 +789,11 @@ export function findInviteByToken(token: string) {
   return invite;
 }
 
-export function createRelationshipInvite(input: {
+export async function createRelationshipInvite(input: {
   relationshipId: string;
   invitedEmail: string;
+  invitedName?: string;
+  provisionalPassword?: string;
 }) {
   const relationship = getRelationship(input.relationshipId);
   if (!relationship) return { ok: false as const, error: "relationship_not_found" };
@@ -765,13 +801,32 @@ export function createRelationshipInvite(input: {
   const invited_email = input.invitedEmail.trim().toLowerCase();
   if (!invited_email) return { ok: false as const, error: "invite_email_required" };
 
-  const inferredName = invited_email.split("@")[0]
-    ?.replace(/[._-]+/g, " ")
-    ?.replace(/\b\w/g, (match) => match.toUpperCase())
-    ?.trim();
+  const inferredName =
+    input.invitedName?.trim() ||
+    invited_email.split("@")[0]
+      ?.replace(/[._-]+/g, " ")
+      ?.replace(/\b\w/g, (match) => match.toUpperCase())
+      ?.trim();
   if (inferredName && relationship.participants.length < 2 && !relationship.participants.includes(inferredName)) {
     relationship.participants.push(inferredName);
     relationship.updated_at = nowIso();
+  }
+
+  let provisionalUser: User | null = null;
+  if (input.provisionalPassword?.trim()) {
+    const existing = getUserByEmail(invited_email);
+    if (existing) {
+      provisionalUser = existing;
+    } else {
+      const password_hash = await sha256Hex(input.provisionalPassword.trim());
+      provisionalUser = {
+        id: randomId("user"),
+        email: invited_email,
+        password_hash,
+        name: inferredName || "Invited User",
+      };
+      RELATEIQ_USERS.push(provisionalUser);
+    }
   }
 
   const existingPending = RELATEIQ_INVITES.find(
@@ -794,6 +849,8 @@ export function createRelationshipInvite(input: {
     id: randomId("invite"),
     relationship_id: relationship.id,
     invited_email,
+    invited_name: inferredName,
+    provisional_user_id: provisionalUser?.id,
     invite_token: crypto.randomUUID().replace(/-/g, ""),
     status: "pending",
     created_at,
@@ -804,6 +861,7 @@ export function createRelationshipInvite(input: {
     ok: true as const,
     invite,
     reused: false,
+    provisionalUser: provisionalUser ? sanitizeUser(provisionalUser) : null,
   };
 }
 

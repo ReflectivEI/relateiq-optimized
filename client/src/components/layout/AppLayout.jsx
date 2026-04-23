@@ -91,7 +91,10 @@ export default function AppLayout() {
   const [relationshipName, setRelationshipName] = useState("");
   const [relationshipType, setRelationshipType] = useState("romantic");
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [invitePassword, setInvitePassword] = useState("");
   const [inviteLink, setInviteLink] = useState("");
+  const [provisionedAccount, setProvisionedAccount] = useState(null);
   const [selfDescription, setSelfDescription] = useState("");
   const [supportStyle, setSupportStyle] = useState("");
   const [supportNotes, setSupportNotes] = useState("");
@@ -107,6 +110,7 @@ export default function AppLayout() {
     intelligence: false,
     support: false,
   });
+  const isOwner = activeRelationship?.current_user_role === "owner";
 
   const toggleGroup = (groupId) => {
     setOpenGroups((current) => ({
@@ -124,14 +128,39 @@ export default function AppLayout() {
 
   const handleCreateRelationship = async () => {
     try {
+      const trimmedPartnerName = inviteName.trim();
+      const resolvedName =
+        relationshipName.trim() || [user?.name, trimmedPartnerName].filter(Boolean).join(" & ");
       const result = await api.relationships.create({
-        name: relationshipName,
+        name: resolvedName,
         type: relationshipType,
       });
       updateRelationships(result.relationships || [], result.relationship?.id);
-      setRelationshipName("");
+      setRelationshipName(resolvedName);
+      if (inviteEmail.trim()) {
+        const inviteResult = await api.relationships.invite({
+          relationship_id: result.relationship?.id,
+          email: inviteEmail,
+          name: trimmedPartnerName,
+          password: invitePassword,
+        });
+        setInviteLink(inviteResult.absolute_invite_link || inviteResult.invite_link || "");
+        setProvisionedAccount(
+          inviteResult.provisional_user
+            ? {
+                name: inviteResult.provisional_user.name,
+                email: inviteResult.provisional_user.email,
+                password: invitePassword,
+              }
+            : null,
+        );
+      } else {
+        setInviteLink("");
+        setProvisionedAccount(null);
+      }
       setRelationshipType("romantic");
       setCreateOpen(false);
+      setInviteOpen(true);
     } catch (error) {
       setRelationshipError(error instanceof Error ? error.message : "Unable to create relationship.");
     }
@@ -139,8 +168,22 @@ export default function AppLayout() {
 
   const handleCreateInvite = async () => {
     try {
-      const result = await api.relationships.invite({ email: inviteEmail });
+      const result = await api.relationships.invite({
+        relationship_id: activeRelationshipId,
+        email: inviteEmail,
+        name: inviteName,
+        password: invitePassword,
+      });
       setInviteLink(result.absolute_invite_link || result.invite_link || "");
+      setProvisionedAccount(
+        result.provisional_user
+          ? {
+              name: result.provisional_user.name,
+              email: result.provisional_user.email,
+              password: invitePassword,
+            }
+          : null,
+      );
     } catch (error) {
       setRelationshipError(error instanceof Error ? error.message : "Unable to create invite.");
     }
@@ -217,6 +260,10 @@ export default function AppLayout() {
                   className="flex-1 border-primary/30 bg-transparent text-teal-100 hover:bg-primary/10"
                   onClick={() => {
                     setRelationshipError("");
+                    setInviteName("");
+                    setInviteEmail("");
+                    setInvitePassword("");
+                    setProvisionedAccount(null);
                     setCreateOpen(true);
                   }}
                 >
@@ -230,6 +277,7 @@ export default function AppLayout() {
                   onClick={() => {
                     setRelationshipError("");
                     setInviteLink("");
+                    setProvisionedAccount(null);
                     setInviteOpen(true);
                   }}
                 >
@@ -349,11 +397,11 @@ export default function AppLayout() {
                 ))}
               </select>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={() => setCreateOpen(true)}>
+            <Button variant="outline" onClick={() => setCreateOpen(true)}>
                   <Plus className="mr-1 h-4 w-4" />
                   Add
                 </Button>
-                <Button variant="outline" onClick={() => setInviteOpen(true)}>
+            <Button variant="outline" onClick={() => setInviteOpen(true)}>
                   <Link2 className="mr-1 h-4 w-4" />
                   Invite
                 </Button>
@@ -431,10 +479,17 @@ export default function AppLayout() {
             <DialogTitle>Create New Connection</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
+              <p className="font-semibold text-foreground">Owner/admin setup</p>
+              <p className="mt-1">
+                You are the owner of this connection. Add the second person’s name, email, and password below
+                to generate a private invite link and dedicated login for them.
+              </p>
+            </div>
             <input
               value={relationshipName}
               onChange={(event) => setRelationshipName(event.target.value)}
-              placeholder="Tony & Alex"
+              placeholder={`${user?.name || "Tony"} & Alex`}
               className="w-full rounded-2xl border border-border px-4 py-3"
             />
             <select
@@ -447,8 +502,30 @@ export default function AppLayout() {
               <option value="family">Family</option>
               <option value="other">Other</option>
             </select>
+            <input
+              value={inviteName}
+              onChange={(event) => setInviteName(event.target.value)}
+              placeholder="Second person’s name"
+              className="w-full rounded-2xl border border-border px-4 py-3"
+            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <input
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
+                placeholder="alex@example.com"
+                className="w-full rounded-2xl border border-border px-4 py-3"
+              />
+              <input
+                value={invitePassword}
+                onChange={(event) => setInvitePassword(event.target.value)}
+                placeholder="Temporary password"
+                className="w-full rounded-2xl border border-border px-4 py-3"
+              />
+            </div>
             {relationshipError ? <p className="text-sm text-red-600">{relationshipError}</p> : null}
-            <Button onClick={handleCreateRelationship} className="w-full">Create Connection</Button>
+            <Button onClick={handleCreateRelationship} className="w-full" disabled={!isOwner && relationships.length > 0}>
+              Create Connection
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -460,18 +537,41 @@ export default function AppLayout() {
           </DialogHeader>
           <div className="space-y-4">
             <input
+              value={inviteName}
+              onChange={(event) => setInviteName(event.target.value)}
+              placeholder="Their name"
+              className="w-full rounded-2xl border border-border px-4 py-3"
+            />
+            <input
               value={inviteEmail}
               onChange={(event) => setInviteEmail(event.target.value)}
               placeholder="friend@example.com"
               className="w-full rounded-2xl border border-border px-4 py-3"
             />
+            <input
+              value={invitePassword}
+              onChange={(event) => setInvitePassword(event.target.value)}
+              placeholder="Password to share with them"
+              className="w-full rounded-2xl border border-border px-4 py-3"
+            />
             {inviteLink ? (
               <div className="rounded-2xl border border-primary/20 bg-primary/5 p-3 text-sm break-all">
-                {inviteLink}
+                <p className="font-medium text-foreground">Invite link</p>
+                <p className="mt-1 break-all">{inviteLink}</p>
+                {provisionedAccount ? (
+                  <div className="mt-3 rounded-2xl border border-border/70 bg-background/70 p-3 text-foreground">
+                    <p className="text-sm font-medium">Assigned login</p>
+                    <p className="mt-1 text-sm">Name: {provisionedAccount.name}</p>
+                    <p className="text-sm">Email: {provisionedAccount.email}</p>
+                    <p className="text-sm">Password: {provisionedAccount.password}</p>
+                  </div>
+                ) : null}
               </div>
             ) : null}
             {relationshipError ? <p className="text-sm text-red-600">{relationshipError}</p> : null}
-            <Button onClick={handleCreateInvite} className="w-full">Generate Invite Link</Button>
+            <Button onClick={handleCreateInvite} className="w-full" disabled={!isOwner}>
+              Generate Invite Link
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
