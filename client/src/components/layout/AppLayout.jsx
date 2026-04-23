@@ -187,6 +187,14 @@ export default function AppLayout() {
     setEditingRelationshipId("");
   };
 
+  const upsertManagedRow = (nextRow) => {
+    setManagedRows((current) => {
+      const existing = current.find((row) => row.relationship_id === nextRow.relationship_id);
+      if (!existing) return [nextRow, ...current];
+      return current.map((row) => (row.relationship_id === nextRow.relationship_id ? { ...row, ...nextRow } : row));
+    });
+  };
+
   const handleCreateRelationship = async () => {
     try {
       const nextPassword = ensureInvitePassword();
@@ -216,6 +224,16 @@ export default function AppLayout() {
               }
             : null,
         );
+        upsertManagedRow({
+          relationship_id: result.relationship?.id,
+          relationship_name: result.relationship?.name || resolvedName,
+          relationship_type: result.relationship?.type || relationshipType,
+          user_name: trimmedPartnerName || "Other Person",
+          email: inviteEmail,
+          temporary_password: nextPassword,
+          invite_status: inviteResult.invite?.status || "pending",
+          invite_link: inviteResult.absolute_invite_link || inviteResult.invite_link || "",
+        });
       } else {
         setInviteLink("");
         setProvisionedAccount(null);
@@ -223,7 +241,18 @@ export default function AppLayout() {
       setRelationshipType("romantic");
       setCreateOpen(false);
       setInviteOpen(true);
-      await loadManagedRows();
+      if (!inviteEmail.trim()) {
+        upsertManagedRow({
+          relationship_id: result.relationship?.id,
+          relationship_name: result.relationship?.name || resolvedName,
+          relationship_type: result.relationship?.type || relationshipType,
+          user_name: trimmedPartnerName || "Other Person",
+          email: "",
+          temporary_password: "",
+          invite_status: "pending",
+          invite_link: "",
+        });
+      }
     } catch (error) {
       setRelationshipError(error instanceof Error ? error.message : "Unable to create relationship.");
     }
@@ -248,7 +277,16 @@ export default function AppLayout() {
             }
           : null,
       );
-      await loadManagedRows();
+      upsertManagedRow({
+        relationship_id: activeRelationshipId,
+        relationship_name: activeRelationship?.name || relationshipName,
+        relationship_type: activeRelationship?.type || relationshipType,
+        user_name: inviteName || "Other Person",
+        email: inviteEmail,
+        temporary_password: nextPassword,
+        invite_status: result.invite?.status || "pending",
+        invite_link: result.absolute_invite_link || result.invite_link || "",
+      });
     } catch (error) {
       setRelationshipError(error instanceof Error ? error.message : "Unable to create invite.");
     }
