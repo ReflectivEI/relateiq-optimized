@@ -49,7 +49,7 @@ export default function InviteAcceptPage() {
     try {
       const result = await api.invites.accept(token);
       updateRelationships(result.relationships || [], result.default_relationship_id);
-      navigate("/");
+      navigate("/questionnaire");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to accept invite.");
     } finally {

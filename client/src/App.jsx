@@ -174,7 +174,7 @@ function ProtectedLayout() {
     return <AuthScreen />;
   }
 
-  if (activeRelationship?.needs_questionnaire && location.pathname !== "/questionnaire") {
+  if (activeRelationship?.needs_questionnaire && location.pathname === "/") {
     return <Navigate to="/questionnaire" replace state={{ gatedByQuestionnaire: true }} />;
   }
 
