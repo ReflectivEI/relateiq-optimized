@@ -1193,22 +1193,54 @@ type CheckInRequest = {
   notes: string;
 };
 
+function getRelationshipCopyTerms(relationshipType: RelationshipType) {
+  switch (relationshipType) {
+    case "friendship":
+      return {
+        counterpart: "friend",
+        bond: "friendship",
+        reconnect: "reconnection and steadier understanding",
+      };
+    case "family":
+      return {
+        counterpart: "family member",
+        bond: "family dynamic",
+        reconnect: "reconnection and steadier understanding",
+      };
+    case "other":
+      return {
+        counterpart: "other person",
+        bond: "connection",
+        reconnect: "clarity and steadier understanding",
+      };
+    case "romantic":
+    default:
+      return {
+        counterpart: "partner",
+        bond: "relationship",
+        reconnect: "clarity and reconnection",
+      };
+  }
+}
+
 export function buildCoachResponse(input: CoachRequest) {
   const relationshipId = input.relationshipId || DEFAULT_RELATIONSHIP_ID;
   const state = getRelationshipState(relationshipId) || RELATEIQ_STATE;
+  const relationshipType = state.relationship.type;
+  const terms = getRelationshipCopyTerms(relationshipType);
   const speaker = state.profiles.find((profile) => profile.person === input.speaker) || state.profiles[0];
-  const partner = state.profiles.find(
+  const counterpart = state.profiles.find(
     (profile) => profile.person === getPartnerInRelationship(relationshipId, input.speaker),
   ) || state.profiles[1] || state.profiles[0];
 
   return {
     response:
-      `${input.speaker}, open by naming the topic in one calm sentence, then show you understand ${partner.person}'s likely need for ${partner.likelyNeedsUnderStress[0].toLowerCase()}. ` +
-      `After that, make one concrete ask tied to your goal: ${input.goal || "clarity and reconnection"}.`,
+      `${input.speaker}, open by naming the topic in one calm sentence, then show you understand ${counterpart.person}'s likely need for ${counterpart.likelyNeedsUnderStress[0].toLowerCase()}. ` +
+      `After that, make one concrete ask tied to your goal: ${input.goal || terms.reconnect}.`,
     suggestedOpeners: [
-      `I want to talk about ${input.topic || "this"} in a way that feels clear and safe for both of us.`,
+      `I want to talk about ${input.topic || "this"} in a way that feels clear and safe for both of us in this ${terms.bond}.`,
       `Before we solve anything, I want to make sure you feel understood about what happened.`,
-      `My goal here is ${input.goal || "to reconnect, not to win the point"}.`,
+      `My goal here is ${input.goal || `to strengthen this ${terms.bond}, not to win the point`}.`,
     ],
     avoid: [
       "Leading with defense or explanation",
@@ -1217,7 +1249,7 @@ export function buildCoachResponse(input: CoachRequest) {
     ],
     lens: {
       speakerStyle: speaker.communicationStyle,
-      partnerStyle: partner.communicationStyle,
+      partnerStyle: counterpart.communicationStyle,
     },
   };
 }
@@ -1225,13 +1257,14 @@ export function buildCoachResponse(input: CoachRequest) {
 export function buildRepairResponse(input: RepairRequest) {
   const relationshipId = input.relationshipId || DEFAULT_RELATIONSHIP_ID;
   const state = getRelationshipState(relationshipId) || RELATEIQ_STATE;
-  const partner =
+  const terms = getRelationshipCopyTerms(state.relationship.type);
+  const counterpart =
     state.profiles.find((profile) => profile.person === getPartnerInRelationship(relationshipId, input.speaker)) ||
     state.profiles[0];
 
   return {
     summary:
-      `Best next move: validate the impact of ${input.issue || "the conflict"}, then ask for a paced reset that supports ${partner.person}'s need for ${partner.likelyNeedsUnderStress[1]?.toLowerCase() || "emotional safety"}.`,
+      `Best next move: validate the impact of ${input.issue || "the conflict"}, then ask for a paced reset that supports ${counterpart.person}'s need for ${counterpart.likelyNeedsUnderStress[1]?.toLowerCase() || "emotional safety"}.`,
     scripts: [
       `I don't want to rush past what happened. I can see this affected us, and I want to repair it well.`,
       `I have thoughts on the practical side, but first I want to understand what felt hardest for you.`,
@@ -1242,16 +1275,18 @@ export function buildRepairResponse(input: RepairRequest) {
       "Minimizing the emotional residue",
       "Explaining intent before acknowledging impact",
     ],
-    desiredOutcome: input.desiredOutcome || "reconnection with clearer pacing",
+    desiredOutcome: input.desiredOutcome || `${terms.reconnect} with clearer pacing`,
   };
 }
 
 export function buildCheckInResponse(input: CheckInRequest) {
   const relationshipId = input.relationshipId || DEFAULT_RELATIONSHIP_ID;
+  const state = getRelationshipState(relationshipId) || RELATEIQ_STATE;
+  const terms = getRelationshipCopyTerms(state.relationship.type);
   const partner = getPartnerInRelationship(relationshipId, input.speaker);
   return {
     summary:
-      `${input.speaker} is reporting ${input.mood || "mixed"} energy. The next best move is a low-pressure check-in with ${partner} that names capacity and what kind of support is needed.`,
+      `${input.speaker} is reporting ${input.mood || "mixed"} energy. The next best move is a low-pressure check-in with ${partner} that names capacity and what kind of support is needed in this ${terms.bond}.`,
     nextStep:
       `Try: "I'm at a ${input.mood || "mixed"} place right now and don't want to guess wrong. Do you need closeness, space, or a quick practical sync first?"`,
     notesEcho: input.notes || "No additional notes provided.",

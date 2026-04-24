@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { questions, questionCategories } from "@/lib/questions";
+import { getQuestionnaireContent } from "@/lib/questions";
 import QuestionCard from "@/components/questionnaire/QuestionCard";
 import { Lock, Globe, CheckCircle2, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,11 +15,13 @@ import { buildContextObject } from "@/lib/aiCoachService";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 
 export default function Questionnaire() {
-  const { activeRelationshipId, participants } = useRelationshipAuth();
+  const { activeRelationshipId, activeRelationship, participants } = useRelationshipAuth();
   const [person, setPerson] = useState(participants[0]);
   const [activeCategory, setActiveCategory] = useState("surface");
   const [mode, setMode] = useState("individual");
   const queryClient = useQueryClient();
+  const relationshipType = activeRelationship?.type || "romantic";
+  const { questions, categories: questionCategories } = getQuestionnaireContent(relationshipType);
 
   useEffect(() => {
     if (!participants.includes(person)) {

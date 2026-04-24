@@ -977,3 +977,327 @@ export const questions = [
     weight: "high",
   },
 ];
+
+const RELATIONSHIP_LABELS = {
+  romantic: {
+    perceptionLabel: "Partner Perception",
+    counterpart: "partner",
+    yourCounterpart: "your partner",
+    myCounterpart: "my partner",
+    counterpartPossessive: "partner's",
+    bond: "relationship",
+    careWord: "loved",
+    affection: "Physical affection",
+    affectionExtended: "Physical affection or closeness",
+    introDescription: "How your past shaped the way you love and relate",
+    perceptionDescription: "How you think your partner experiences you",
+  },
+  friendship: {
+    perceptionLabel: "Friend Perception",
+    counterpart: "friend",
+    yourCounterpart: "your friend",
+    myCounterpart: "my friend",
+    counterpartPossessive: "friend's",
+    bond: "friendship",
+    careWord: "accepted and cared for",
+    affection: "Reassuring closeness",
+    affectionExtended: "Reassuring closeness or quality time",
+    introDescription: "How your past shaped the way you bond, trust, and relate",
+    perceptionDescription: "How you think your friend experiences you",
+  },
+  family: {
+    perceptionLabel: "Family Perception",
+    counterpart: "family member",
+    yourCounterpart: "your family member",
+    myCounterpart: "my family member",
+    counterpartPossessive: "family member's",
+    bond: "family dynamic",
+    careWord: "accepted and cared for",
+    affection: "Warmth or reassuring closeness",
+    affectionExtended: "Warmth, reassurance, or calming closeness",
+    introDescription: "How your past shaped the way you bond, trust, and relate",
+    perceptionDescription: "How you think your family member experiences you",
+  },
+  other: {
+    perceptionLabel: "Connection Perception",
+    counterpart: "other person",
+    yourCounterpart: "the other person",
+    myCounterpart: "the other person",
+    counterpartPossessive: "the other person's",
+    bond: "connection",
+    careWord: "accepted and cared for",
+    affection: "Warmth or reassuring closeness",
+    affectionExtended: "Warmth, reassurance, or steady closeness",
+    introDescription: "How your past shaped the way you bond, trust, and relate",
+    perceptionDescription: "How you think the other person experiences you",
+  },
+};
+
+const FRIENDSHIP_QUESTION_OVERRIDES = {
+  s3: {
+    options: ["Being alone", "Talking it out", "Physical activity", "Distraction (TV, phone, music)", "A check-in or encouragement from my friend", "Getting outside"],
+  },
+  s6: {
+    options: ["Go quiet", "Drop hints", "Need to vent immediately", "Try to shake it off", "Hope my friend notices"],
+  },
+  c2: {
+    options: ["Soft and empathetic tone", "Logical and solution-focused", "Humor to lighten the mood", "Written (text/note first)", "A calming check-in before talking"],
+  },
+  cf5: {
+    options: ["Usually me", "Usually my friend", "Depends on the situation", "Neither of us — things just cool off", "We both push to resolve it"],
+  },
+  cf9: {
+    options: [
+      "A genuine apology",
+      "Changed behavior afterward",
+      "Being understood emotionally",
+      "Reassuring closeness or quality time",
+      "Time + space before reconnecting",
+      "Talking it through calmly",
+      "Something else",
+    ],
+  },
+  en2: {
+    options: [
+      "To talk it all out",
+      "Just quiet company — presence without words",
+      "A low-pressure check-in or steady company",
+      "Space to decompress alone first",
+      "Distraction — something light and fun",
+    ],
+  },
+  nv7: {
+    text: "How comfortable are you receiving care, compliments, or support from your friend?",
+  },
+  nv9: {
+    options: [
+      "To be understood emotionally",
+      "To be listened to without interruption",
+      "Reassurance",
+      "Space and no pressure",
+      "Steady company or reassuring closeness",
+      "Help solving the problem",
+      "Distraction / lightness",
+      "Something else",
+    ],
+  },
+  nv10: {
+    options: [
+      "Not being understood",
+      "Not being listened to",
+      "Lack of effort or follow-through",
+      "Emotional distance",
+      "Lack of warmth or follow-up",
+      "Conflict not being resolved",
+      "Being dismissed or minimized",
+      "Something else",
+    ],
+  },
+};
+
+const FAMILY_QUESTION_OVERRIDES = {
+  s3: {
+    options: ["Being alone", "Talking it out", "Physical activity", "Distraction (TV, phone, music)", "A calm check-in or reassurance from my family member", "Getting outside"],
+  },
+  s6: {
+    options: ["Go quiet", "Drop hints", "Need to vent immediately", "Try to shake it off", "Hope my family member notices"],
+  },
+  c2: {
+    options: ["Soft and empathetic tone", "Logical and solution-focused", "Humor to lighten the mood", "Written (text/note first)", "A calming check-in before talking"],
+  },
+  cf5: {
+    options: ["Usually me", "Usually my family member", "Depends on the situation", "Neither of us — things just cool off", "We both push to resolve it"],
+  },
+  cf9: {
+    options: [
+      "A genuine apology",
+      "Changed behavior afterward",
+      "Being understood emotionally",
+      "Warmth, reassurance, or calm closeness",
+      "Time + space before reconnecting",
+      "Talking it through calmly",
+      "Something else",
+    ],
+  },
+  en2: {
+    options: [
+      "To talk it all out",
+      "Just quiet company — presence without words",
+      "A low-pressure check-in or steady company",
+      "Space to decompress alone first",
+      "Distraction — something light and fun",
+    ],
+  },
+  nv7: {
+    text: "How comfortable are you receiving care, compliments, or support from your family member?",
+  },
+  nv9: {
+    options: [
+      "To be understood emotionally",
+      "To be listened to without interruption",
+      "Reassurance",
+      "Space and no pressure",
+      "Warmth, steady presence, or reassuring closeness",
+      "Help solving the problem",
+      "Distraction / lightness",
+      "Something else",
+    ],
+  },
+  nv10: {
+    options: [
+      "Not being understood",
+      "Not being listened to",
+      "Lack of effort or follow-through",
+      "Emotional distance",
+      "Lack of warmth or follow-up",
+      "Conflict not being resolved",
+      "Being dismissed or minimized",
+      "Something else",
+    ],
+  },
+};
+
+const OTHER_QUESTION_OVERRIDES = {
+  s3: {
+    options: ["Being alone", "Talking it out", "Physical activity", "Distraction (TV, phone, music)", "A calm check-in or encouragement from the other person", "Getting outside"],
+  },
+  s6: {
+    options: ["Go quiet", "Drop hints", "Need to vent immediately", "Try to shake it off", "Hope the other person notices"],
+  },
+  c2: {
+    options: ["Soft and empathetic tone", "Logical and solution-focused", "Humor to lighten the mood", "Written (text/note first)", "A calming check-in before talking"],
+  },
+  cf5: {
+    options: ["Usually me", "Usually the other person", "Depends on the situation", "Neither of us — things just cool off", "We both push to resolve it"],
+  },
+  cf9: {
+    options: [
+      "A genuine apology",
+      "Changed behavior afterward",
+      "Being understood emotionally",
+      "Warmth, reassurance, or steady closeness",
+      "Time + space before reconnecting",
+      "Talking it through calmly",
+      "Something else",
+    ],
+  },
+  en2: {
+    options: [
+      "To talk it all out",
+      "Just quiet company — presence without words",
+      "A low-pressure check-in or steady company",
+      "Space to decompress alone first",
+      "Distraction — something light and fun",
+    ],
+  },
+  nv7: {
+    text: "How comfortable are you receiving care, compliments, or support from the other person?",
+  },
+  nv9: {
+    options: [
+      "To be understood emotionally",
+      "To be listened to without interruption",
+      "Reassurance",
+      "Space and no pressure",
+      "Warmth, steady presence, or reassuring closeness",
+      "Help solving the problem",
+      "Distraction / lightness",
+      "Something else",
+    ],
+  },
+  nv10: {
+    options: [
+      "Not being understood",
+      "Not being listened to",
+      "Lack of effort or follow-through",
+      "Emotional distance",
+      "Lack of warmth or follow-up",
+      "Conflict not being resolved",
+      "Being dismissed or minimized",
+      "Something else",
+    ],
+  },
+};
+
+const QUESTION_OVERRIDES_BY_TYPE = {
+  friendship: FRIENDSHIP_QUESTION_OVERRIDES,
+  family: FAMILY_QUESTION_OVERRIDES,
+  other: OTHER_QUESTION_OVERRIDES,
+};
+
+function normalizeRelationshipType(relationshipType) {
+  const normalized = String(relationshipType || "romantic").toLowerCase();
+  if (normalized === "romantic" || normalized === "friendship" || normalized === "family" || normalized === "other") {
+    return normalized;
+  }
+  return "other";
+}
+
+function getRelationshipLabels(relationshipType) {
+  return RELATIONSHIP_LABELS[normalizeRelationshipType(relationshipType)] || RELATIONSHIP_LABELS.romantic;
+}
+
+function adaptCategory(category, relationshipType) {
+  const labels = getRelationshipLabels(relationshipType);
+  if (category.id === "family_upbringing") {
+    return {
+      ...category,
+      description: labels.introDescription,
+    };
+  }
+  if (category.id === "partner_perception") {
+    return {
+      ...category,
+      label: labels.perceptionLabel,
+      description: labels.perceptionDescription,
+    };
+  }
+  return category;
+}
+
+function applyGenericTextReplacements(text, relationshipType) {
+  const labels = getRelationshipLabels(relationshipType);
+  return String(text)
+    .replace(/\byour partner's\b/gi, labels.counterpartPossessive)
+    .replace(/\byour partner\b/gi, labels.yourCounterpart)
+    .replace(/\bmy partner\b/gi, labels.myCounterpart)
+    .replace(/\bpartner's\b/gi, labels.counterpartPossessive)
+    .replace(/\bpartner\b/gi, labels.counterpart)
+    .replace(/\bthis relationship\b/gi, `this ${labels.bond}`)
+    .replace(/\bthe relationship\b/gi, `the ${labels.bond}`)
+    .replace(/\bin the relationship\b/gi, `in the ${labels.bond}`)
+    .replace(/\bour relationship\b/gi, `our ${labels.bond}`)
+    .replace(/\bthe relationship's\b/gi, `the ${labels.bond}'s`)
+    .replace(/\brelationship\b/gi, labels.bond)
+    .replace(/\bfully loved\b/gi, labels.careWord)
+    .replace(/\blove look like\b/gi, relationshipType === "romantic" ? "love look like" : "care and closeness look like")
+    .replace(/\bfeel loved or approved of\b/gi, relationshipType === "romantic" ? "feel loved or approved of" : "feel accepted, cared for, or approved of")
+    .replace(/\blove, compliments, or care\b/gi, relationshipType === "romantic" ? "love, compliments, or care" : "care, compliments, or support")
+    .replace(/\bLack of affection\b/gi, labels.affection)
+    .replace(/\bPhysical affection or closeness\b/gi, labels.affectionExtended)
+    .replace(/\bPhysical affection\b/gi, labels.affection);
+}
+
+function adaptQuestion(question, relationshipType) {
+  const normalizedType = normalizeRelationshipType(relationshipType);
+  if (normalizedType === "romantic") return question;
+
+  const overrides = QUESTION_OVERRIDES_BY_TYPE[normalizedType]?.[question.id] || null;
+  const nextText = overrides?.text || applyGenericTextReplacements(question.text, normalizedType);
+  const nextOptions = Array.isArray(question.options)
+    ? (overrides?.options || question.options.map((option) => applyGenericTextReplacements(option, normalizedType)))
+    : question.options;
+
+  return {
+    ...question,
+    text: nextText,
+    options: nextOptions,
+  };
+}
+
+export function getQuestionnaireContent(relationshipType = "romantic") {
+  return {
+    categories: questionCategories.map((category) => adaptCategory(category, relationshipType)),
+    questions: questions.map((question) => adaptQuestion(question, relationshipType)),
+  };
+}

@@ -2014,12 +2014,13 @@ async function buildState(env: Env, relationshipId = DEFAULT_RELATIONSHIP_ID): P
 async function buildAiCoachResponse(
   env: Env,
   relationshipId: string,
+  relationshipType: RelationshipType,
   speaker: PersonId,
   partner: PersonId,
   topic: string,
   goal: string,
 ): Promise<Record<string, unknown> | null> {
-  const fallback = buildCoachResponse({ speaker, topic, goal });
+  const fallback = buildCoachResponse({ relationshipId, speaker, topic, goal });
   const [speakerQuestionnaire, partnerQuestionnaire] = await Promise.all([
     getQuestionnaireContextForRelationshipParticipant(env, relationshipId, speaker),
     getQuestionnaireContextForRelationshipParticipant(env, relationshipId, partner),
@@ -2038,12 +2039,14 @@ async function buildAiCoachResponse(
     {
       role: "system",
       content:
-        "You are RelateIQ's AI Coach. Use only the questionnaire evidence and user input provided. Do not invent history, diagnoses, or traits. Return strict JSON with keys: response (string), suggestedOpeners (string[]), avoid (string[]), lens (object with speakerStyle and partnerStyle). Keep the tone warm, direct, and practical.",
+        `You are RelateIQ's AI Coach. This interaction is for a ${relationshipType} relationship context. Treat the second participant according to that context, not as a default romantic partner unless the relationship type is romantic. Use only the questionnaire evidence and user input provided. Do not invent history, diagnoses, or traits. Return strict JSON with keys: response (string), suggestedOpeners (string[]), avoid (string[]), lens (object with speakerStyle and partnerStyle). Keep the tone warm, direct, and practical.`,
     },
     {
       role: "user",
       content: [
+        `Relationship type: ${relationshipType}`,
         `Speaker: ${speaker}`,
+        `Other person: ${partner}`,
         `Topic: ${topic || "Not provided"}`,
         `Goal: ${goal || "Not provided"}`,
         sharedInterpretation
@@ -2081,12 +2084,13 @@ async function buildAiCoachResponse(
 async function buildAiCheckInResponse(
   env: Env,
   relationshipId: string,
+  relationshipType: RelationshipType,
   speaker: PersonId,
   partner: PersonId,
   mood: string,
   notes: string,
 ): Promise<Record<string, unknown> | null> {
-  const fallback = buildCheckInResponse({ speaker, mood, notes });
+  const fallback = buildCheckInResponse({ relationshipId, speaker, mood, notes });
   const [speakerQuestionnaire, partnerQuestionnaire] = await Promise.all([
     getQuestionnaireContextForRelationshipParticipant(env, relationshipId, speaker),
     getQuestionnaireContextForRelationshipParticipant(env, relationshipId, partner),
@@ -2104,12 +2108,14 @@ async function buildAiCheckInResponse(
     {
       role: "system",
       content:
-        "You are RelateIQ's Check-In assistant. Use only the questionnaire evidence and user input provided. Return strict JSON with keys: summary (string), nextStep (string), notesEcho (string). No diagnosis, no generic filler, no invented memories.",
+        `You are RelateIQ's Check-In assistant. This interaction is for a ${relationshipType} relationship context. Treat the second participant according to that context, not as a default romantic partner unless the relationship type is romantic. Use only the questionnaire evidence and user input provided. Return strict JSON with keys: summary (string), nextStep (string), notesEcho (string). No diagnosis, no generic filler, no invented memories.`,
     },
     {
       role: "user",
       content: [
+        `Relationship type: ${relationshipType}`,
         `Speaker: ${speaker}`,
+        `Other person: ${partner}`,
         `Mood / energy: ${mood || "Not provided"}`,
         `Current notes: ${notes || "Not provided"}`,
         sharedInterpretation
@@ -2146,12 +2152,13 @@ async function buildAiCheckInResponse(
 async function buildAiRepairResponse(
   env: Env,
   relationshipId: string,
+  relationshipType: RelationshipType,
   speaker: PersonId,
   partner: PersonId,
   issue: string,
   desiredOutcome: string,
 ): Promise<Record<string, unknown> | null> {
-  const fallback = buildRepairResponse({ speaker, issue, desiredOutcome });
+  const fallback = buildRepairResponse({ relationshipId, speaker, issue, desiredOutcome });
   const [speakerQuestionnaire, partnerQuestionnaire] = await Promise.all([
     getQuestionnaireContextForRelationshipParticipant(env, relationshipId, speaker),
     getQuestionnaireContextForRelationshipParticipant(env, relationshipId, partner),
@@ -2170,12 +2177,14 @@ async function buildAiRepairResponse(
     {
       role: "system",
       content:
-        "You are RelateIQ's Repair Planner. Use only the questionnaire evidence and user input provided. Return strict JSON with keys: summary (string), scripts (string[]), avoid (string[]), desiredOutcome (string). No invented facts. Make it specific to the two people described.",
+        `You are RelateIQ's Repair Planner. This interaction is for a ${relationshipType} relationship context. Treat the second participant according to that context, not as a default romantic partner unless the relationship type is romantic. Use only the questionnaire evidence and user input provided. Return strict JSON with keys: summary (string), scripts (string[]), avoid (string[]), desiredOutcome (string). No invented facts. Make it specific to the two people described.`,
     },
     {
       role: "user",
       content: [
+        `Relationship type: ${relationshipType}`,
         `Speaker: ${speaker}`,
+        `Other person: ${partner}`,
         `Issue: ${issue || "Not provided"}`,
         `Desired outcome: ${desiredOutcome || "Not provided"}`,
         sharedInterpretation
@@ -4345,7 +4354,7 @@ export default {
       const partner = getScopedPartner(speaker, participants);
       const topic = String(body?.topic || "");
       const goal = String(body?.goal || "");
-      const aiResponse = await buildAiCoachResponse(env, scoped.relationshipId, speaker, partner, topic, goal);
+      const aiResponse = await buildAiCoachResponse(env, scoped.relationshipId, scoped.relationship.type, speaker, partner, topic, goal);
       return json(
         aiResponse || {
           ...buildCoachResponse({ relationshipId: scoped.relationshipId, speaker, topic, goal }),
@@ -4369,7 +4378,7 @@ export default {
       const partner = getScopedPartner(speaker, participants);
       const mood = String(body?.mood || "");
       const notes = String(body?.notes || "");
-      const aiResponse = await buildAiCheckInResponse(env, scoped.relationshipId, speaker, partner, mood, notes);
+      const aiResponse = await buildAiCheckInResponse(env, scoped.relationshipId, scoped.relationship.type, speaker, partner, mood, notes);
       return json(
         aiResponse || {
           ...buildCheckInResponse({ relationshipId: scoped.relationshipId, speaker, mood, notes }),
@@ -4393,7 +4402,7 @@ export default {
       const partner = getScopedPartner(speaker, participants);
       const issue = String(body?.issue || "");
       const desiredOutcome = String(body?.desiredOutcome || "");
-      const aiResponse = await buildAiRepairResponse(env, scoped.relationshipId, speaker, partner, issue, desiredOutcome);
+      const aiResponse = await buildAiRepairResponse(env, scoped.relationshipId, scoped.relationship.type, speaker, partner, issue, desiredOutcome);
       return json(
         aiResponse || {
           ...buildRepairResponse({ relationshipId: scoped.relationshipId, speaker, issue, desiredOutcome }),
