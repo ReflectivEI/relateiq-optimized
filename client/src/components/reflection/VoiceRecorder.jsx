@@ -93,19 +93,19 @@ export default function VoiceRecorder({
     if (!mediaRecorderRef.current) return;
 
     clearInterval(timerRef.current);
-    mediaRecorderRef.current.stop();
+    const recorder = mediaRecorderRef.current;
     setRecording(false);
     setProcessing(true);
     speechRecognitionRef.current?.stop();
 
-    // Create blob and send to LLM for transcription
-    const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-    
     try {
-      const uploaded = await api.integrations.Core.UploadFile({
-        file: audioBlob,
-        filename: `daily-reflection-${Date.now()}.webm`,
-        metadata: { source: "voice-reflection" },
+      const audioBlob = await new Promise((resolve) => {
+        const handleStop = () => {
+          recorder.removeEventListener("stop", handleStop);
+          resolve(new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" }));
+        };
+        recorder.addEventListener("stop", handleStop, { once: true });
+        recorder.stop();
       });
 
       const transcriptSeed = liveTranscriptRef.current.trim();
@@ -113,6 +113,20 @@ export default function VoiceRecorder({
         toast.error("No speech was detected. Please try again.");
         setProcessing(false);
         return;
+      }
+
+      let uploaded = null;
+      if (audioBlob instanceof Blob && audioBlob.size > 0) {
+        try {
+          uploaded = await api.integrations.Core.UploadFile({
+            file: audioBlob,
+            filename: `daily-reflection-${Date.now()}.webm`,
+            metadata: { source: "voice-reflection" },
+          });
+        } catch (uploadError) {
+          console.error(uploadError);
+          toast.error("Voice file could not be stored, but the transcript can still be reviewed and saved.");
+        }
       }
 
       const result = await api.integrations.Core.InvokeLLM({
