@@ -41,7 +41,7 @@ import { api } from "@/api/client";
 import PageBanner from "@/components/layout/PageBanner";
 import ThemeToggle from "@/components/layout/ThemeToggle";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const navGroups = [
   {
@@ -118,6 +118,7 @@ export default function AppLayout() {
   const [provisionedAccount, setProvisionedAccount] = useState(null);
   const [managedRows, setManagedRows] = useState([]);
   const [editingRelationshipId, setEditingRelationshipId] = useState("");
+  const [selectedManagedRow, setSelectedManagedRow] = useState(null);
   const [selfDescription, setSelfDescription] = useState("");
   const [supportStyle, setSupportStyle] = useState("");
   const [supportNotes, setSupportNotes] = useState("");
@@ -177,6 +178,8 @@ export default function AppLayout() {
   };
 
   const startEditingRow = (row) => {
+    setRelationshipError("");
+    setSelectedManagedRow(row);
     setEditingRelationshipId(row.relationship_id);
     setRelationshipName(row.relationship_name || "");
     setRelationshipType(row.relationship_type || "romantic");
@@ -195,18 +198,38 @@ export default function AppLayout() {
     setInviteLink("");
     setProvisionedAccount(null);
     setEditingRelationshipId("");
+    setSelectedManagedRow(null);
   };
 
-  const upsertManagedRow = (nextRow) => {
-    setManagedRows((current) => {
-      const existing = current.find((row) => row.relationship_id === nextRow.relationship_id);
-      if (!existing) return [nextRow, ...current];
-      return current.map((row) => (row.relationship_id === nextRow.relationship_id ? { ...row, ...nextRow } : row));
+  const resolveRelationshipIdForEdit = async (relationshipIdHint) => {
+    const normalizedHint = String(relationshipIdHint || "").trim();
+    if (normalizedHint) return normalizedHint;
+
+    const rows = managedRows.length ? managedRows : (await api.relationships.manage()).rows || [];
+    if (!managedRows.length) {
+      setManagedRows(rows);
+    }
+
+    const match = rows.find((row) => {
+      if (selectedManagedRow?.invite_link && row.invite_link === selectedManagedRow.invite_link) return true;
+      if (
+        selectedManagedRow?.relationship_name &&
+        selectedManagedRow?.user_name &&
+        row.relationship_name === selectedManagedRow.relationship_name &&
+        row.user_name === selectedManagedRow.user_name &&
+        (row.email || "") === (selectedManagedRow.email || "")
+      ) {
+        return true;
+      }
+      return false;
     });
+
+    return match?.relationship_id || "";
   };
 
   const handleCreateRelationship = async () => {
     try {
+      setRelationshipError("");
       const nextPassword = ensureInvitePassword();
       const trimmedPartnerName = inviteName.trim();
       const resolvedName =
@@ -234,35 +257,14 @@ export default function AppLayout() {
               }
             : null,
         );
-        upsertManagedRow({
-          relationship_id: result.relationship?.id,
-          relationship_name: result.relationship?.name || resolvedName,
-          relationship_type: result.relationship?.type || relationshipType,
-          user_name: trimmedPartnerName || "Other Person",
-          email: inviteEmail,
-          temporary_password: nextPassword,
-          invite_status: inviteResult.invite?.status || "pending",
-          invite_link: inviteResult.absolute_invite_link || inviteResult.invite_link || "",
-        });
       } else {
         setInviteLink("");
         setProvisionedAccount(null);
       }
+      await loadManagedRows();
       setRelationshipType("romantic");
       setCreateOpen(false);
       setInviteOpen(true);
-      if (!inviteEmail.trim()) {
-        upsertManagedRow({
-          relationship_id: result.relationship?.id,
-          relationship_name: result.relationship?.name || resolvedName,
-          relationship_type: result.relationship?.type || relationshipType,
-          user_name: trimmedPartnerName || "Other Person",
-          email: "",
-          temporary_password: "",
-          invite_status: "pending",
-          invite_link: "",
-        });
-      }
     } catch (error) {
       setRelationshipError(error instanceof Error ? error.message : "Unable to create relationship.");
     }
@@ -270,6 +272,7 @@ export default function AppLayout() {
 
   const handleCreateInvite = async () => {
     try {
+      setRelationshipError("");
       const nextPassword = ensureInvitePassword();
       const result = await api.relationships.invite({
         relationship_id: activeRelationshipId,
@@ -284,29 +287,25 @@ export default function AppLayout() {
               name: result.provisional_user.name,
               email: result.provisional_user.email,
               password: nextPassword,
-            }
-          : null,
+          }
+        : null,
       );
-      upsertManagedRow({
-        relationship_id: activeRelationshipId,
-        relationship_name: activeRelationship?.name || relationshipName,
-        relationship_type: activeRelationship?.type || relationshipType,
-        user_name: inviteName || "Other Person",
-        email: inviteEmail,
-        temporary_password: nextPassword,
-        invite_status: result.invite?.status || "pending",
-        invite_link: result.absolute_invite_link || result.invite_link || "",
-      });
+      await loadManagedRows();
     } catch (error) {
       setRelationshipError(error instanceof Error ? error.message : "Unable to create invite.");
     }
   };
 
   const handleSaveManagedRow = async () => {
-    if (!editingRelationshipId) return;
+    setRelationshipError("");
     try {
+      const relationshipId = await resolveRelationshipIdForEdit(editingRelationshipId);
+      if (!relationshipId) {
+        setRelationshipError("Select a valid connection row before saving changes.");
+        return;
+      }
       const nextPassword = ensureInvitePassword();
-      const result = await api.relationships.updateManaged(editingRelationshipId, {
+      const result = await api.relationships.updateManaged(relationshipId, {
         relationship_name: relationshipName,
         relationship_type: relationshipType,
         user_name: inviteName,
@@ -317,20 +316,39 @@ export default function AppLayout() {
       setManagedRows(result.adminRows || []);
       resetConnectionForm();
     } catch (error) {
-      setRelationshipError(error instanceof Error ? error.message : "Unable to update managed connection.");
+      const message = error instanceof Error ? error.message : "Unable to update managed connection.";
+      if (message.includes("relationship_not_found")) {
+        await loadManagedRows();
+        setRelationshipError("That connection list was stale. The panel has been refreshed; please select the row again.");
+      } else {
+        setRelationshipError(message);
+      }
     }
   };
 
   const handleDeleteManagedRow = async (relationshipId) => {
     try {
-      const result = await api.relationships.deleteManaged(relationshipId);
+      setRelationshipError("");
+      const resolvedRelationshipId = await resolveRelationshipIdForEdit(relationshipId);
+      if (!resolvedRelationshipId) {
+        setRelationshipError("Unable to find that connection. The list has been refreshed.");
+        await loadManagedRows();
+        return;
+      }
+      const result = await api.relationships.deleteManaged(resolvedRelationshipId);
       updateRelationships(result.relationships || [], activeRelationshipId);
       setManagedRows(result.adminRows || []);
-      if (editingRelationshipId === relationshipId) {
+      if (editingRelationshipId === resolvedRelationshipId) {
         resetConnectionForm();
       }
     } catch (error) {
-      setRelationshipError(error instanceof Error ? error.message : "Unable to delete managed connection.");
+      const message = error instanceof Error ? error.message : "Unable to delete managed connection.";
+      if (message.includes("relationship_not_found")) {
+        await loadManagedRows();
+        setRelationshipError("That connection list was stale. The panel has been refreshed; please try again.");
+      } else {
+        setRelationshipError(message);
+      }
     }
   };
 
@@ -632,6 +650,9 @@ export default function AppLayout() {
         <DialogContent className="max-w-lg rounded-3xl">
           <DialogHeader>
             <DialogTitle>Create New Connection</DialogTitle>
+            <DialogDescription className="sr-only">
+              Create a new private connection and provision an invite login for the second participant.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
@@ -689,6 +710,9 @@ export default function AppLayout() {
         <DialogContent className="max-w-lg rounded-3xl">
           <DialogHeader>
             <DialogTitle>Invite Someone</DialogTitle>
+            <DialogDescription className="sr-only">
+              Generate a private invite link and provisional login details for the selected connection.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <input
@@ -735,6 +759,9 @@ export default function AppLayout() {
         <DialogContent className="max-h-[85vh] w-[min(96vw,80rem)] max-w-[96vw] overflow-x-auto overflow-y-auto rounded-3xl">
           <DialogHeader>
             <DialogTitle>Manage Connections</DialogTitle>
+            <DialogDescription className="sr-only">
+              Review, edit, or delete owner-managed relationship connections and invite credentials.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-5">
             <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
@@ -866,6 +893,9 @@ export default function AppLayout() {
         <DialogContent className="max-w-xl rounded-3xl">
           <DialogHeader>
             <DialogTitle>Connection Onboarding</DialogTitle>
+            <DialogDescription className="sr-only">
+              Save onboarding notes for this connection so the app can personalize guidance safely.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
