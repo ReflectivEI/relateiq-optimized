@@ -116,17 +116,11 @@ export default function VoiceRecorder({
       }
 
       let uploaded = null;
-      if (audioBlob instanceof Blob && audioBlob.size > 0) {
-        try {
-          uploaded = await api.integrations.Core.UploadFile({
-            file: audioBlob,
-            filename: `daily-reflection-${Date.now()}.webm`,
-            metadata: { source: "voice-reflection" },
-          });
-        } catch (uploadError) {
-          console.error(uploadError);
-          toast.error("Voice file could not be stored, but the transcript can still be reviewed and saved.");
-        }
+      // TODO: Re-enable raw audio storage once the file upload endpoint is updated to
+      // accept the recorder payload reliably across browsers. For now, keep the
+      // transcript review/save flow stable and store the edited transcript instead.
+      if (!(audioBlob instanceof Blob) || audioBlob.size <= 0) {
+        uploaded = null;
       }
 
       const result = await api.integrations.Core.InvokeLLM({

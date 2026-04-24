@@ -205,9 +205,9 @@ function PromptDeckVisual({ card, deckId }) {
   const theme = DECK_THEMES[deckId];
 
   return (
-    <div className="mx-auto flex w-full max-w-[980px] items-center justify-center gap-4 px-1 py-1 sm:gap-6 sm:px-3">
+    <div className="mx-auto flex w-full max-w-[760px] items-center justify-center gap-3 px-1 py-1 sm:gap-5 sm:px-2">
       <div
-        className="hidden aspect-[0.68] w-[170px] rotate-[-9deg] rounded-[2rem] border-[10px] border-[#111827] bg-white shadow-[0_18px_38px_rgba(15,23,42,0.12)] md:block lg:w-[188px]"
+        className="hidden aspect-[0.68] w-[132px] rotate-[-9deg] rounded-[1.75rem] border-[9px] border-[#111827] bg-white shadow-[0_18px_38px_rgba(15,23,42,0.12)] md:block lg:w-[148px]"
         style={{ boxShadow: theme.glow }}
       >
         <div className="relative h-full rounded-[1.2rem] border-[4px]" style={{ borderColor: theme.accent, backgroundColor: "#ffffff" }}>
@@ -228,11 +228,11 @@ function PromptDeckVisual({ card, deckId }) {
         initial={{ opacity: 0, y: 16, rotate: 1 }}
         animate={{ opacity: 1, y: 0, rotate: 0 }}
         transition={{ duration: 0.35, ease: "easeOut" }}
-        className="aspect-[0.68] w-full max-w-[430px] rounded-[2rem] border-[10px] border-[#111827] bg-white shadow-[0_18px_38px_rgba(15,23,42,0.12)] sm:max-w-[450px]"
+        className="aspect-[0.68] w-full max-w-[290px] rounded-[1.8rem] border-[9px] border-[#111827] bg-white shadow-[0_18px_38px_rgba(15,23,42,0.12)] sm:max-w-[320px] md:max-w-[340px]"
         style={{ boxShadow: theme.glow }}
       >
         <div
-          className="relative flex h-full flex-col justify-between rounded-[1.2rem] border-[4px] px-4 py-5 sm:px-6 sm:py-6"
+          className="relative flex h-full flex-col justify-between rounded-[1.2rem] border-[4px] px-3 py-4 sm:px-4 sm:py-5"
           style={{ borderColor: theme.accent, backgroundColor: "#ffffff" }}
         >
           <div
@@ -243,16 +243,16 @@ function PromptDeckVisual({ card, deckId }) {
             className="absolute bottom-[-18px] left-1/2 h-9 w-9 -translate-x-1/2 rounded-full border-[5px] border-[#111827]"
             style={{ backgroundColor: theme.accentStrong }}
           />
-          <div className="flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#5d6e84] sm:text-[11px]">
+          <div className="flex items-center justify-between gap-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#5d6e84] sm:text-[10px]">
             <span>{card.deckLabel}</span>
             <span>{card.depth}</span>
           </div>
           <div className="flex flex-1 items-center justify-center px-1 sm:px-3">
-            <p className="max-w-[15.5ch] text-center text-[0.96rem] font-semibold leading-[1.24] text-[#14263f] sm:text-[1.08rem] md:text-[1.2rem] lg:text-[1.28rem]">
+            <p className="max-w-[13ch] text-center text-[0.78rem] font-semibold leading-[1.22] text-[#14263f] sm:text-[0.9rem] md:text-[1rem]">
               {card.question}
             </p>
           </div>
-          <p className="text-center text-[13px] leading-5 text-[#5d6e84] sm:text-sm sm:leading-6">
+          <p className="text-center text-[11px] leading-4 text-[#5d6e84] sm:text-[12px] sm:leading-5">
             Read the card aloud, then capture the real answer below.
           </p>
         </div>
