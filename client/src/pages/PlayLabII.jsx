@@ -205,21 +205,21 @@ function PromptDeckVisual({ card, deckId }) {
   const theme = DECK_THEMES[deckId];
 
   return (
-    <div className="mx-auto flex w-full max-w-[760px] items-center justify-center gap-3 px-1 py-1 sm:gap-5 sm:px-2">
+    <div className="mx-auto flex w-full max-w-[640px] items-center justify-center gap-3 px-1 py-1 sm:gap-4 sm:px-2">
       <div
-        className="hidden aspect-[0.68] w-[132px] rotate-[-9deg] rounded-[1.75rem] border-[9px] border-[#111827] bg-white shadow-[0_18px_38px_rgba(15,23,42,0.12)] md:block lg:w-[148px]"
+        className="hidden aspect-[0.68] w-[112px] rotate-[-9deg] rounded-[1.5rem] border-[8px] border-[#111827] bg-white shadow-[0_18px_38px_rgba(15,23,42,0.12)] md:block lg:w-[124px]"
         style={{ boxShadow: theme.glow }}
       >
-        <div className="relative h-full rounded-[1.2rem] border-[4px]" style={{ borderColor: theme.accent, backgroundColor: "#ffffff" }}>
+        <div className="relative h-full rounded-[1rem] border-[3px]" style={{ borderColor: theme.accent, backgroundColor: "#ffffff" }}>
           <div
-            className="absolute left-1/2 top-[-18px] h-9 w-9 -translate-x-1/2 rounded-full border-[5px] border-[#111827]"
+            className="absolute left-1/2 top-[-16px] h-8 w-8 -translate-x-1/2 rounded-full border-[4px] border-[#111827]"
             style={{ backgroundColor: theme.accentStrong }}
           />
           <div className="absolute inset-0 opacity-40">
-            <div className="absolute left-8 top-8 h-3 w-3 rounded-full border border-[#111827]" />
-            <div className="absolute right-10 top-16 h-2 w-2 rounded-full bg-[#111827]" />
-            <div className="absolute left-10 bottom-20 h-2 w-2 rounded-full bg-[#111827]" />
-            <div className="absolute right-12 bottom-12 h-3 w-3 rounded-full border border-[#111827]" />
+            <div className="absolute left-6 top-7 h-2.5 w-2.5 rounded-full border border-[#111827]" />
+            <div className="absolute right-7 top-12 h-1.5 w-1.5 rounded-full bg-[#111827]" />
+            <div className="absolute left-8 bottom-16 h-1.5 w-1.5 rounded-full bg-[#111827]" />
+            <div className="absolute right-8 bottom-10 h-2.5 w-2.5 rounded-full border border-[#111827]" />
           </div>
         </div>
       </div>
@@ -228,31 +228,31 @@ function PromptDeckVisual({ card, deckId }) {
         initial={{ opacity: 0, y: 16, rotate: 1 }}
         animate={{ opacity: 1, y: 0, rotate: 0 }}
         transition={{ duration: 0.35, ease: "easeOut" }}
-        className="aspect-[0.68] w-full max-w-[290px] rounded-[1.8rem] border-[9px] border-[#111827] bg-white shadow-[0_18px_38px_rgba(15,23,42,0.12)] sm:max-w-[320px] md:max-w-[340px]"
+        className="aspect-[0.68] w-full max-w-[215px] rounded-[1.4rem] border-[8px] border-[#111827] bg-white shadow-[0_18px_38px_rgba(15,23,42,0.12)] sm:max-w-[235px] md:max-w-[250px]"
         style={{ boxShadow: theme.glow }}
       >
         <div
-          className="relative flex h-full flex-col justify-between rounded-[1.2rem] border-[4px] px-3 py-4 sm:px-4 sm:py-5"
+          className="relative flex h-full flex-col justify-between rounded-[0.95rem] border-[3px] px-3 py-3 sm:px-3.5 sm:py-4"
           style={{ borderColor: theme.accent, backgroundColor: "#ffffff" }}
         >
           <div
-            className="absolute left-1/2 top-[-18px] h-9 w-9 -translate-x-1/2 rounded-full border-[5px] border-[#111827]"
+            className="absolute left-1/2 top-[-15px] h-7 w-7 -translate-x-1/2 rounded-full border-[4px] border-[#111827]"
             style={{ backgroundColor: theme.accentStrong }}
           />
           <div
-            className="absolute bottom-[-18px] left-1/2 h-9 w-9 -translate-x-1/2 rounded-full border-[5px] border-[#111827]"
+            className="absolute bottom-[-15px] left-1/2 h-7 w-7 -translate-x-1/2 rounded-full border-[4px] border-[#111827]"
             style={{ backgroundColor: theme.accentStrong }}
           />
-          <div className="flex items-center justify-between gap-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#5d6e84] sm:text-[10px]">
+          <div className="flex items-center justify-between gap-2 text-[8px] font-semibold uppercase tracking-[0.16em] text-[#5d6e84] sm:text-[9px]">
             <span>{card.deckLabel}</span>
             <span>{card.depth}</span>
           </div>
-          <div className="flex flex-1 items-center justify-center px-1 sm:px-3">
-            <p className="max-w-[13ch] text-center text-[0.78rem] font-semibold leading-[1.22] text-[#14263f] sm:text-[0.9rem] md:text-[1rem]">
+          <div className="flex flex-1 items-center justify-center px-2">
+            <p className="max-w-[11ch] text-center text-[0.94rem] font-semibold leading-[1.18] text-[#14263f] sm:text-[1.04rem] md:text-[1.14rem]">
               {card.question}
             </p>
           </div>
-          <p className="text-center text-[11px] leading-4 text-[#5d6e84] sm:text-[12px] sm:leading-5">
+          <p className="text-center text-[10px] leading-4 text-[#5d6e84] sm:text-[11px] sm:leading-4">
             Read the card aloud, then capture the real answer below.
           </p>
         </div>
