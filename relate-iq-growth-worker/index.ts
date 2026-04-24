@@ -1700,6 +1700,67 @@ function sliceRecords(records: StoredRecord[], skipValue?: string | null, limitV
   return records.slice(skip, skip + limit);
 }
 
+const BASELINE_SEED_DATE = "2026-04-20T18:00:00.000Z";
+
+const BASELINE_JOURNAL_SEEDS: StoredRecord[] = [
+  {
+    id: "journalentry_tony_drew_what_we_are_protecting",
+    relationship_id: DEFAULT_RELATIONSHIP_ID,
+    person_name: "Tony",
+    title: "What We Are Trying To Protect",
+    content:
+      "What I want us to keep protecting is the feeling that we are on the same side, even when we miss each other. When we slow down, validate first, and stay curious instead of defensive, we do better. I want this relationship to feel intentional, emotionally safe, and honest for both of us.",
+    entry_timestamp: BASELINE_SEED_DATE,
+    created_date: BASELINE_SEED_DATE,
+    updated_date: BASELINE_SEED_DATE,
+  },
+];
+
+const BASELINE_VISION_PIN_SEEDS: StoredRecord[] = [
+  {
+    id: "visionpin_tony_drew_better_together",
+    relationship_id: DEFAULT_RELATIONSHIP_ID,
+    title: "Better Together",
+    description:
+      "Keep building a relationship that feels calmer, safer, and more intentional for both of us.",
+    category: "intention",
+    pinned_by: "Tony_Drew",
+    emoji: "🫂",
+    notes: "Lead with empathy, stay on the same side, and make repair visible.",
+    shared: true,
+    source: "seed",
+    source_date: BASELINE_SEED_DATE.slice(0, 10),
+    progress: "in_progress",
+    created_date: BASELINE_SEED_DATE,
+    updated_date: BASELINE_SEED_DATE,
+  },
+];
+
+async function ensureBaselineSeedContent(env: Env, relationshipId = DEFAULT_RELATIONSHIP_ID) {
+  if (!env.QUESTIONNAIRES) return;
+  if (relationshipId !== DEFAULT_RELATIONSHIP_ID) return;
+
+  const journalRecords = await listEntityRecords(env, "JournalEntry");
+  const hasBaselineJournal = journalRecords.some(
+    (record) => normalizeText(record.relationship_id) === DEFAULT_RELATIONSHIP_ID,
+  );
+  if (!hasBaselineJournal) {
+    for (const seed of BASELINE_JOURNAL_SEEDS) {
+      await kvPutJson(env, `data:${slugifyEntity("JournalEntry")}:${seed.id}`, seed);
+    }
+  }
+
+  const visionRecords = await listEntityRecords(env, "VisionPin");
+  const hasBaselineVision = visionRecords.some(
+    (record) => normalizeText(record.relationship_id) === DEFAULT_RELATIONSHIP_ID,
+  );
+  if (!hasBaselineVision) {
+    for (const seed of BASELINE_VISION_PIN_SEEDS) {
+      await kvPutJson(env, `data:${slugifyEntity("VisionPin")}:${seed.id}`, seed);
+    }
+  }
+}
+
 function selectFields(records: StoredRecord[], fieldsValue?: string | null) {
   if (!fieldsValue) return records;
   const fields = fieldsValue.split(",").map((value) => value.trim()).filter(Boolean);
@@ -1760,6 +1821,7 @@ async function queryEntityCollection(
   requestUrl: URL,
   relationshipId = DEFAULT_RELATIONSHIP_ID,
 ): Promise<Array<Record<string, unknown>>> {
+  await ensureBaselineSeedContent(env, relationshipId);
   const records =
     entity === "QuestionnaireResponse"
       ? await listQuestionnaireResponseRecords(env)
@@ -1793,6 +1855,7 @@ async function getEntityRecord(
   id: string,
   relationshipId = DEFAULT_RELATIONSHIP_ID,
 ): Promise<StoredRecord | null> {
+  await ensureBaselineSeedContent(env, relationshipId);
   if (entity === "QuestionnaireResponse") {
     const record = await getQuestionnaireResponseRecord(env, id);
     if (!record) return null;

@@ -17,6 +17,7 @@ import {
 import ResponseExportBar from "@/components/export/ResponseExportBar";
 import { BookText, Clock3, NotebookPen, Save, FileText, UserRound, Trash2, Pencil, X } from "lucide-react";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import JournalEntryCard from "@/components/journal/JournalEntryCard";
 
 function JournalPreview({ personName, title, content, timestamp }) {
   return (
@@ -60,10 +61,74 @@ export default function RelationshipJournal() {
     queryFn: () => api.entities.JournalEntry.list("-created_date", 50),
   });
 
+  const { data: coachSessions = [] } = useQuery({
+    queryKey: ["journal-coach-sessions", activeRelationshipId],
+    queryFn: () => api.entities.CoachSession.list("-created_date", 25),
+  });
+
+  const { data: reflections = [] } = useQuery({
+    queryKey: ["journal-reflections", activeRelationshipId],
+    queryFn: () => api.entities.DailyReflection.list("-created_date", 25),
+  });
+
+  const { data: checkIns = [] } = useQuery({
+    queryKey: ["journal-checkins", activeRelationshipId],
+    queryFn: () => api.entities.CheckIn.list("-created_date", 25),
+  });
+
   const filteredEntries = useMemo(
     () => entries.filter((entry) => !personName || entry.person_name === personName),
     [entries, personName],
   );
+
+  const relationshipTimelineEntries = useMemo(() => {
+    const normalizedPerson = (personName || "").trim().toLowerCase();
+    const timeline = [];
+
+    coachSessions.forEach((session) => {
+      if (normalizedPerson && String(session.speaker || "").trim().toLowerCase() !== normalizedPerson) return;
+      timeline.push({
+        id: `coach-${session.id}`,
+        type: "coach",
+        date: new Date(session.created_date),
+        person_name: session.speaker,
+        content: session.situation,
+        direction: session.speaking_to ? `${session.speaker}→${session.speaking_to}` : undefined,
+        speaker: session.speaker,
+        speaking_to: session.speaking_to,
+      });
+    });
+
+    reflections.forEach((reflection) => {
+      if (normalizedPerson && String(reflection.person_name || "").trim().toLowerCase() !== normalizedPerson) return;
+      timeline.push({
+        id: `reflection-${reflection.id}`,
+        type: "reflection",
+        date: new Date(reflection.reflection_date || reflection.created_date),
+        person_name: reflection.person_name,
+        content: reflection.answer,
+        mood: reflection.mood,
+        topic: reflection.topic || reflection.mood,
+      });
+    });
+
+    checkIns.forEach((checkIn) => {
+      if (normalizedPerson && String(checkIn.person_name || "").trim().toLowerCase() !== normalizedPerson) return;
+      timeline.push({
+        id: `checkin-${checkIn.id}`,
+        type: "check-in",
+        date: new Date(checkIn.created_date),
+        person_name: checkIn.person_name,
+        content: `What worked: ${checkIn.what_worked || "—"}\nCould improve: ${checkIn.what_could_improve || "—"}`,
+        what_worked: checkIn.what_worked,
+        what_could_improve: checkIn.what_could_improve,
+        gratitude: checkIn.gratitude,
+        mood: checkIn.mood,
+      });
+    });
+
+    return timeline.sort((left, right) => right.date - left.date);
+  }, [coachSessions, reflections, checkIns, personName]);
 
   const resetEditor = () => {
     setEditingEntryId(null);
@@ -335,6 +400,35 @@ export default function RelationshipJournal() {
                       {entry.content}
                     </p>
                   </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="enterprise-panel border-2">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <BookText className="h-5 w-5 text-primary" />
+                Relationship Timeline
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Existing coaching, reflection, and check-in history for {relationshipLabel}, restored into one timeline.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {relationshipTimelineEntries.length === 0 ? (
+                <div className="enterprise-panel-muted flex min-h-[180px] flex-col items-center justify-center gap-3 p-6 text-center">
+                  <FileText className="h-8 w-8 text-primary" />
+                  <div>
+                    <p className="text-base font-semibold text-foreground">No timeline activity yet</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Coach sessions, reflections, and check-ins will appear here automatically as this relationship grows.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                relationshipTimelineEntries.map((entry) => (
+                  <JournalEntryCard key={entry.id} entry={entry} />
                 ))
               )}
             </CardContent>
