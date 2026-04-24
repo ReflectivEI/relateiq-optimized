@@ -180,7 +180,7 @@ function SectionCard({ section }) {
       )}
 
       {section.content && (
-        <p className="text-sm leading-7 text-foreground whitespace-pre-wrap">{section.content}</p>
+        <p className="text-[15px] leading-6 text-foreground whitespace-pre-wrap">{section.content}</p>
       )}
       {section.list && (
         <div className="space-y-2">

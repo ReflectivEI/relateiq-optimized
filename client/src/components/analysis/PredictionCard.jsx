@@ -126,7 +126,7 @@ export default function PredictionCard({ prediction }) {
               <p className="mt-1 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
                 {section.subtitle}
               </p>
-              <p className="mt-3 text-sm leading-7 text-foreground">{section.content}</p>
+              <p className="mt-2.5 text-[15px] leading-6 text-foreground">{section.content}</p>
             </div>
           ))}
         </div>

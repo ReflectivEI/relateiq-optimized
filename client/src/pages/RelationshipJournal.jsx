@@ -35,7 +35,7 @@ function JournalPreview({ personName, title, content, timestamp }) {
         </div>
       </div>
 
-      <div className="mt-6 whitespace-pre-wrap text-[15px] leading-7 text-slate-700">
+      <div className="mt-5 whitespace-pre-wrap text-[15px] leading-6 text-slate-700">
         {content || "Start writing to create a clean PDF export of this journal entry."}
       </div>
     </div>
@@ -134,7 +134,7 @@ export default function RelationshipJournal() {
           <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="max-w-3xl space-y-3">
               <h1 className="font-display text-4xl font-bold text-white md:text-5xl">Journal</h1>
-              <p className="max-w-2xl text-base leading-7 text-slate-200">
+              <p className="max-w-2xl text-base leading-6 text-slate-200">
                 A private writing space for {relationshipLabel}. Capture what happened, what you felt, and what you
                 want to remember without the noise of analytics or prompts.
               </p>
@@ -331,7 +331,7 @@ export default function RelationshipJournal() {
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(entry.entry_timestamp || entry.created_date), "MMMM d, yyyy • h:mm a")}
                     </p>
-                    <p className="line-clamp-5 whitespace-pre-wrap text-sm leading-7 text-foreground">
+                    <p className="line-clamp-5 whitespace-pre-wrap text-[15px] leading-6 text-foreground">
                       {entry.content}
                     </p>
                   </div>

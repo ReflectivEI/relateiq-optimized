@@ -177,7 +177,7 @@ export default function RelationshipPlaybook() {
           <div className="mt-3 grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.8fr)]">
             <div className="space-y-3">
               <h1 className="font-display text-4xl font-bold text-white md:text-5xl">Relationship Playbook</h1>
-              <p className="max-w-3xl text-base leading-7 text-slate-200">
+              <p className="max-w-3xl text-base leading-6 text-slate-200">
                 This page is your working operating manual. It explains how the people in {relationshipLabel} tend to communicate,
                 what helps when pressure rises, and gives you practical scripts and routines you can actually use.
               </p>
@@ -233,7 +233,7 @@ export default function RelationshipPlaybook() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="enterprise-panel-muted rounded-2xl p-4 text-sm leading-7 text-foreground">
+                        <div className="enterprise-panel-muted rounded-2xl p-4 text-[15px] leading-6 text-foreground">
                           {item.prompt}
                         </div>
                       </CardContent>
@@ -250,7 +250,7 @@ export default function RelationshipPlaybook() {
             <CardHeader className="pb-3">
               <CardTitle className="text-xl">Conversation Template Builder</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-sm leading-7 text-foreground">
+            <CardContent className="space-y-4 text-[15px] leading-6 text-foreground">
               <p className="text-sm text-muted-foreground">
                 This is an editable working template. Choose the conversation type, adjust the tone, then tailor the
                 draft language before using it in real life.

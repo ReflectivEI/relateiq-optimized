@@ -387,7 +387,7 @@ export default function Profiles() {
 
           {/* MY PROFILE DEEP DIVE TAB */}
           <TabsContent value="my-profile" className="space-y-3 mt-4">
-            <div className="enterprise-panel-muted rounded-2xl p-4 text-sm leading-7 text-muted-foreground">
+            <div className="enterprise-panel-muted rounded-2xl p-4 text-[15px] leading-6 text-muted-foreground">
               Each section below is intentionally broken into clearer pieces. Open a section to see what it means,
               why it matters, what to try differently, and a practical example.
             </div>

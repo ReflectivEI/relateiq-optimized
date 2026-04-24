@@ -390,7 +390,7 @@ export default function RelationshipRoadmap() {
                 <CardTitle className="mt-2 text-2xl">
                   {monthResourceGuide.title}
                 </CardTitle>
-                <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground">
+                <p className="mt-2.5 max-w-3xl text-[15px] leading-6 text-muted-foreground">
                   {monthResourceGuide.summary}
                 </p>
               </div>

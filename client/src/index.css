@@ -156,7 +156,7 @@
     @apply text-xl font-semibold;
   }
   p {
-    @apply text-base leading-relaxed;
+    @apply text-[15.5px] leading-6;
   }
   small {
     @apply text-sm;
@@ -175,6 +175,12 @@
 
   .enterprise-panel-muted {
     @apply rounded-[1.25rem] border border-border bg-muted/40 text-card-foreground;
+  }
+
+  .enterprise-panel :where(p, li),
+  .enterprise-panel-muted :where(p, li),
+  .enterprise-grid-card :where(p, li) {
+    line-height: 1.5;
   }
 
   .enterprise-pill {

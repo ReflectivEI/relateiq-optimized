@@ -118,7 +118,7 @@ function ModuleCard({ module, active, onSelect }) {
     <button
       type="button"
       onClick={() => onSelect(module.id)}
-      className={`rounded-[1.5rem] border p-5 text-left transition-all ${
+      className={`rounded-[1.5rem] border px-4 py-4 text-left transition-all ${
         active
           ? "border-[#0e6f72]/45 bg-[#eef8f7] shadow-[0_14px_32px_rgba(20,38,63,0.08)]"
           : "border-border/70 bg-white hover:-translate-y-0.5 hover:border-[#0e6f72]/30 hover:shadow-[0_14px_32px_rgba(20,38,63,0.08)]"
@@ -131,7 +131,7 @@ function ModuleCard({ module, active, onSelect }) {
           </div>
           <div className="min-w-0">
             <p className="text-base font-semibold text-[#14263f]">{module.title}</p>
-            <p className="mt-2 text-sm leading-7 text-[#4e6077]">{module.teaserDescription || module.shortDescription}</p>
+            <p className="mt-1.5 text-[15px] leading-6 text-[#4e6077]">{module.teaserDescription || module.shortDescription}</p>
           </div>
         </div>
         <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-[#0e6f72]" />
@@ -147,7 +147,7 @@ function CollapsiblePanel({ title, icon: Icon, description, open, onToggle, chil
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-start justify-between gap-4 p-5 text-left"
+        className="flex w-full items-start justify-between gap-4 px-4 py-4 text-left"
       >
         <div className="flex min-w-0 items-start gap-3">
           {Icon ? (
@@ -157,19 +157,19 @@ function CollapsiblePanel({ title, icon: Icon, description, open, onToggle, chil
           ) : null}
           <div className="min-w-0">
             <p className="text-xl font-semibold text-[#14263f]">{title}</p>
-            {description ? <p className="mt-2 text-sm leading-7 text-[#4e6077]">{description}</p> : null}
+            {description ? <p className="mt-1.5 text-[15px] leading-6 text-[#4e6077]">{description}</p> : null}
           </div>
         </div>
         <ChevronDown className={`mt-1 h-5 w-5 shrink-0 text-[#0e6f72] transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>
-      {isOpen ? <div className="border-t border-[#0e6f72]/12 px-5 pb-5">{children}</div> : null}
+      {isOpen ? <div className="border-t border-[#0e6f72]/12 px-4 pb-4">{children}</div> : null}
     </div>
   );
 }
 
 function ResultSectionCard({ title, body, onSummarize, summary, loading }) {
   return (
-    <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-white p-5">
+    <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-white p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#0e6f72]/85">{title}</p>
         {onSummarize ? (
@@ -186,7 +186,7 @@ function ResultSectionCard({ title, body, onSummarize, summary, loading }) {
           </Button>
         ) : null}
       </div>
-      <p className="mt-3 text-sm leading-7 text-[#22324a]">{body}</p>
+      <p className="mt-2.5 text-[15px] leading-6 text-[#22324a]">{body}</p>
       {summary ? (
         <div className="mt-4 rounded-2xl border border-[#0e6f72]/18 bg-[#f6fbfb] p-4 text-sm leading-6 text-[#415065]">
           {summary}
@@ -863,13 +863,13 @@ export default function PlayLab() {
     if (moduleType === "side_quest" || moduleType === "aha_cards") {
       return (
         <div className="space-y-4">
-          <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-[#f6fbfb] p-5 text-sm leading-7 text-[#4e6077]">
+          <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-[#f6fbfb] p-4 text-[15px] leading-6 text-[#4e6077]">
             {moduleType === "side_quest"
               ? "This module assigns one tiny weekly experiment based on what the app has already learned. Start it and the worker will generate the challenge plus what success looks like."
               : "This module turns stored patterns into a reusable Aha card. Start it and the worker will save a fresh insight card tied to recent relationship data."}
           </div>
           {moduleType === "aha_cards" ? (
-            <div className="grid gap-3 rounded-[1.35rem] border border-[#0e6f72]/18 bg-white p-5">
+            <div className="grid gap-3 rounded-[1.35rem] border border-[#0e6f72]/18 bg-white p-4">
               <div className="grid gap-2">
                 <Label>When the card appears, does it feel accurate?</Label>
                 <OptionChips
@@ -946,7 +946,7 @@ export default function PlayLab() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.75fr)]">
         <Card className="enterprise-panel border-2">
           <CardHeader className="pb-3">
@@ -954,7 +954,7 @@ export default function PlayLab() {
               <Gamepad2 className="h-5 w-5 text-[#0e6f72]" />
               Gamified relationship learning that still feeds real intelligence
             </CardTitle>
-            <p className="text-sm leading-7 text-[#5c6b80]">
+            <p className="text-[15px] leading-6 text-[#5c6b80]">
               Play Lab turns curiosity, repair, support matching, and perspective-taking into short structured experiences that strengthen closeness while improving the app’s memory and future guidance.
             </p>
           </CardHeader>
@@ -972,7 +972,7 @@ export default function PlayLab() {
               Why this belongs inside RelateIQ
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm leading-7 text-[#4e6077]">
+          <CardContent className="space-y-3 text-[15px] leading-6 text-[#4e6077]">
             <p>Every answer, guess, mismatch, repair attempt, and outcome becomes stored learning that the worker can reuse later.</p>
             <p>That means AI Coach, Insights, triggers, support mapping, and future repair suggestions all get better over time.</p>
           </CardContent>
@@ -999,10 +999,10 @@ export default function PlayLab() {
           open={moduleWorkspaceOpen}
           onToggle={() => setModuleWorkspaceOpen((current) => !current)}
         >
-          <div className="space-y-5 pt-5">
+          <div className="space-y-4 pt-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-sm leading-7 text-[#5c6b80]">{activeModule.shortDescription}</p>
+                <p className="text-[15px] leading-6 text-[#5c6b80]">{activeModule.shortDescription}</p>
               </div>
               <Button
                 type="button"
@@ -1053,11 +1053,11 @@ export default function PlayLab() {
               </div>
             </div>
 
-            <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-[#f6fbfb] p-5">
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+            <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-[#f6fbfb] p-4">
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0e6f72]/80">Current Prompt</p>
-                  <p className="mt-2 max-w-2xl text-base font-semibold leading-8 text-[#14263f]">
+                  <p className="mt-2 max-w-3xl text-[17px] font-semibold leading-6 text-[#14263f]">
                     {session?.prompt_text || "Start a round to pull a fresh prompt from the Play Lab prompt bank."}
                   </p>
                 </div>
@@ -1106,7 +1106,7 @@ export default function PlayLab() {
               open={howItWorksOpen}
               onToggle={() => setHowItWorksOpen((current) => !current)}
             >
-              <ul className="mt-4 space-y-2 text-sm leading-7 text-[#4e6077]">
+              <ul className="mt-3 space-y-2 text-[15px] leading-6 text-[#4e6077]">
                 {activeModule.instructions.map((step) => (
                   <li key={step} className="flex items-start gap-2">
                     <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-[#0e6f72]" />
@@ -1151,7 +1151,7 @@ export default function PlayLab() {
           open={resultOpen}
           onToggle={() => setResultOpen((current) => !current)}
         >
-            <div className="space-y-5 pt-5">
+            <div className="space-y-4 pt-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="rounded-[1.25rem] border border-[#0e6f72]/20 bg-[#eef8f7] px-5 py-4 text-center">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0e6f72]/80">Match / confidence</p>
@@ -1171,7 +1171,7 @@ export default function PlayLab() {
               ))}
 
               {Array.isArray(result.statements) && result.statements.length > 0 ? (
-                <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-white p-5">
+                <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-white p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#0e6f72]/85">Two truths and a misread</p>
                   <div className="mt-4 grid gap-3 md:grid-cols-3">
                     {result.statements.map((statement) => (
@@ -1188,7 +1188,7 @@ export default function PlayLab() {
                 <div className="space-y-3">
                   <div className="rounded-[1.25rem] border border-[#0e6f72]/15 bg-[#f6fbfb] p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0e6f72]/80">{result.suggestedAction?.title || "Next Step"}</p>
-                    <p className="mt-2 text-sm leading-7 text-[#22324a]">{result.suggestedAction?.description || result.suggested_action?.description}</p>
+                    <p className="mt-2 text-[15px] leading-6 text-[#22324a]">{result.suggestedAction?.description || result.suggested_action?.description}</p>
                   </div>
                   {moduleType === "repair_quest" ? (
                     <div className="rounded-[1.25rem] border border-[#0e6f72]/15 bg-white p-4">
@@ -1247,16 +1247,16 @@ export default function PlayLab() {
               </div>
 
               {explainText ? (
-                <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-white p-5">
+                <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-white p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#0e6f72]/85">Explain</p>
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#22324a]">{explainText}</p>
+                  <p className="mt-2.5 whitespace-pre-wrap text-[15px] leading-6 text-[#22324a]">{explainText}</p>
                 </div>
               ) : null}
 
               {elaborateText ? (
-                <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-white p-5">
+                <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-white p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#0e6f72]/85">Elaborate</p>
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#22324a]">{elaborateText}</p>
+                  <p className="mt-2.5 whitespace-pre-wrap text-[15px] leading-6 text-[#22324a]">{elaborateText}</p>
                 </div>
               ) : null}
             </div>
@@ -1272,9 +1272,9 @@ export default function PlayLab() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-[#f6fbfb] p-5">
+            <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-[#f6fbfb] p-4">
               <p className="font-semibold text-[#14263f]">{ahaCard.title}</p>
-              <p className="mt-3 text-sm leading-7 text-[#4e6077]">{ahaCard.body}</p>
+              <p className="mt-2.5 text-[15px] leading-6 text-[#4e6077]">{ahaCard.body}</p>
             </div>
           </CardContent>
         </Card>
@@ -1289,7 +1289,7 @@ export default function PlayLab() {
           onToggle={() => setOutcomeOpen((current) => !current)}
         >
             <div className="space-y-5 pt-5">
-              <p className="text-sm leading-7 text-[#5c6b80]">
+              <p className="text-[15px] leading-6 text-[#5c6b80]">
                 If you try the suggested move later, log the outcome here so the app can learn which approaches actually reduce tension and improve connection.
               </p>
               <div className="grid gap-4 md:grid-cols-2">
@@ -1354,7 +1354,7 @@ export default function PlayLab() {
           >
             <div className="space-y-3 pt-5">
               {recentAhaCards.length === 0 ? (
-                <p className="text-sm leading-7 text-[#5c6b80]">No Aha cards saved yet. The first few rounds will start generating them automatically.</p>
+                <p className="text-[15px] leading-6 text-[#5c6b80]">No Aha cards saved yet. The first few rounds will start generating them automatically.</p>
               ) : (
                 recentAhaCards.slice(0, 4).map((card) => (
                   <div key={card.id} className="rounded-[1.25rem] border border-[#0e6f72]/15 bg-[#f6fbfb] p-4">
@@ -1375,7 +1375,7 @@ export default function PlayLab() {
           >
             <div className="space-y-3 pt-5">
               {recentSideQuests.length === 0 ? (
-                <p className="text-sm leading-7 text-[#5c6b80]">No weekly micro-challenges assigned yet.</p>
+                <p className="text-[15px] leading-6 text-[#5c6b80]">No weekly micro-challenges assigned yet.</p>
               ) : (
                 recentSideQuests.slice(0, 3).map((quest) => (
                   <div key={quest.id} className="rounded-[1.25rem] border border-[#0e6f72]/15 bg-white p-4">
@@ -1401,7 +1401,7 @@ export default function PlayLab() {
         >
           <div className="space-y-4 pt-5">
             {recentSessions.length === 0 ? (
-              <p className="text-sm leading-7 text-[#5c6b80]">No Play Lab history yet. The first run will start building session memory right away.</p>
+              <p className="text-[15px] leading-6 text-[#5c6b80]">No Play Lab history yet. The first run will start building session memory right away.</p>
             ) : (
               recentSessions.slice(0, 6).map((item) => {
                 const related = recentResults.find((resultItem) => resultItem.session_id === item.id);
@@ -1418,7 +1418,7 @@ export default function PlayLab() {
           open={systemImpactOpen}
           onToggle={() => setSystemImpactOpen((current) => !current)}
         >
-          <div className="space-y-4 pt-5 text-sm leading-7 text-[#4e6077]">
+          <div className="space-y-4 pt-4 text-[15px] leading-6 text-[#4e6077]">
             <div className="rounded-[1.25rem] border border-[#0e6f72]/14 bg-[#f6fbfb] p-4">
               <p className="font-semibold text-[#14263f]">AI Coach</p>
               <p className="mt-2">Recent mismatch data can sharpen what the coach suggests when one partner feels misunderstood or unsupported.</p>

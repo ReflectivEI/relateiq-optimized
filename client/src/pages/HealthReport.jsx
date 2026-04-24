@@ -58,7 +58,7 @@ export default function HealthReport() {
               Weekly Summary
             </div>
             <h1 className="font-display text-4xl font-bold text-white md:text-5xl">Relationship Health Report</h1>
-            <p className="max-w-3xl text-base leading-7 text-slate-200">
+            <p className="max-w-3xl text-base leading-6 text-slate-200">
               A cleaner, enterprise-grade snapshot of {relationshipLabel}. This page is meant to surface
               traction, friction, and recurring patterns in a way that is easier to read and easier to use.
             </p>

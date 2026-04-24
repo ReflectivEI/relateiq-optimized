@@ -70,7 +70,7 @@ function AuthScreen() {
               Private relationship intelligence for the right connection.
             </h1>
           </div>
-          <p className="max-w-2xl text-base leading-7 text-muted-foreground">
+          <p className="max-w-2xl text-base leading-6 text-muted-foreground">
             Sign in to choose a relationship context. All coaching, memory, questionnaire responses, and
             insights stay isolated inside the selected connection.
           </p>
