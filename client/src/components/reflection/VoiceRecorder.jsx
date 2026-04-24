@@ -4,18 +4,29 @@
  */
 
 import React, { useState, useRef } from "react";
-import { Mic, Square, Loader2, Copy, Trash2, Info } from "lucide-react";
+import { Mic, Square, Loader2, Copy, Trash2, Info, Check, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/api/client";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function VoiceRecorder({ onTranscribed, disabled = false, instructions = null }) {
+export default function VoiceRecorder({
+  onTranscribed,
+  disabled = false,
+  instructions = null,
+  saveDestinationLabel = "the current answer field",
+}) {
   const [recording, setRecording] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [transcript, setTranscript] = useState("");
+  const [editableTranscript, setEditableTranscript] = useState("");
   const [emotion, setEmotion] = useState("");
   const [duration, setDuration] = useState(0);
+  const [saved, setSaved] = useState(false);
+  const [topics, setTopics] = useState([]);
+  const [summary, setSummary] = useState("");
+  const [fileUrl, setFileUrl] = useState("");
   
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -137,15 +148,13 @@ ${transcriptSeed}`,
 
       if (result && result.transcript) {
         setTranscript(result.transcript);
+        setEditableTranscript(result.transcript);
         setEmotion(result.emotion || "");
-        onTranscribed({
-          text: result.transcript,
-          emotion: result.emotion,
-          topics: result.topics || [],
-          summary: result.summary,
-          file_url: uploaded?.file_url,
-        });
-        toast.success("Voice memo transcribed ✨");
+        setTopics(result.topics || []);
+        setSummary(result.summary || "");
+        setFileUrl(uploaded?.file_url || "");
+        setSaved(false);
+        toast.success("Voice memo transcribed. Review it, make edits if needed, then save.");
       } else {
         toast.error("Transcription failed");
       }
@@ -159,15 +168,38 @@ ${transcriptSeed}`,
 
   const clearRecording = () => {
     setTranscript("");
+    setEditableTranscript("");
     setEmotion("");
     setDuration(0);
+    setTopics([]);
+    setSummary("");
+    setFileUrl("");
+    setSaved(false);
     audioChunksRef.current = [];
     liveTranscriptRef.current = "";
   };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(transcript);
+    navigator.clipboard.writeText(editableTranscript || transcript);
     toast.success("Transcript copied");
+  };
+
+  const handleSaveTranscript = () => {
+    const finalText = (editableTranscript || transcript).trim();
+    if (!finalText) {
+      toast.error("There is no transcript to save yet.");
+      return;
+    }
+
+    onTranscribed?.({
+      text: finalText,
+      emotion,
+      topics,
+      summary,
+      file_url: fileUrl,
+    });
+    setSaved(true);
+    toast.success(`Your answer has been saved to ${saveDestinationLabel}.`);
   };
 
   const formatDuration = (seconds) => {
@@ -245,19 +277,27 @@ ${transcriptSeed}`,
         </div>
       ) : null}
 
-      {/* Transcript display */}
+      {/* Transcript review and save */}
       <AnimatePresence>
         {transcript && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="space-y-3 p-4 rounded-xl bg-blue-50 border-2 border-blue-200"
+            className="space-y-4 rounded-[1.25rem] border-2 border-blue-200 bg-blue-50 p-4"
           >
             <div className="flex items-start justify-between">
-              <p className="text-xs font-semibold text-blue-900 uppercase tracking-wide">
-                ✓ Transcribed
-              </p>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-blue-900">
+                  <span className="inline-flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5" />
+                    Transcript Ready
+                  </span>
+                </p>
+                <p className="mt-1 text-xs leading-5 text-blue-800/80">
+                  Review the transcript, make edits if needed, then save it to {saveDestinationLabel}.
+                </p>
+              </div>
               <div className="flex gap-1">
                 <button
                   onClick={copyToClipboard}
@@ -276,16 +316,52 @@ ${transcriptSeed}`,
               </div>
             </div>
 
-            <p className="text-sm text-blue-900 leading-relaxed">{transcript}</p>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wide text-blue-900">
+                Edit Transcript
+              </label>
+              <Textarea
+                value={editableTranscript}
+                onChange={(event) => {
+                  setEditableTranscript(event.target.value);
+                  setSaved(false);
+                }}
+                className="min-h-[140px] rounded-[1rem] border-blue-200 bg-white px-4 py-3 text-sm leading-6 text-blue-950"
+              />
+            </div>
 
             {emotion && (
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="font-medium text-blue-800">Emotion:</span>
-                <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 capitalize">
+                <span className="rounded-full bg-blue-100 px-2 py-0.5 capitalize text-blue-800">
                   {emotion}
                 </span>
+                {topics.map((topic) => (
+                  <span key={topic} className="rounded-full bg-white px-2 py-0.5 text-blue-800">
+                    {topic}
+                  </span>
+                ))}
               </div>
             )}
+
+            {summary ? (
+              <p className="rounded-xl border border-blue-200/80 bg-white/80 px-3 py-2 text-xs leading-5 text-blue-900">
+                <span className="font-semibold">Summary:</span> {summary}
+              </p>
+            ) : null}
+
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={handleSaveTranscript} className="gap-2">
+                <Check className="h-4 w-4" />
+                Save Transcript
+              </Button>
+              {saved ? (
+                <span className="inline-flex items-center gap-2 rounded-full border border-[#0e6f72]/20 bg-white px-3 py-2 text-xs font-medium text-[#0e6f72]">
+                  <Check className="h-3.5 w-3.5" />
+                  Saved to {saveDestinationLabel}
+                </span>
+              ) : null}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

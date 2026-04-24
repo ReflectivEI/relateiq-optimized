@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -11,6 +11,7 @@ import {
   SkipForward,
   Sparkles,
   Users2,
+  Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,6 +34,7 @@ import {
 } from "@/lib/playLabIIDecks";
 
 const TOTAL_ROUNDS = 3;
+const MAX_USED_CARD_HISTORY = 240;
 
 const DECK_THEMES = {
   partners: {
@@ -67,6 +69,29 @@ function similarityScore(left, right) {
   if (!leftTokens.size || !rightTokens.size) return 0;
   const overlap = [...leftTokens].filter((token) => rightTokens.has(token)).length;
   return overlap / Math.max(leftTokens.size, rightTokens.size);
+}
+
+function getUsedCardStorageKey(relationshipId, deckId) {
+  return `playlabii-used-cards:${relationshipId || "global"}:${deckId}`;
+}
+
+function readUsedCards(relationshipId, deckId) {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(getUsedCardStorageKey(relationshipId, deckId));
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeUsedCards(relationshipId, deckId, usedIds) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(
+    getUsedCardStorageKey(relationshipId, deckId),
+    JSON.stringify(usedIds.slice(-MAX_USED_CARD_HISTORY)),
+  );
 }
 
 function buildFallbackInsight(card, score, hasPrediction, partnerLabel) {
@@ -180,9 +205,9 @@ function PromptDeckVisual({ card, deckId }) {
   const theme = DECK_THEMES[deckId];
 
   return (
-    <div className="mx-auto flex w-full max-w-[720px] items-center justify-center gap-8 px-4 py-4">
+    <div className="mx-auto flex w-full max-w-[980px] items-center justify-center gap-4 px-1 py-1 sm:gap-6 sm:px-3">
       <div
-        className="hidden aspect-[0.68] w-[220px] rotate-[-7deg] rounded-[2rem] border-[10px] border-[#111827] bg-white shadow-[0_18px_38px_rgba(15,23,42,0.12)] md:block"
+        className="hidden aspect-[0.68] w-[170px] rotate-[-9deg] rounded-[2rem] border-[10px] border-[#111827] bg-white shadow-[0_18px_38px_rgba(15,23,42,0.12)] md:block lg:w-[188px]"
         style={{ boxShadow: theme.glow }}
       >
         <div className="relative h-full rounded-[1.2rem] border-[4px]" style={{ borderColor: theme.accent, backgroundColor: "#ffffff" }}>
@@ -203,11 +228,11 @@ function PromptDeckVisual({ card, deckId }) {
         initial={{ opacity: 0, y: 16, rotate: 1 }}
         animate={{ opacity: 1, y: 0, rotate: 0 }}
         transition={{ duration: 0.35, ease: "easeOut" }}
-        className="aspect-[0.68] w-full max-w-[340px] rounded-[2rem] border-[10px] border-[#111827] bg-white shadow-[0_18px_38px_rgba(15,23,42,0.12)]"
+        className="aspect-[0.68] w-full max-w-[430px] rounded-[2rem] border-[10px] border-[#111827] bg-white shadow-[0_18px_38px_rgba(15,23,42,0.12)] sm:max-w-[450px]"
         style={{ boxShadow: theme.glow }}
       >
         <div
-          className="relative flex h-full flex-col justify-between rounded-[1.2rem] border-[4px] px-7 py-8"
+          className="relative flex h-full flex-col justify-between rounded-[1.2rem] border-[4px] px-4 py-5 sm:px-6 sm:py-6"
           style={{ borderColor: theme.accent, backgroundColor: "#ffffff" }}
         >
           <div
@@ -218,14 +243,18 @@ function PromptDeckVisual({ card, deckId }) {
             className="absolute bottom-[-18px] left-1/2 h-9 w-9 -translate-x-1/2 rounded-full border-[5px] border-[#111827]"
             style={{ backgroundColor: theme.accentStrong }}
           />
-          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.24em] text-[#5d6e84]">
+          <div className="flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#5d6e84] sm:text-[11px]">
             <span>{card.deckLabel}</span>
             <span>{card.depth}</span>
           </div>
-          <div className="flex flex-1 items-center justify-center px-4">
-            <p className="text-center text-[1.55rem] font-semibold leading-[1.42] text-[#14263f]">{card.question}</p>
+          <div className="flex flex-1 items-center justify-center px-1 sm:px-3">
+            <p className="max-w-[15.5ch] text-center text-[0.96rem] font-semibold leading-[1.24] text-[#14263f] sm:text-[1.08rem] md:text-[1.2rem] lg:text-[1.28rem]">
+              {card.question}
+            </p>
           </div>
-          <p className="text-center text-sm leading-6 text-[#5d6e84]">Read the card out loud, then capture the real answer below.</p>
+          <p className="text-center text-[13px] leading-5 text-[#5d6e84] sm:text-sm sm:leading-6">
+            Read the card aloud, then capture the real answer below.
+          </p>
         </div>
       </motion.div>
     </div>
@@ -302,11 +331,16 @@ export default function PlayLabII() {
   const [voiceMeta, setVoiceMeta] = useState(null);
   const [review, setReview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [usedCardIds, setUsedCardIds] = useState([]);
 
   const selectedDeck = useMemo(() => getPlayLabIIDeck(selectedDeckId || recommendedDeckId), [selectedDeckId, recommendedDeckId]);
   const currentCard = roundCards[currentRound - 1] || null;
 
   const progressValue = (currentRound / TOTAL_ROUNDS) * 100;
+
+  useEffect(() => {
+    setUsedCardIds(readUsedCards(activeRelationship?.id || activeRelationshipId || "", selectedDeck.id));
+  }, [activeRelationship?.id, activeRelationshipId, selectedDeck.id]);
 
   const resetComposer = () => {
     setPredictionAnswer("");
@@ -327,7 +361,10 @@ export default function PlayLabII() {
 
   const handleDeckSelect = (deckId) => {
     setSelectedDeckId(deckId);
-    setRoundCards(buildPlayLabIIRoundCards(deckId));
+    const relationshipId = activeRelationship?.id || activeRelationshipId || "";
+    const previouslyUsed = readUsedCards(relationshipId, deckId);
+    setUsedCardIds(previouslyUsed);
+    setRoundCards(buildPlayLabIIRoundCards(deckId, previouslyUsed));
     setCurrentRound(1);
     setResponses([]);
     setSessionPhase("capture");
@@ -339,6 +376,7 @@ export default function PlayLabII() {
   const handleDrawAnother = () => {
     if (!currentCard || isSubmitting) return;
     const usedIds = [
+      ...usedCardIds,
       ...responses.map((response) => response.card.id),
       ...roundCards.map((card) => card?.id).filter(Boolean),
     ];
@@ -452,6 +490,10 @@ export default function PlayLabII() {
       skipped: true,
     });
     setResponses((previous) => [...previous, skippedReview]);
+    const relationshipId = activeRelationship?.id || activeRelationshipId || "";
+    const nextUsed = [...usedCardIds, currentCard.id];
+    setUsedCardIds(nextUsed);
+    writeUsedCards(relationshipId, selectedDeck.id, nextUsed);
     setReview(skippedReview);
     setSessionPhase("review");
     resetComposer();
@@ -493,6 +535,10 @@ export default function PlayLabII() {
       nextReview.nextStep = persisted?.evaluation?.result?.suggestedAction?.description || fallback.nextStep;
 
       setResponses((previous) => [...previous, nextReview]);
+      const relationshipId = activeRelationship?.id || activeRelationshipId || "";
+      const nextUsed = [...usedCardIds, currentCard.id];
+      setUsedCardIds(nextUsed);
+      writeUsedCards(relationshipId, selectedDeck.id, nextUsed);
       setReview(nextReview);
       setSessionPhase("review");
       resetComposer();
@@ -514,7 +560,7 @@ export default function PlayLabII() {
 
   const startAnotherSession = () => {
     const nextDeckId = selectedDeck.id;
-    setRoundCards(buildPlayLabIIRoundCards(nextDeckId));
+    setRoundCards(buildPlayLabIIRoundCards(nextDeckId, usedCardIds));
     setCurrentRound(1);
     setResponses([]);
     setSessionPhase("capture");
@@ -529,7 +575,6 @@ export default function PlayLabII() {
 
   const instructions = selectedDeck.instructions;
   const theme = DECK_THEMES[selectedDeck.id];
-  const Icon = theme.icon;
 
   return (
     <div className="space-y-8">
@@ -620,88 +665,106 @@ export default function PlayLabII() {
             </div>
 
             {sessionPhase === "capture" ? (
-              <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,420px)]">
+              <div className="space-y-6">
                 <Card className="border border-[#0e6f72]/18 bg-white shadow-[0_18px_38px_rgba(15,23,42,0.06)]">
-                  <CardContent className="p-6 sm:p-8">
-                    <PromptDeckVisual card={currentCard} deckId={selectedDeck.id} />
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-2xl text-[#14263f]">How to play</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {instructions.map((instruction) => (
+                        <div key={instruction} className="flex min-h-[70px] items-start gap-3 rounded-[1.2rem] border border-[#0e6f72]/14 bg-[#f8fbfb] px-4 py-3 text-[14px] leading-5 text-[#4e6077] sm:text-[15px]">
+                          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#0e6f72]" />
+                          <p className="max-w-none">{instruction}</p>
+                        </div>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
 
-                <div className="space-y-4">
-                  <Card className="border border-[#0e6f72]/18 bg-white shadow-[0_18px_38px_rgba(15,23,42,0.06)]">
-                    <CardHeader>
-                      <CardTitle className="text-2xl text-[#14263f]">How this round works</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3 text-[15px] leading-6 text-[#4e6077]">
-                      {instructions.map((instruction) => (
-                        <div key={instruction} className="flex items-start gap-3">
-                          <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-[#0e6f72]" />
-                          <p>{instruction}</p>
+                <Card className="border border-[#0e6f72]/18 bg-white shadow-[0_18px_38px_rgba(15,23,42,0.06)]">
+                  <CardContent className="space-y-6 p-6 sm:p-8">
+                    <div className="rounded-[1.5rem] border border-[#0e6f72]/14 bg-[#fbfefe] p-4 sm:p-6">
+                      <PromptDeckVisual card={currentCard} deckId={selectedDeck.id} />
+                    </div>
+
+                    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_360px] xl:items-start">
+                      <div className="space-y-4">
+                        <div className="rounded-[1.25rem] border border-[#0e6f72]/14 bg-[#f8fbfb] p-5">
+                          <h3 className="text-[1.2rem] font-semibold text-[#14263f]">
+                            What you thought {participants.secondary} might say (optional)
+                          </h3>
+                          <p className="mt-2 text-[14px] leading-5 text-[#5a6c82]">
+                            Type your instinct before or after they answer.
+                          </p>
+                          <Textarea
+                            value={predictionAnswer}
+                            onChange={(event) => setPredictionAnswer(event.target.value)}
+                            placeholder="Type your instinct before or after they answer."
+                            className="mt-4 min-h-[128px] rounded-[1.25rem] border-[#c9dfe0] bg-white px-4 py-3 text-[15px] leading-6"
+                          />
                         </div>
-                      ))}
-                    </CardContent>
-                  </Card>
 
-                  <Card className="border border-[#0e6f72]/18 bg-white shadow-[0_18px_38px_rgba(15,23,42,0.06)]">
-                    <CardHeader>
-                      <CardTitle className="text-2xl text-[#14263f]">Capture this answer</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-[#14263f]">What you thought {participants.secondary} might say (optional)</label>
-                        <Textarea
-                          value={predictionAnswer}
-                          onChange={(event) => setPredictionAnswer(event.target.value)}
-                          placeholder="Type your instinct before or after they answer."
-                          className="min-h-[120px] rounded-[1.25rem] border-[#c9dfe0] bg-[#fbfdfd] px-4 py-3 text-[15px] leading-6"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-[#14263f]">{participants.secondary}'s real answer</label>
-                        <Textarea
-                          value={actualAnswer}
-                          onChange={(event) => setActualAnswer(event.target.value)}
-                          placeholder={`Type what ${participants.secondary} actually said, or capture it by voice.`}
-                          className="min-h-[150px] rounded-[1.25rem] border-[#c9dfe0] bg-[#fbfdfd] px-4 py-3 text-[15px] leading-6"
-                        />
-                      </div>
-
-                      <div className="rounded-[1.25rem] border border-[#0e6f72]/14 bg-[#f8fbfb] p-4">
-                        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#14263f]">
-                          <Mic className="h-4 w-4 text-[#0e6f72]" />
-                          Voice capture
+                        <div className="rounded-[1.25rem] border border-[#0e6f72]/14 bg-[#f8fbfb] p-5">
+                          <h3 className="text-[1.2rem] font-semibold text-[#14263f]">{participants.secondary}'s real answer</h3>
+                          <p className="mt-2 text-[14px] leading-5 text-[#5a6c82]">
+                            Type what {participants.secondary} actually said, or capture it by voice.
+                          </p>
+                          <Textarea
+                            value={actualAnswer}
+                            onChange={(event) => setActualAnswer(event.target.value)}
+                            placeholder={`Type what ${participants.secondary} actually said, or capture it by voice.`}
+                            className="mt-4 min-h-[150px] rounded-[1.25rem] border-[#c9dfe0] bg-white px-4 py-3 text-[15px] leading-6"
+                          />
                         </div>
-                        <VoiceRecorder
-                          onTranscribed={handleVoiceCaptured}
-                          instructions={{
-                            title: "Use voice if they answer out loud",
-                            bullets: [
-                              "Tap record, let them answer naturally, then stop.",
-                              "The app will transcribe the answer and drop it into the field above.",
-                              "That transcript is also stored with this round so Play Lab can learn from it later.",
-                            ],
-                          }}
-                        />
                       </div>
 
-                      <div className="flex flex-wrap gap-3">
-                        <Button type="button" variant="outline" onClick={handleDrawAnother} className="gap-2">
-                          <Shuffle className="h-4 w-4" />
-                          Draw Another Card
-                        </Button>
-                        <Button type="button" variant="outline" onClick={handleSkip} className="gap-2">
-                          <SkipForward className="h-4 w-4" />
-                          Skip
-                        </Button>
-                        <Button type="button" onClick={handleSubmit} disabled={isSubmitting} className="gap-2">
-                          {isSubmitting ? "Submitting..." : "Submit"}
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
+                      <div className="space-y-4">
+                        <div className="rounded-[1.25rem] border border-[#0e6f72]/14 bg-[#f8fbfb] p-4">
+                          <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#14263f]">
+                            <Mic className="h-4 w-4 text-[#0e6f72]" />
+                            Voice capture
+                          </div>
+                          <VoiceRecorder
+                            onTranscribed={handleVoiceCaptured}
+                            saveDestinationLabel={`${participants.secondary}'s real answer for this round`}
+                            instructions={{
+                              title: "Use voice if they answer out loud",
+                              bullets: [
+                                "Tap record, let them answer naturally, then stop.",
+                                "The transcript opens in an editable review panel before it is saved.",
+                                `Save Transcript stores the final text in ${participants.secondary}'s real-answer field.`,
+                                "That saved text is what this round sends into Play Lab memory when you press Submit.",
+                              ],
+                            }}
+                          />
+                        </div>
+
+                        <div className="rounded-[1.25rem] border border-[#0e6f72]/14 bg-[#f8fbfb] p-4">
+                          <p className="text-sm leading-6 text-[#5a6c82]">
+                            Save Transcript keeps the edited text inside this round. When you press <span className="font-semibold text-[#14263f]">Submit</span>,
+                            RelateIQ stores the final answer to this connection's Play Lab memory.
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                          <Button type="button" variant="outline" onClick={handleDrawAnother} className="gap-2">
+                            <Shuffle className="h-4 w-4" />
+                            Draw Another Card
+                          </Button>
+                          <Button type="button" variant="outline" onClick={handleSkip} className="gap-2">
+                            <SkipForward className="h-4 w-4" />
+                            Skip
+                          </Button>
+                          <Button type="button" onClick={handleSubmit} disabled={isSubmitting} className="gap-2">
+                            {isSubmitting ? "Submitting..." : "Submit"}
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             ) : (
               <ReviewPanel

@@ -216,6 +216,7 @@ export default function DailyConnections() {
                   <VoiceRecorder
                     onTranscribed={handleVoiceTranscribed}
                     disabled={loading}
+                    saveDestinationLabel={`${person}'s reflection draft`}
                     instructions={{
                       title: "How voice memo works",
                       bullets: [
