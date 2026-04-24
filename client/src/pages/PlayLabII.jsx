@@ -332,15 +332,31 @@ export default function PlayLabII() {
   const [review, setReview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usedCardIds, setUsedCardIds] = useState([]);
+  const [answeringPerson, setAnsweringPerson] = useState(secondaryPerson || primaryPerson || "Your Partner");
 
   const selectedDeck = useMemo(() => getPlayLabIIDeck(selectedDeckId || recommendedDeckId), [selectedDeckId, recommendedDeckId]);
   const currentCard = roundCards[currentRound - 1] || null;
+  const participantOptions = useMemo(
+    () => [participants.primary, participants.secondary].filter(Boolean),
+    [participants.primary, participants.secondary],
+  );
+  const activeAnsweringPerson = participantOptions.includes(answeringPerson)
+    ? answeringPerson
+    : participantOptions[1] || participantOptions[0] || "Your Partner";
+  const guessingPerson = participantOptions.find((person) => person !== activeAnsweringPerson) || participantOptions[0] || "You";
 
   const progressValue = (currentRound / TOTAL_ROUNDS) * 100;
 
   useEffect(() => {
     setUsedCardIds(readUsedCards(activeRelationship?.id || activeRelationshipId || "", selectedDeck.id));
   }, [activeRelationship?.id, activeRelationshipId, selectedDeck.id]);
+
+  useEffect(() => {
+    setAnsweringPerson((current) => {
+      if (participantOptions.includes(current)) return current;
+      return participantOptions[1] || participantOptions[0] || "Your Partner";
+    });
+  }, [participantOptions]);
 
   const resetComposer = () => {
     setPredictionAnswer("");
@@ -401,7 +417,7 @@ export default function PlayLabII() {
   const persistRound = async ({ prediction, actual, card }) => {
     const relationshipId = activeRelationship?.id || activeRelationshipId || "";
     const scope = `${participants.primary}+${participants.secondary}`;
-    const initiatedBy = user?.name || participants.primary;
+    const initiatedBy = user?.name || guessingPerson;
     // TODO: Replace this fixed module mapping with a dedicated Play Lab II worker mode when the
     // backend starts generating prompts and insights specifically for the card-deck experience.
     const sessionPayload = await createPlayLabSession({
@@ -409,7 +425,7 @@ export default function PlayLabII() {
       moduleType: "love_map_sprint",
       scope,
       initiatedBy,
-      answeringPerson: participants.secondary,
+      answeringPerson: activeAnsweringPerson,
       createdFrom: "play_lab_ii_card_deck",
     });
 
@@ -422,7 +438,7 @@ export default function PlayLabII() {
       await submitPlayLabAnswer({
         relationshipId,
         sessionId,
-        userId: initiatedBy,
+        userId: guessingPerson,
         roleInSession: "guesser",
         responseType: "text",
         responseValue: prediction,
@@ -440,7 +456,7 @@ export default function PlayLabII() {
     await submitPlayLabAnswer({
       relationshipId,
       sessionId,
-      userId: participants.secondary,
+      userId: activeAnsweringPerson,
       roleInSession: "answerer",
       responseType: voiceMeta?.file_url ? "voice_text" : "text",
       responseValue: actual,
@@ -524,12 +540,12 @@ export default function PlayLabII() {
         card: currentCard,
         prediction,
         actual,
-        evaluation: persisted?.evaluation,
-        nextStep: fallback.nextStep,
-        status: persisted?.evaluation?.result?.match_score != null ? (persisted.evaluation.result.match_score >= 50 ? "Aligned" : "Perception Gap") : fallback.status,
-        sessionId: persisted?.sessionId,
-        voiceMeta,
-      });
+      evaluation: persisted?.evaluation,
+      nextStep: fallback.nextStep,
+      status: persisted?.evaluation?.result?.match_score != null ? (persisted.evaluation.result.match_score >= 50 ? "Aligned" : "Perception Gap") : fallback.status,
+      sessionId: persisted?.sessionId,
+      voiceMeta,
+    });
 
       nextReview.insight = persisted?.evaluation?.result?.summary || fallback.insight;
       nextReview.nextStep = persisted?.evaluation?.result?.suggestedAction?.description || fallback.nextStep;
@@ -653,6 +669,31 @@ export default function PlayLabII() {
                     One person reads the card, the other answers. Capture the real response, compare it to your instinct,
                     and let the app learn from both.
                   </p>
+                  <div className="pt-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#0e6f72]/80">Who is answering?</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {participantOptions.map((person) => {
+                        const active = person === activeAnsweringPerson;
+                        return (
+                          <button
+                            key={person}
+                            type="button"
+                            onClick={() => {
+                              setAnsweringPerson(person);
+                              resetComposer();
+                            }}
+                            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                              active
+                                ? "border-[#0e6f72] bg-[#0e6f72] text-white shadow-[0_8px_24px_rgba(14,111,114,0.2)]"
+                                : "border-[#bcd7d9] bg-white text-[#284059] hover:border-[#0e6f72]/45"
+                            }`}
+                          >
+                            {person}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
                 <div className="min-w-[240px] space-y-2">
                   <div className="flex items-center justify-between text-sm text-[#4e6077]">
@@ -692,7 +733,7 @@ export default function PlayLabII() {
                       <div className="space-y-4">
                         <div className="rounded-[1.25rem] border border-[#0e6f72]/14 bg-[#f8fbfb] p-5">
                           <h3 className="text-[1.2rem] font-semibold text-[#14263f]">
-                            What you thought {participants.secondary} might say (optional)
+                            What you thought {activeAnsweringPerson} might say (optional)
                           </h3>
                           <p className="mt-2 text-[14px] leading-5 text-[#5a6c82]">
                             Type your instinct before or after they answer.
@@ -706,14 +747,14 @@ export default function PlayLabII() {
                         </div>
 
                         <div className="rounded-[1.25rem] border border-[#0e6f72]/14 bg-[#f8fbfb] p-5">
-                          <h3 className="text-[1.2rem] font-semibold text-[#14263f]">{participants.secondary}'s real answer</h3>
+                          <h3 className="text-[1.2rem] font-semibold text-[#14263f]">{activeAnsweringPerson}'s real answer</h3>
                           <p className="mt-2 text-[14px] leading-5 text-[#5a6c82]">
-                            Type what {participants.secondary} actually said, or capture it by voice.
+                            Type what {activeAnsweringPerson} actually said, or capture it by voice.
                           </p>
                           <Textarea
                             value={actualAnswer}
                             onChange={(event) => setActualAnswer(event.target.value)}
-                            placeholder={`Type what ${participants.secondary} actually said, or capture it by voice.`}
+                            placeholder={`Type what ${activeAnsweringPerson} actually said, or capture it by voice.`}
                             className="mt-4 min-h-[150px] rounded-[1.25rem] border-[#c9dfe0] bg-white px-4 py-3 text-[15px] leading-6"
                           />
                         </div>
@@ -727,13 +768,13 @@ export default function PlayLabII() {
                           </div>
                           <VoiceRecorder
                             onTranscribed={handleVoiceCaptured}
-                            saveDestinationLabel={`${participants.secondary}'s real answer for this round`}
+                            saveDestinationLabel={`${activeAnsweringPerson}'s real answer for this round`}
                             instructions={{
                               title: "Use voice if they answer out loud",
                               bullets: [
                                 "Tap record, let them answer naturally, then stop.",
                                 "The transcript opens in an editable review panel before it is saved.",
-                                `Save Transcript stores the final text in ${participants.secondary}'s real-answer field.`,
+                                `Save Transcript stores the final text in ${activeAnsweringPerson}'s real-answer field.`,
                                 "That saved text is what this round sends into Play Lab memory when you press Submit.",
                               ],
                             }}
@@ -771,7 +812,7 @@ export default function PlayLabII() {
                 review={review}
                 onContinue={continueSession}
                 isLastRound={currentRound === TOTAL_ROUNDS}
-                partnerLabel={participants.secondary}
+                partnerLabel={activeAnsweringPerson}
               />
             )}
           </motion.section>
