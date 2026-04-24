@@ -1761,6 +1761,25 @@ async function ensureBaselineSeedContent(env: Env, relationshipId = DEFAULT_RELA
   }
 }
 
+function getBaselineSeedRecords(entity: string, relationshipId = DEFAULT_RELATIONSHIP_ID): StoredRecord[] {
+  if (relationshipId !== DEFAULT_RELATIONSHIP_ID) return [];
+  if (entity === "JournalEntry") return BASELINE_JOURNAL_SEEDS;
+  if (entity === "VisionPin") return BASELINE_VISION_PIN_SEEDS;
+  return [];
+}
+
+function mergeSeedRecords(records: StoredRecord[], entity: string, relationshipId = DEFAULT_RELATIONSHIP_ID) {
+  const seeds = getBaselineSeedRecords(entity, relationshipId);
+  if (seeds.length === 0) return records;
+  const byId = new Map(records.map((record) => [normalizeText(record.id), record] as const));
+  for (const seed of seeds) {
+    if (!byId.has(normalizeText(seed.id))) {
+      byId.set(normalizeText(seed.id), seed);
+    }
+  }
+  return [...byId.values()];
+}
+
 function selectFields(records: StoredRecord[], fieldsValue?: string | null) {
   if (!fieldsValue) return records;
   const fields = fieldsValue.split(",").map((value) => value.trim()).filter(Boolean);
@@ -1828,7 +1847,7 @@ async function queryEntityCollection(
       : await listEntityRecords(env, entity);
 
   const queryValue = requestUrl.searchParams.get("q");
-  let filtered = dedupeMetricStateRecords(entity, records);
+  let filtered = dedupeMetricStateRecords(entity, mergeSeedRecords(records, entity, relationshipId));
   if (queryValue) {
     try {
       const parsed = JSON.parse(queryValue) as Record<string, unknown>;
@@ -1862,7 +1881,12 @@ async function getEntityRecord(
     return normalizeText(record.relationship_id) === relationshipId ? record : null;
   }
   const record = await kvGetJson<StoredRecord>(env, `data:${slugifyEntity(entity)}:${id}`);
-  if (!record) return null;
+  if (!record) {
+    const seeded = getBaselineSeedRecords(entity, relationshipId).find(
+      (candidate) => normalizeText(candidate.id) === normalizeText(id),
+    );
+    return seeded || null;
+  }
   return normalizeText(record.relationship_id) === relationshipId ? record : null;
 }
 
