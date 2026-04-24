@@ -94,6 +94,11 @@ function writeUsedCards(relationshipId, deckId, usedIds) {
   );
 }
 
+function appendUniqueCardId(usedIds, cardId) {
+  if (!cardId) return usedIds;
+  return usedIds.includes(cardId) ? usedIds : [...usedIds, cardId];
+}
+
 function buildFallbackInsight(card, score, hasPrediction, partnerLabel) {
   if (!hasPrediction) {
     return {
@@ -391,22 +396,30 @@ export default function PlayLabII() {
 
   const handleDrawAnother = () => {
     if (!currentCard || isSubmitting) return;
+    const relationshipId = activeRelationship?.id || activeRelationshipId || "";
     const usedIds = [
-      ...usedCardIds,
+      ...appendUniqueCardId(usedCardIds, currentCard.id),
       ...responses.map((response) => response.card.id),
-      ...roundCards.map((card) => card?.id).filter(Boolean),
+      ...roundCards
+        .filter((_, index) => index !== currentRound - 1)
+        .map((card) => card?.id)
+        .filter(Boolean),
     ];
     const replacement = drawReplacementPlayLabIICard(selectedDeck.id, currentCard.depth, usedIds);
     if (!replacement || replacement.id === currentCard.id) {
       toast.info("No fresh card was available in that depth band.");
       return;
     }
+    const nextUsed = appendUniqueCardId(usedCardIds, currentCard.id);
+    setUsedCardIds(nextUsed);
+    writeUsedCards(relationshipId, selectedDeck.id, nextUsed);
     setRoundCards((previous) => {
       const next = [...previous];
       next[currentRound - 1] = replacement;
       return next;
     });
     resetComposer();
+    toast.success("Drew a fresh card.");
   };
 
   const handleVoiceCaptured = (payload) => {
@@ -507,12 +520,18 @@ export default function PlayLabII() {
     });
     setResponses((previous) => [...previous, skippedReview]);
     const relationshipId = activeRelationship?.id || activeRelationshipId || "";
-    const nextUsed = [...usedCardIds, currentCard.id];
+    const nextUsed = appendUniqueCardId(usedCardIds, currentCard.id);
     setUsedCardIds(nextUsed);
     writeUsedCards(relationshipId, selectedDeck.id, nextUsed);
-    setReview(skippedReview);
-    setSessionPhase("review");
+    setReview(null);
+    if (currentRound >= TOTAL_ROUNDS) {
+      setCurrentState("summary");
+    } else {
+      setCurrentRound((previous) => previous + 1);
+      setSessionPhase("capture");
+    }
     resetComposer();
+    toast.success("Skipped to the next card.");
   };
 
   const handleSubmit = async () => {
@@ -552,7 +571,7 @@ export default function PlayLabII() {
 
       setResponses((previous) => [...previous, nextReview]);
       const relationshipId = activeRelationship?.id || activeRelationshipId || "";
-      const nextUsed = [...usedCardIds, currentCard.id];
+      const nextUsed = appendUniqueCardId(usedCardIds, currentCard.id);
       setUsedCardIds(nextUsed);
       writeUsedCards(relationshipId, selectedDeck.id, nextUsed);
       setReview(nextReview);
