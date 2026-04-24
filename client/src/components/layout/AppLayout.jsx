@@ -680,7 +680,7 @@ export default function AppLayout() {
               onChange={(event) => setRelationshipType(event.target.value)}
               className="w-full rounded-2xl border border-border px-4 py-3"
             >
-              <option value="romantic">Romantic</option>
+              <option value="romantic">Partners</option>
               <option value="friendship">Friendship</option>
               <option value="family">Family</option>
               <option value="other">Other</option>
@@ -793,7 +793,9 @@ export default function AppLayout() {
                       <div key={row.relationship_id} className="grid gap-3 px-4 py-4 md:grid-cols-[1.1fr_1.2fr_1fr_0.9fr] md:items-center">
                         <div>
                           <p className="font-medium text-foreground">{row.user_name}</p>
-                          <p className="text-xs text-muted-foreground">{row.relationship_name} · {row.relationship_type}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {row.relationship_name} · {formatRelationshipTypeLabel(row.relationship_type)}
+                          </p>
                         </div>
                         <div className="break-all text-sm text-foreground">{row.email || "No email yet"}</div>
                         <div className="flex items-center gap-2">
@@ -851,7 +853,7 @@ export default function AppLayout() {
                   onChange={(event) => setRelationshipType(event.target.value)}
                   className="w-full rounded-2xl border border-border px-4 py-3"
                 >
-                  <option value="romantic">Romantic</option>
+                  <option value="romantic">Partners</option>
                   <option value="friendship">Friendship</option>
                   <option value="family">Family</option>
                   <option value="other">Other</option>

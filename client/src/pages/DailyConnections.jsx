@@ -19,7 +19,7 @@ import VoiceRecorder from "@/components/reflection/VoiceRecorder";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
-import { getPartnerName, getRelationshipLabel } from "@/lib/relationshipParticipants";
+import { getPartnerName, getRelationshipLabel, getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 export default function DailyConnections() {
   const { activeRelationshipId, activeRelationship, participants } = useRelationshipAuth();
@@ -53,6 +53,7 @@ export default function DailyConnections() {
   const partnerName = getPartnerName(person, participants);
   const partnerResponse = reflections.find((r) => r.person_name === partnerName);
   const relationshipLabel = getRelationshipLabel(activeRelationship, participants);
+  const terms = getRelationshipTerms(activeRelationship);
 
   // Mark partner response as viewed if we haven't already
   useEffect(() => {
@@ -87,7 +88,7 @@ export default function DailyConnections() {
       setAnswer("");
       setMood("");
       setInputMode("text");
-      toast.success("Response shared with your partner ✨");
+      toast.success(`Response shared with your ${terms.counterpart} ✨`);
       queryClient.invalidateQueries({ queryKey: ["daily-reflections-today", activeRelationshipId] });
     } catch (err) {
       toast.error("Failed to save reflection");
@@ -112,7 +113,7 @@ export default function DailyConnections() {
           Daily Reflections
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Answer a single, thoughtful question each day. See how your partner responds. Build intimacy through shared perspective.
+          Answer a single, thoughtful question each day. See how your {terms.counterpart} responds. Build {terms.closeness} through shared perspective.
         </p>
       </motion.div>
 
@@ -264,7 +265,7 @@ export default function DailyConnections() {
           )}
         </motion.div>
 
-        {/* PARTNER'S RESPONSE */}
+        {/* OTHER PERSON'S RESPONSE */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -306,7 +307,7 @@ export default function DailyConnections() {
             You'll see a new reflection question every day. Each one is designed to deepen connection and understanding.
           </p>
           <p className="text-xs text-muted-foreground/60 italic">
-            Your responses are shared only with your partner and visible only to those in your private connection space.
+            Your responses are shared only with your {terms.counterpart} and visible only to those in your private connection space.
           </p>
         </CardContent>
       </Card>

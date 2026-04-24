@@ -27,6 +27,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 const PAGE_META = {
   "/":             { label: "Context: Us",       subtitle: "Understanding each other deeply, communicating with intention, and growing together — powered by insight.", icon: LayoutDashboard },
@@ -54,7 +55,7 @@ const PAGE_META = {
 
 export default function PageBanner() {
   const location = useLocation();
-  const { relationshipLabel } = useRelationshipAuth();
+  const { activeRelationship, relationshipLabel } = useRelationshipAuth();
   const customHeroRoutes = new Set(["/journal", "/playbook", "/health-report"]);
 
   if (customHeroRoutes.has(location.pathname)) {
@@ -63,10 +64,33 @@ export default function PageBanner() {
 
   const meta = PAGE_META[location.pathname] || { label: "Context: Us", subtitle: "Better Together", icon: Link2 };
   const Icon = meta.icon;
-  const subtitle =
-    location.pathname === "/journal"
-      ? `A private writing space for ${relationshipLabel}`
-      : meta.subtitle;
+  const terms = getRelationshipTerms(activeRelationship);
+  let subtitle = meta.subtitle;
+  if (location.pathname === "/journal") {
+    subtitle = `A private writing space for ${relationshipLabel}`;
+  } else if (location.pathname === "/playbook") {
+    subtitle =
+      terms.type === "romantic"
+        ? "Your relationship operating manual and templates"
+        : `Your ${terms.typeLabel.toLowerCase()} playbook and working templates`;
+  } else if (location.pathname === "/play-lab") {
+    subtitle = `Interactive learning for this ${terms.bond} that makes the app smarter over time`;
+  } else if (location.pathname === "/questionnaire") {
+    subtitle = `Build private ${terms.bond} context through reflection`;
+  } else if (location.pathname === "/insights") {
+    subtitle = `Deep ${terms.bond} pattern analysis`;
+  } else if (location.pathname === "/check-in") {
+    subtitle = `Track how your ${terms.bond} is growing over time`;
+  } else if (location.pathname === "/tools") {
+    subtitle = `Real-time support for in-the-moment challenges inside this ${terms.bond}`;
+  } else if (location.pathname === "/chat") {
+    subtitle = `Open conversation with your AI coach for this ${terms.bond}`;
+  } else if (location.pathname === "/health-report") {
+    subtitle =
+      terms.type === "romantic"
+        ? "An enterprise-grade snapshot of your relationship health"
+        : "An enterprise-grade snapshot of your connection health";
+  }
 
   return (
     <div className="enterprise-hero mb-8 overflow-hidden">

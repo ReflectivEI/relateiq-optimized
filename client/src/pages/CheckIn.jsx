@@ -21,7 +21,7 @@ import { safeInvokeLLM } from "@/lib/aiSafe";
 import PrivacyBanner from "@/components/ui/PrivacyBanner";
 import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
-import { getPartnerName } from "@/lib/relationshipParticipants";
+import { getPartnerName, getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 function stripDuplicateReflectionHeading(value = "") {
   return value
@@ -40,7 +40,7 @@ const moods = [
 ];
 
 export default function CheckIn() {
-  const { activeRelationshipId, participants } = useRelationshipAuth();
+  const { activeRelationshipId, activeRelationship, participants } = useRelationshipAuth();
   const [person, setPerson] = useState(participants[0]);
   const [form, setForm] = useState({
     what_worked: "",
@@ -83,6 +83,7 @@ export default function CheckIn() {
 
   const profile = profiles.find((p) => p.person_name === person);
   const visibleCheckIns = checkIns.filter((ci) => ci.id !== checkInId);
+  const terms = getRelationshipTerms(activeRelationship);
 
   const handleSubmit = async () => {
     if (!form.what_worked.trim()) return;
@@ -149,7 +150,7 @@ export default function CheckIn() {
     <div className="space-y-8">
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">Weekly Check-In</h1>
-        <p className="text-muted-foreground mt-1">Reflect on how your week went together</p>
+        <p className="text-muted-foreground mt-1">Reflect on how this week felt across your {terms.bond}</p>
       </div>
 
       <PrivacyBanner />
@@ -198,7 +199,7 @@ export default function CheckIn() {
           <div className="space-y-2">
             <Label>What worked well this week?</Label>
             <Textarea
-              placeholder="What moments of good communication stood out?"
+              placeholder={`What moments of good communication or support with your ${terms.counterpart} stood out?`}
               value={form.what_worked}
               onChange={(e) => setForm({ ...form, what_worked: e.target.value })}
               className="min-h-[80px] resize-none bg-background/50"
@@ -208,7 +209,7 @@ export default function CheckIn() {
           <div className="space-y-2">
             <Label>What could have gone better?</Label>
             <Textarea
-              placeholder="Any moments where communication broke down?"
+              placeholder={`Any moments where communication with your ${terms.counterpart} broke down?`}
               value={form.what_could_improve}
               onChange={(e) => setForm({ ...form, what_could_improve: e.target.value })}
               className="min-h-[80px] resize-none bg-background/50"
@@ -257,7 +258,7 @@ export default function CheckIn() {
               <Heart className="w-3.5 h-3.5 text-primary" /> Gratitude
             </Label>
             <Textarea
-              placeholder="Something you appreciate about your partner this week..."
+              placeholder={`Something you appreciate about your ${terms.counterpart} this week...`}
               value={form.gratitude}
               onChange={(e) => setForm({ ...form, gratitude: e.target.value })}
               className="min-h-[60px] resize-none bg-background/50"

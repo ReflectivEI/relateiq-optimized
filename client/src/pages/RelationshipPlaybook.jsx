@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 function bulletize(value, fallback) {
   if (Array.isArray(value) && value.length > 0) return value;
@@ -68,7 +69,7 @@ function PersonCard({ name, profile, colorClass }) {
 }
 
 export default function RelationshipPlaybook() {
-  const { participants, relationshipLabel } = useRelationshipAuth();
+  const { activeRelationship, participants, relationshipLabel } = useRelationshipAuth();
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-playbook"],
     queryFn: () => api.entities.UserProfile.list(),
@@ -76,6 +77,15 @@ export default function RelationshipPlaybook() {
 
   const primaryProfile = profiles.find((profile) => profile.person_name === participants[0]);
   const secondaryProfile = profiles.find((profile) => profile.person_name === participants[1]);
+  const terms = getRelationshipTerms(activeRelationship);
+  const playbookTitle =
+    terms.type === "romantic"
+      ? "Relationship Playbook"
+      : terms.type === "friendship"
+        ? "Friendship Playbook"
+        : terms.type === "family"
+          ? "Family Playbook"
+          : "Connection Playbook";
   const templateDefaults = useMemo(() => ({
     conversationType: "repair",
     desiredTone: "steady",
@@ -176,7 +186,7 @@ export default function RelationshipPlaybook() {
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-200/70">Context: Us</p>
           <div className="mt-3 grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.8fr)]">
             <div className="space-y-3">
-              <h1 className="font-display text-4xl font-bold text-white md:text-5xl">Relationship Playbook</h1>
+              <h1 className="font-display text-4xl font-bold text-white md:text-5xl">{playbookTitle}</h1>
               <p className="max-w-3xl text-base leading-6 text-slate-200">
                 This page is your working operating manual. It explains how the people in {relationshipLabel} tend to communicate,
                 what helps when pressure rises, and gives you practical scripts and routines you can actually use.
@@ -201,10 +211,10 @@ export default function RelationshipPlaybook() {
               <BookOpenText className="h-5 w-5 text-primary" />
               Working Playbook
             </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              A clearer structure for how this page should work: individual guidance on one side, usable shared
-              templates on the other.
-            </p>
+              <p className="text-sm text-muted-foreground">
+                A clearer structure for how this page should work: individual guidance on one side, usable shared
+                templates for this {terms.bond} on the other.
+              </p>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue={participants[0].toLowerCase()} className="space-y-5">

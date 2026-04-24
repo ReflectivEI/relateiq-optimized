@@ -48,7 +48,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
-import { getPartnerName } from "@/lib/relationshipParticipants";
+import { getPartnerName, getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 const MODULE_ICONS = {
   guess_my_inner_world: Brain,
@@ -237,7 +237,7 @@ function OptionChips({ options, value, onSelect }) {
 }
 
 export default function PlayLab() {
-  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
+  const { activeRelationshipId, activeRelationship, participants, relationshipLabel } = useRelationshipAuth();
   const queryClient = useQueryClient();
   const [moduleType, setModuleType] = useState("guess_my_inner_world");
   const [scope, setScope] = useState("Tony+Drew");
@@ -277,6 +277,7 @@ export default function PlayLab() {
   }, [participants]);
 
   const activeModule = getPlayLabModule(moduleType);
+  const terms = getRelationshipTerms(activeRelationship);
 
   const { data: historyData = { sessions: [], results: [] }, refetch: refetchHistory } = useQuery({
     queryKey: ["play-lab-history", activeRelationshipId, scope],
@@ -418,7 +419,7 @@ export default function PlayLab() {
           },
           {
             responseType: "guessed_need",
-            responseLabel: "What partner predicts is needed",
+            responseLabel: `What the other ${terms.counterpart} predicts is needed`,
             responseValue: form.predictedNeed || form.predictedNeedType,
             userId: otherPerson,
             roleInSession: "guesser",
@@ -820,7 +821,7 @@ export default function PlayLab() {
             />
           </div>
           <div className="grid gap-2">
-            <Label>What does the other partner predict is needed?</Label>
+            <Label>{`What does the other ${terms.counterpart} predict is needed?`}</Label>
             <OptionChips
               options={NEED_OPTIONS}
               value={form.predictedNeedType}
@@ -866,7 +867,7 @@ export default function PlayLab() {
           <div className="rounded-[1.35rem] border border-[#0e6f72]/18 bg-[#f6fbfb] p-4 text-[15px] leading-6 text-[#4e6077]">
             {moduleType === "side_quest"
               ? "This module assigns one tiny weekly experiment based on what the app has already learned. Start it and the worker will generate the challenge plus what success looks like."
-              : "This module turns stored patterns into a reusable Aha card. Start it and the worker will save a fresh insight card tied to recent relationship data."}
+              : `This module turns stored patterns into a reusable Aha card. Start it and the worker will save a fresh insight card tied to recent ${terms.bond} data.`}
           </div>
           {moduleType === "aha_cards" ? (
             <div className="grid gap-3 rounded-[1.35rem] border border-[#0e6f72]/18 bg-white p-4">
@@ -924,7 +925,7 @@ export default function PlayLab() {
               value={form.guessedAnswer}
               onChange={(event) => setForm((current) => ({ ...current, guessedAnswer: event.target.value }))}
               className="min-h-28"
-              placeholder="What do you think your partner would actually say?"
+              placeholder={`What do you think your ${terms.counterpart} would actually say?`}
             />
             <div className="grid gap-2">
               <div className="flex items-center justify-between text-xs font-medium text-[#5c6b80]">
@@ -952,7 +953,7 @@ export default function PlayLab() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-3 text-2xl">
               <Gamepad2 className="h-5 w-5 text-[#0e6f72]" />
-              Gamified relationship learning that still feeds real intelligence
+              Gamified learning for this {terms.bond} that still feeds real intelligence
             </CardTitle>
             <p className="text-[15px] leading-6 text-[#5c6b80]">
               Play Lab turns curiosity, repair, support matching, and perspective-taking into short structured experiences that strengthen closeness while improving the app’s memory and future guidance.
@@ -1421,7 +1422,7 @@ export default function PlayLab() {
           <div className="space-y-4 pt-4 text-[15px] leading-6 text-[#4e6077]">
             <div className="rounded-[1.25rem] border border-[#0e6f72]/14 bg-[#f6fbfb] p-4">
               <p className="font-semibold text-[#14263f]">AI Coach</p>
-              <p className="mt-2">Recent mismatch data can sharpen what the coach suggests when one partner feels misunderstood or unsupported.</p>
+              <p className="mt-2">{`Recent mismatch data can sharpen what the coach suggests when one ${terms.counterpart} feels misunderstood or unsupported.`}</p>
             </div>
             <div className="rounded-[1.25rem] border border-[#0e6f72]/14 bg-[#f6fbfb] p-4">
               <p className="font-semibold text-[#14263f]">Insights</p>

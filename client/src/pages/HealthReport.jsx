@@ -14,10 +14,12 @@ import ThemeCloud from "@/components/health-report/ThemeCloud";
 import AIHealthReport from "@/components/health-report/AIHealthReport";
 import CommunicationPatterns from "@/components/health-report/CommunicationPatterns";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 export default function HealthReport() {
-  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
+  const { activeRelationshipId, activeRelationship, participants, relationshipLabel } = useRelationshipAuth();
   const [viewMode, setViewMode] = useState("compare");
+  const terms = getRelationshipTerms(activeRelationship);
 
   const { data: checkIns = [] } = useQuery({
     queryKey: ["health-checkins", activeRelationshipId],
@@ -57,7 +59,9 @@ export default function HealthReport() {
               <ActivitySquare className="h-4 w-4" />
               Weekly Summary
             </div>
-            <h1 className="font-display text-4xl font-bold text-white md:text-5xl">Relationship Health Report</h1>
+            <h1 className="font-display text-4xl font-bold text-white md:text-5xl">
+              {terms.type === "romantic" ? "Relationship Health Report" : "Connection Health Report"}
+            </h1>
             <p className="max-w-3xl text-base leading-6 text-slate-200">
               A cleaner, enterprise-grade snapshot of {relationshipLabel}. This page is meant to surface
               traction, friction, and recurring patterns in a way that is easier to read and easier to use.
@@ -146,7 +150,7 @@ export default function HealthReport() {
       </motion.div>
 
       <p className="text-center text-xs text-muted-foreground/60 border-t border-border pt-6">
-        This report is generated from your private data and is only visible to you. It is not a substitute for professional relationship support.
+        This report is generated from your private data and is only visible to you. It is not a substitute for professional support.
       </p>
     </div>
   );

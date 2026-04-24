@@ -4,9 +4,13 @@
  */
 import React, { useState } from "react";
 import { Shield, X } from "lucide-react";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 export default function PrivacyBanner() {
   const [dismissed, setDismissed] = useState(false);
+  const { activeRelationship } = useRelationshipAuth();
+  const terms = getRelationshipTerms(activeRelationship);
   if (dismissed) return null;
 
   return (
@@ -14,7 +18,7 @@ export default function PrivacyBanner() {
       <Shield className="w-4 h-4 text-primary shrink-0 mt-0.5" />
       <p className="text-xs text-muted-foreground flex-1">
         <span className="font-medium text-foreground">Your responses are private.</span>{" "}
-        Nothing is shared with your partner unless you choose to share it. Each person's profile, insights, and coach sessions are visible only to them.
+        Nothing is shared with your {terms.counterpart} unless you choose to share it. Each person's profile, insights, and coach sessions are visible only to them.
       </p>
       <button onClick={() => setDismissed(true)} className="text-muted-foreground hover:text-foreground shrink-0">
         <X className="w-3.5 h-3.5" />

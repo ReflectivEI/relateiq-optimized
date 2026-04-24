@@ -27,19 +27,21 @@ import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
 import { suggestSmartTools } from "@/lib/toolTriggerEngine";
 import { computePatternProfile } from "@/lib/patternEngine";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
-import { getPartnerName } from "@/lib/relationshipParticipants";
+import { getPartnerName, getRelationshipTerms } from "@/lib/relationshipParticipants";
 
-const tools = [
-  { id: "before_you_react", label: "Before You React", icon: Shield, description: "Feeling activated? Pause and get grounding advice before responding." },
-  { id: "translate", label: "Translate What They Meant", icon: MessageSquare, description: "Enter what your partner said and understand the likely intention." },
-  { id: "trigger_check", label: "Was That a Trigger?", icon: Search, description: "Reflect on a reaction and understand if it was a trigger response." },
-  { id: "replay_analyzer", label: "Conversation Replay", icon: RotateCcw, description: "Paste a conversation summary and get an AI breakdown of what happened." },
-];
+function buildTools(counterpart) {
+  return [
+    { id: "before_you_react", label: "Before You React", icon: Shield, description: "Feeling activated? Pause and get grounding advice before responding." },
+    { id: "translate", label: "Translate What They Meant", icon: MessageSquare, description: `Enter what your ${counterpart} said and understand the likely intention.` },
+    { id: "trigger_check", label: "Was That a Trigger?", icon: Search, description: "Reflect on a reaction and understand if it was a trigger response." },
+    { id: "replay_analyzer", label: "Conversation Replay", icon: RotateCcw, description: "Paste a conversation summary and get an AI breakdown of what happened." },
+  ];
+}
 
 const EMOTIONS = ["Angry", "Frustrated", "Hurt", "Anxious", "Defensive", "Shut Down", "Overwhelmed", "Resentful"];
 
 export default function SmartTools() {
-  const { activeRelationshipId, participants } = useRelationshipAuth();
+  const { activeRelationshipId, activeRelationship, participants } = useRelationshipAuth();
   const [activeTool, setActiveTool] = useState("before_you_react");
   const [person, setPerson] = useState(participants[0]);
   const [input, setInput] = useState("");
@@ -90,6 +92,8 @@ export default function SmartTools() {
 
   const userProfile = profiles.find((p) => p.person_name === person);
   const partnerName = getPartnerName(person, participants);
+  const terms = getRelationshipTerms(activeRelationship);
+  const tools = buildTools(terms.counterpart);
   const partnerProfile = profiles.find((p) => p.person_name === partnerName);
   const userResponses = person === participants[0] ? tonyResponses : drewResponses;
   const partnerResponses = partnerName === participants[0] ? tonyResponses : drewResponses;
@@ -176,7 +180,7 @@ export default function SmartTools() {
     <div className="space-y-8">
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">Smart Tools</h1>
-        <p className="text-muted-foreground mt-1">Real-time support powered by everything the system knows about you both</p>
+        <p className="text-muted-foreground mt-1">{`Real-time support powered by everything the system knows about this ${terms.bond}`}</p>
       </div>
 
       <PrivacyBanner />

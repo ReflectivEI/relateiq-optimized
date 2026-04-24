@@ -24,7 +24,7 @@ import AILoadingState from "@/components/ui/AILoadingState";
 import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
-import { getPartnerName } from "@/lib/relationshipParticipants";
+import { getPartnerName, getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 const SITUATION_TAGS = [
   "misunderstanding", "shutdown", "defensiveness", "hurt feelings",
@@ -215,7 +215,7 @@ function RepairOutput({ repair, repairEntryId, person, partnerName }) {
 }
 
 export default function ProactiveRepair() {
-  const { activeRelationshipId, participants } = useRelationshipAuth();
+  const { activeRelationshipId, activeRelationship, participants } = useRelationshipAuth();
   const [person, setPerson] = useState(participants[0]);
   const [tags, setTags] = useState([]);
   const [whatHappened, setWhatHappened] = useState("");
@@ -239,6 +239,7 @@ export default function ProactiveRepair() {
   }, [participants, person]);
 
   const partnerName = getPartnerName(person, participants);
+  const terms = getRelationshipTerms(activeRelationship);
 
   const { data: profiles = [] } = useQuery({ queryKey: ["profiles-repair", activeRelationshipId], queryFn: () => api.entities.UserProfile.list() });
   const { data: triggers = [] } = useQuery({ queryKey: ["triggers-repair", activeRelationshipId], queryFn: () => api.entities.TriggerEntry.list() });
@@ -383,7 +384,7 @@ export default function ProactiveRepair() {
     <div className="space-y-8">
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">Proactive Repair</h1>
-        <p className="text-muted-foreground mt-1">Guided repair after tension, conflict, misunderstanding, or emotional distance</p>
+        <p className="text-muted-foreground mt-1">{`Guided repair after tension, conflict, misunderstanding, or emotional distance in this ${terms.bond}`}</p>
       </div>
 
       {creditError && <CreditLimitBanner />}

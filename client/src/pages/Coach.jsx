@@ -48,7 +48,7 @@ import ResponseExportBar from "@/components/export/ResponseExportBar";
 import NotesPanel from "@/components/notes/NotesPanel";
 import { enforceCoachStructure, deriveCoachModes } from "@/lib/coachStructureEnforcer";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
-import { buildParticipantData, getPartnerName } from "@/lib/relationshipParticipants";
+import { buildParticipantData, getPartnerName, getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 const SUGGESTION_PILLS = [
   { id: "handling_conflict", label: "Handling Conflict", icon: AlertTriangle, description: "Get grounded guidance before a hard conversation escalates." },
@@ -102,7 +102,7 @@ function summarizeCoachSession(session) {
 }
 
 export default function Coach() {
-  const { activeRelationshipId, participants } = useRelationshipAuth();
+  const { activeRelationshipId, activeRelationship, participants } = useRelationshipAuth();
   const [speaker, setSpeaker] = useState(participants[0]);
   const [speakingTo, setSpeakingTo] = useState(participants[1]);
   const [situation, setSituation] = useState("");
@@ -176,6 +176,7 @@ export default function Coach() {
   const targetProfile = profiles.find((p) => p.person_name === speakingTo);
   const speakerResponses = speaker === participants[0] ? tonyResponses : drewResponses;
   const targetResponses = speakingTo === participants[0] ? tonyResponses : drewResponses;
+  const terms = getRelationshipTerms(activeRelationship);
 
   const runCoachCall = async (situationText) => {
     setError(null);
@@ -358,7 +359,7 @@ export default function Coach() {
           Start a Conversation
         </h1>
         <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-          Get context-aware guidance based on your relationship patterns, emotional dynamics, and real situations.
+          Get context-aware guidance based on your {terms.bond} patterns, emotional dynamics, and real situations.
         </p>
       </motion.div>
 
