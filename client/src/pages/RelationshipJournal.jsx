@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
-import { BookText, Clock3, NotebookPen, Save, FileText, UserRound, Trash2, Pencil, X } from "lucide-react";
+import { BookText, Clock3, NotebookPen, Save, FileText, UserRound, Trash2, Pencil, X, ChevronDown, ChevronUp } from "lucide-react";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import JournalEntryCard from "@/components/journal/JournalEntryCard";
 
@@ -53,6 +53,8 @@ export default function RelationshipJournal() {
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState(null);
+  const [expandedEntryId, setExpandedEntryId] = useState(null);
+  const [expandedTimelineId, setExpandedTimelineId] = useState(null);
 
   const timestamp = useMemo(() => new Date(), [title, content, personName]);
 
@@ -138,6 +140,7 @@ export default function RelationshipJournal() {
 
   const loadEntryIntoEditor = (entry) => {
     setEditingEntryId(entry.id);
+    setExpandedEntryId(entry.id);
     setPersonName(entry.person_name || participants[0]);
     setTitle(entry.title || "");
     setContent(entry.content || "");
@@ -342,11 +345,11 @@ export default function RelationshipJournal() {
                 filteredEntries.map((entry) => (
                   <div
                     key={entry.id}
-                    onClick={() => loadEntryIntoEditor(entry)}
+                    onClick={() => toggleSavedEntry(entry.id)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
-                        loadEntryIntoEditor(entry);
+                        toggleSavedEntry(entry.id);
                       }
                     }}
                     role="button"
@@ -391,14 +394,38 @@ export default function RelationshipJournal() {
                         >
                           <Trash2 className="delete-action-icon h-4 w-4" />
                         </button>
+                        <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/15 bg-white text-muted-foreground">
+                          {expandedEntryId === entry.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </div>
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(entry.entry_timestamp || entry.created_date), "MMMM d, yyyy • h:mm a")}
                     </p>
-                    <p className="line-clamp-5 whitespace-pre-wrap text-[15px] leading-6 text-foreground">
-                      {entry.content}
-                    </p>
+                    {expandedEntryId === entry.id ? (
+                      <div className="space-y-3">
+                        <p className="whitespace-pre-wrap text-[15px] leading-6 text-foreground">{entry.content}</p>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="gap-2 rounded-full"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              loadEntryIntoEditor(entry);
+                            }}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit Entry
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="line-clamp-5 whitespace-pre-wrap text-[15px] leading-6 text-foreground">
+                        {entry.content}
+                      </p>
+                    )}
                   </div>
                 ))
               )}
@@ -428,7 +455,14 @@ export default function RelationshipJournal() {
                 </div>
               ) : (
                 relationshipTimelineEntries.map((entry) => (
-                  <JournalEntryCard key={entry.id} entry={entry} />
+                  <JournalEntryCard
+                    key={entry.id}
+                    entry={entry}
+                    expanded={expandedTimelineId === entry.id}
+                    onExpandedChange={(nextExpanded) => {
+                      setExpandedTimelineId(nextExpanded ? entry.id : null);
+                    }}
+                  />
                 ))
               )}
             </CardContent>
@@ -438,3 +472,6 @@ export default function RelationshipJournal() {
     </div>
   );
 }
+  const toggleSavedEntry = (entryId) => {
+    setExpandedEntryId((current) => (current === entryId ? null : entryId));
+  };

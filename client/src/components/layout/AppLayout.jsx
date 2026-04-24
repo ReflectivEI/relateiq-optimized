@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -136,6 +136,10 @@ export default function AppLayout() {
     support: false,
   });
   const isOwner = activeRelationship?.current_user_role === "owner";
+  const selectedManagedRelationshipId = useMemo(
+    () => selectedManagedRow?.relationship_id || editingRelationshipId || "",
+    [selectedManagedRow, editingRelationshipId],
+  );
 
   const toggleGroup = (groupId) => {
     setOpenGroups((current) => ({
@@ -173,6 +177,7 @@ export default function AppLayout() {
 
   const openManageDialog = async () => {
     setRelationshipError("");
+    resetConnectionForm();
     setManageOpen(true);
     await loadManagedRows();
   };
@@ -299,7 +304,7 @@ export default function AppLayout() {
   const handleSaveManagedRow = async () => {
     setRelationshipError("");
     try {
-      const relationshipId = await resolveRelationshipIdForEdit(editingRelationshipId);
+      const relationshipId = await resolveRelationshipIdForEdit(selectedManagedRelationshipId);
       if (!relationshipId) {
         setRelationshipError("Select a valid connection row before saving changes.");
         return;
@@ -338,7 +343,7 @@ export default function AppLayout() {
       const result = await api.relationships.deleteManaged(resolvedRelationshipId);
       updateRelationships(result.relationships || [], activeRelationshipId);
       setManagedRows(result.adminRows || []);
-      if (editingRelationshipId === resolvedRelationshipId) {
+      if (selectedManagedRelationshipId === resolvedRelationshipId) {
         resetConnectionForm();
       }
     } catch (error) {
@@ -650,7 +655,7 @@ export default function AppLayout() {
         <DialogContent className="max-w-lg rounded-3xl">
           <DialogHeader>
             <DialogTitle>Create New Connection</DialogTitle>
-            <DialogDescription className="sr-only">
+            <DialogDescription>
               Create a new private connection and provision an invite login for the second participant.
             </DialogDescription>
           </DialogHeader>
@@ -710,7 +715,7 @@ export default function AppLayout() {
         <DialogContent className="max-w-lg rounded-3xl">
           <DialogHeader>
             <DialogTitle>Invite Someone</DialogTitle>
-            <DialogDescription className="sr-only">
+            <DialogDescription>
               Generate a private invite link and provisional login details for the selected connection.
             </DialogDescription>
           </DialogHeader>
@@ -759,7 +764,7 @@ export default function AppLayout() {
         <DialogContent className="max-h-[85vh] w-[min(96vw,80rem)] max-w-[96vw] overflow-x-auto overflow-y-auto rounded-3xl">
           <DialogHeader>
             <DialogTitle>Manage Connections</DialogTitle>
-            <DialogDescription className="sr-only">
+            <DialogDescription>
               Review, edit, or delete owner-managed relationship connections and invite credentials.
             </DialogDescription>
           </DialogHeader>

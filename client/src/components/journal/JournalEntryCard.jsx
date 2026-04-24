@@ -3,7 +3,7 @@
  * Individual journal entry card with metadata, content preview, and interaction
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Heart, Calendar, ChevronDown, ChevronUp } from "lucide-react";
@@ -45,10 +45,25 @@ const TONE_CONFIG = {
   difficult: "🌊 Difficult",
 };
 
-export default function JournalEntryCard({ entry, onExpand }) {
-  const [expanded, setExpanded] = useState(false);
+export default function JournalEntryCard({ entry, onExpand, expanded: controlledExpanded, onExpandedChange }) {
+  const [internalExpanded, setInternalExpanded] = useState(false);
   const config = TYPE_CONFIG[entry.type] || TYPE_CONFIG.coach;
   const Icon = config.icon;
+  const expanded = typeof controlledExpanded === "boolean" ? controlledExpanded : internalExpanded;
+
+  useEffect(() => {
+    if (typeof controlledExpanded === "boolean") return;
+    setInternalExpanded(false);
+  }, [entry.id, controlledExpanded]);
+
+  const setExpanded = (nextExpanded) => {
+    if (typeof controlledExpanded === "boolean") {
+      onExpandedChange?.(nextExpanded);
+      return;
+    }
+    setInternalExpanded(nextExpanded);
+    onExpandedChange?.(nextExpanded);
+  };
 
   const getPreview = (text) => {
     if (!text) return "No content";
@@ -65,7 +80,21 @@ export default function JournalEntryCard({ entry, onExpand }) {
     >
       <Card
         className={`border-2 cursor-pointer transition-all hover:shadow-md ${config.color}`}
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => {
+          const nextExpanded = !expanded;
+          setExpanded(nextExpanded);
+          onExpand?.(entry, nextExpanded);
+        }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            const nextExpanded = !expanded;
+            setExpanded(nextExpanded);
+            onExpand?.(entry, nextExpanded);
+          }
+        }}
       >
         <CardContent className="p-4 space-y-3">
           {/* Header */}
@@ -86,7 +115,17 @@ export default function JournalEntryCard({ entry, onExpand }) {
                 </p>
               </div>
             </div>
-            <button className="text-muted-foreground hover:text-foreground shrink-0">
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-foreground shrink-0"
+              onClick={(event) => {
+                event.stopPropagation();
+                const nextExpanded = !expanded;
+                setExpanded(nextExpanded);
+                onExpand?.(entry, nextExpanded);
+              }}
+              aria-label={expanded ? "Collapse timeline entry" : "Expand timeline entry"}
+            >
               {expanded ? (
                 <ChevronUp className="w-5 h-5" />
               ) : (
