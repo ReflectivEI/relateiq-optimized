@@ -36,8 +36,8 @@ const TIME_RANGES = [
   { label: "Last 6 months", months: 6 },
 ];
 
-function getPerspectiveBadgeClass(value, participants = ["Tony", "Drew"]) {
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+function getPerspectiveBadgeClass(value, participants = ["Person A", "Other Person"]) {
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   if (value === primaryPerson) return "bg-blue-100 text-blue-700 border-blue-200";
   if (value === secondaryPerson) return "bg-purple-100 text-purple-700 border-purple-200";
   if (value === `${primaryPerson}→${secondaryPerson}`) return "bg-green-100 text-green-700 border-green-200";
@@ -85,11 +85,6 @@ function sanitizeEntryText(entry, participants, activeRelationship) {
   };
 }
 
-function isSanitizedEntryVisible(entry, participants, activeRelationship, hiddenParticipantNames) {
-  const sanitized = sanitizeEntryText(entry, participants, activeRelationship);
-  return isEntryVisibleForParticipants(sanitized, hiddenParticipantNames);
-}
-
 export default function InsightLibrary() {
   const { activeRelationshipId, activeRelationship, participants, relationshipLabel, relationships } = useRelationshipAuth();
   const [search, setSearch] = useState("");
@@ -119,8 +114,7 @@ export default function InsightLibrary() {
       entries.filter(
         (entry) =>
           isPerspectiveInActivePair(entry.perspective, participants) &&
-          isEntryVisibleForParticipants(entry, hiddenParticipantNames) &&
-          isSanitizedEntryVisible(entry, participants, activeRelationship, hiddenParticipantNames),
+          isEntryVisibleForParticipants(entry, hiddenParticipantNames),
       ),
     [entries, hiddenParticipantNames, participants, activeRelationship],
   );

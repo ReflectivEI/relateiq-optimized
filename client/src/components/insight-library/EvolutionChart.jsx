@@ -8,8 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, parseISO } from "date-fns";
 import { getActivePerspectiveKeys, getDisplayPerspective } from "@/lib/relationshipParticipants";
 
-function getPerspectiveColor(value, participants = ["Tony", "Drew"]) {
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+function getPerspectiveColor(value, participants = ["Person A", "Other Person"]) {
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   if (value === primaryPerson) return "#4f8ef7";
   if (value === secondaryPerson) return "#a855f7";
   if (value === `${primaryPerson}→${secondaryPerson}`) return "#22c55e";
@@ -18,7 +18,7 @@ function getPerspectiveColor(value, participants = ["Tony", "Drew"]) {
   return "#64748b";
 }
 
-export default function EvolutionChart({ entries, participants = ["Tony", "Drew"] }) {
+export default function EvolutionChart({ entries, participants = ["Person A", "Other Person"] }) {
   if (!entries || entries.length < 2) return null;
 
   // Build a sorted timeline — one data point per entry, grouped by date label
