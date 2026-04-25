@@ -6,17 +6,19 @@ import React from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, parseISO } from "date-fns";
+import { getActivePerspectiveKeys, getDisplayPerspective } from "@/lib/relationshipParticipants";
 
-const PERSPECTIVE_COLORS = {
-  "Tony":      "#4f8ef7",
-  "Drew":      "#a855f7",
-  "Tony→Drew": "#22c55e",
-  "Drew→Tony": "#f97316",
-};
+function getPerspectiveColor(value, participants = ["Tony", "Drew"]) {
+  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  if (value === primaryPerson) return "#4f8ef7";
+  if (value === secondaryPerson) return "#a855f7";
+  if (value === `${primaryPerson}→${secondaryPerson}`) return "#22c55e";
+  if (value === `${secondaryPerson}→${primaryPerson}`) return "#f97316";
+  if (value === `${primaryPerson}+${secondaryPerson}`) return "#0e7490";
+  return "#64748b";
+}
 
-const PERSPECTIVES = ["Tony", "Drew", "Tony→Drew", "Drew→Tony"];
-
-export default function EvolutionChart({ entries }) {
+export default function EvolutionChart({ entries, participants = ["Tony", "Drew"] }) {
   if (!entries || entries.length < 2) return null;
 
   // Build a sorted timeline — one data point per entry, grouped by date label
@@ -40,7 +42,7 @@ export default function EvolutionChart({ entries }) {
   });
   const chartData = Object.values(rowMap);
 
-  const activePerspectives = PERSPECTIVES.filter((p) =>
+  const activePerspectives = getActivePerspectiveKeys(participants).filter((p) =>
     chartData.some((row) => row[p] != null)
   );
 
@@ -67,7 +69,8 @@ export default function EvolutionChart({ entries }) {
                 key={p}
                 type="monotone"
                 dataKey={p}
-                stroke={PERSPECTIVE_COLORS[p]}
+                name={getDisplayPerspective(p, participants)}
+                stroke={getPerspectiveColor(p, participants)}
                 strokeWidth={2}
                 dot={{ r: 3 }}
                 connectNulls

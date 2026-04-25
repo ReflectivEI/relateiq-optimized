@@ -11,14 +11,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import MetricExplainer from "@/components/ui/MetricExplainer";
-import { getDisplayPerspective } from "@/lib/relationshipParticipants";
+import { getDisplayPerspective, replaceParticipantNames } from "@/lib/relationshipParticipants";
 
-const PERSPECTIVE_COLORS = {
-  "Tony":      "bg-blue-100 text-blue-700 border-blue-200",
-  "Drew":      "bg-purple-100 text-purple-700 border-purple-200",
-  "Tony→Drew": "bg-green-100 text-green-700 border-green-200",
-  "Drew→Tony": "bg-orange-100 text-orange-700 border-orange-200",
-};
+function getPerspectiveColor(value, participants = ["Tony", "Drew"]) {
+  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  if (value === primaryPerson) return "bg-blue-100 text-blue-700 border-blue-200";
+  if (value === secondaryPerson) return "bg-purple-100 text-purple-700 border-purple-200";
+  if (value === `${primaryPerson}→${secondaryPerson}`) return "bg-green-100 text-green-700 border-green-200";
+  if (value === `${secondaryPerson}→${primaryPerson}`) return "bg-orange-100 text-orange-700 border-orange-200";
+  if (value === `${primaryPerson}+${secondaryPerson}`) return "bg-teal-100 text-teal-700 border-teal-200";
+  return "border-border bg-background text-foreground";
+}
 
 export default function InsightEntryCard({ entry, participants = ["Tony", "Drew"], onNoteUpdate, onDelete }) {
   const [expanded, setExpanded] = useState(false);
@@ -30,6 +33,11 @@ export default function InsightEntryCard({ entry, participants = ["Tony", "Drew"
   const dateLabel = entry.created_date
     ? format(parseISO(entry.created_date), "MMM d, yyyy")
     : entry.week_label || "";
+  const visibleCoreInsight = replaceParticipantNames(entry.core_insight, participants);
+  const visibleScenario = replaceParticipantNames(entry.scenario, participants);
+  const visiblePatterns = (entry.behavioral_patterns || []).map((pattern) => replaceParticipantNames(pattern, participants));
+  const visibleRisks = (entry.risk_flags || []).map((risk) => replaceParticipantNames(risk, participants));
+  const visibleStrengths = (entry.strengths || []).map((strength) => replaceParticipantNames(strength, participants));
 
   const handleSaveNote = async () => {
     setSaving(true);
@@ -44,7 +52,7 @@ export default function InsightEntryCard({ entry, participants = ["Tony", "Drew"
         {/* Header row */}
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge className={cn("text-[11px] border font-normal", PERSPECTIVE_COLORS[entry.perspective] || "border-border")}>
+            <Badge className={cn("text-[11px] border font-normal", getPerspectiveColor(entry.perspective, participants))}>
               {getDisplayPerspective(entry.perspective, participants)}
             </Badge>
             {entry.mode && (
@@ -82,11 +90,11 @@ export default function InsightEntryCard({ entry, participants = ["Tony", "Drew"
         </div>
 
         {/* Core insight */}
-        <p className="text-sm text-foreground leading-relaxed">{entry.core_insight}</p>
+        <p className="text-sm text-foreground leading-relaxed">{visibleCoreInsight}</p>
 
         {/* Scenario tag if present */}
-        {entry.scenario && (
-          <p className="text-xs text-muted-foreground italic">Scenario: {entry.scenario}</p>
+        {visibleScenario && (
+          <p className="text-xs text-muted-foreground italic">Scenario: {visibleScenario}</p>
         )}
 
         {/* Expand / collapse */}
@@ -101,11 +109,11 @@ export default function InsightEntryCard({ entry, participants = ["Tony", "Drew"
         {expanded && (
           <div className="space-y-3 pt-1">
             {/* Behavioral patterns */}
-            {entry.behavioral_patterns?.length > 0 && (
+            {visiblePatterns.length > 0 && (
               <div className="space-y-2">
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Patterns</p>
                 <div className="space-y-2">
-                  {entry.behavioral_patterns.map((p, i) => (
+                  {visiblePatterns.map((p, i) => (
                     <div key={i} className="rounded-md border border-[#0e6f72]/25 bg-[#f9fcfc] px-3 py-2 text-xs text-foreground">
                       {p}
                     </div>
@@ -115,11 +123,11 @@ export default function InsightEntryCard({ entry, participants = ["Tony", "Drew"
             )}
 
             {/* Risk flags */}
-            {entry.risk_flags?.length > 0 && (
+            {visibleRisks.length > 0 && (
               <div className="space-y-2">
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Risks</p>
                 <div className="space-y-2">
-                  {entry.risk_flags.map((r, i) => (
+                  {visibleRisks.map((r, i) => (
                     <div key={i} className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
                       {r}
                     </div>
@@ -129,11 +137,11 @@ export default function InsightEntryCard({ entry, participants = ["Tony", "Drew"
             )}
 
             {/* Strengths */}
-            {entry.strengths?.length > 0 && (
+            {visibleStrengths.length > 0 && (
               <div className="space-y-2">
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Strengths</p>
                 <div className="space-y-2">
-                  {entry.strengths.map((s, i) => (
+                  {visibleStrengths.map((s, i) => (
                     <div key={i} className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
                       {s}
                     </div>

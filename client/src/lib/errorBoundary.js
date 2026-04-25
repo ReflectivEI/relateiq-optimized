@@ -106,19 +106,27 @@ export function validateInput(input) {
     );
   }
 
-  if (input.speaker && !["Tony", "Drew"].includes(input.speaker)) {
+  if (input.speaker && typeof input.speaker !== "string") {
     throw new StructuredError(
       ERROR_TYPES.INVALID_INPUT,
       "Invalid speaker selected.",
-      "Select either Tony or Drew."
+      "Select a valid person from this connection."
     );
   }
 
-  if (input.speakingTo && !["Tony", "Drew"].includes(input.speakingTo)) {
+  if (input.speakingTo && typeof input.speakingTo !== "string") {
     throw new StructuredError(
       ERROR_TYPES.INVALID_INPUT,
       "Invalid listener selected.",
-      "Select either Tony or Drew."
+      "Select a valid person from this connection."
+    );
+  }
+
+  if (input.speaker && input.speakingTo && input.speaker === input.speakingTo) {
+    throw new StructuredError(
+      ERROR_TYPES.INVALID_INPUT,
+      "The speaker and listener cannot be the same person.",
+      "Choose the other person in this connection."
     );
   }
 

@@ -1,6 +1,6 @@
 /**
  * AIInsightsSection.jsx — Daily AI Insights with relationship guidance
- * Tailored for couples: communication, growth, LGBTQ-inclusive
+ * Tailored by relationship type: partners, friends, family, and other
  */
 
 import React, { useState, useEffect } from "react";
@@ -19,13 +19,13 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import InsightCard from "./InsightCard";
 
-const INSIGHT_TEMPLATES = {
+const BASE_TEMPLATES = {
   communication: {
     title: "Today's Communication Focus",
     icon: MessageCircle,
     color: "border-[#14263f]/25 bg-[#eef4fb]",
     examples: [
-      "Ask your partner: 'What's one thing I did this week that made you feel valued?'",
+      "Ask the other person: 'What's one thing I did this week that made you feel valued?'",
       "Try: 'I noticed you seemed distant yesterday. I want to understand what you're feeling.'",
       "Share: 'Something I appreciate about you is... because it helps me feel...'",
     ],
@@ -55,7 +55,7 @@ const INSIGHT_TEMPLATES = {
     icon: Heart,
     color: "border-[#14263f]/25 bg-white",
     examples: [
-      "Our relationship is stronger because we choose understanding over blame.",
+      "This connection gets stronger when we choose understanding over blame.",
       "Love is a daily practice — every conversation is an opportunity to deepen connection.",
       "We are learning each other, and that's enough. Progress over perfection.",
     ],
@@ -67,11 +67,11 @@ const INSIGHT_TEMPLATES = {
     examples: [
       "Male couples often navigate unique expectations — talk about yours instead of assuming.",
       "Vulnerability is not weakness; it's the foundation of intimacy in long-term relationships.",
-      "Check in: Are we honoring both our individual identities AND our couple identity?",
+      "Check in: Are we honoring both our individual identities AND what we are building together?",
     ],
   },
   question: {
-    title: "Question to Ask Your Partner Today",
+    title: "Question to Ask Today",
     icon: Lightbulb,
     color: "border-[#0e6f72]/25 bg-[#e8f7f6]",
     examples: [
@@ -82,21 +82,70 @@ const INSIGHT_TEMPLATES = {
   },
 };
 
-export default function AIInsightsSection({ onRefresh }) {
+function buildTemplates(relationshipTerms, relationshipLabel) {
+  const counterpart = relationshipTerms?.counterpart || "the other person";
+  const bond = relationshipTerms?.bond || "connection";
+  const type = relationshipTerms?.type || "romantic";
+
+  const templates = structuredClone(BASE_TEMPLATES);
+  templates.communication.examples = [
+    `Ask your ${counterpart}: "What's one thing I did this week that made you feel valued?"`,
+    `Try: "I noticed something felt off yesterday. I want to understand what you're feeling."`,
+    `Share: "Something I appreciate about this ${bond} is..."`,
+  ];
+  templates.challenge.examples = [
+    `When friction appears in this ${bond}, check: are you listening to understand, or listening to respond?`,
+    `Notice whether one of you goes quiet, gets sharp, or over-explains when stressed.`,
+    `Reflect: what unmet need might be driving this pattern between you?`,
+  ];
+  templates.strength.examples = [
+    `You both keep showing up for this ${bond}, even when it takes effort.`,
+    `There is enough goodwill here to build clearer understanding over time.`,
+    `You are both contributing real data that can make the guidance for ${relationshipLabel} more precise.`,
+  ];
+  templates.affirmation.examples = [
+    `This ${bond} grows when both people choose clarity over assumptions.`,
+    `Progress in a ${bond} often looks like steadier communication, not perfection.`,
+    `You can strengthen this ${bond} one honest interaction at a time.`,
+  ];
+  templates.question.examples = [
+    `"What's something you wish I understood better about you in this ${bond}?"`,
+    `"When do you feel most respected, supported, or appreciated by me?"`,
+    `"What would help this ${bond} feel steadier right now?"`,
+  ];
+
+  if (type !== "romantic") {
+    templates.lgbtqPlus.title = "Connection Insight";
+    templates.lgbtqPlus.examples = [
+      `Different ${bondPluralLabel(relationshipTerms)} come with different expectations. Talk about yours instead of assuming them.`,
+      `Emotional honesty is often what makes a ${bond} feel stronger over time.`,
+      `Check in: are you honoring both each person's individuality and the shared ${bond}?`,
+    ];
+  }
+
+  return templates;
+}
+
+function bondPluralLabel(relationshipTerms) {
+  return relationshipTerms?.bondPlural || "connections";
+}
+
+export default function AIInsightsSection({ onRefresh, relationshipTerms, relationshipLabel }) {
   const [insights, setInsights] = useState([]);
   const [loading, setLoading] = useState(false);
+  const insightTemplates = buildTemplates(relationshipTerms, relationshipLabel);
 
   // Generate insights on mount and when refresh is clicked
   useEffect(() => {
     generateInsights();
-  }, []);
+  }, [relationshipLabel, relationshipTerms?.type]);
 
   const generateInsights = async () => {
     setLoading(true);
     // Simulate slight delay for visual feedback
     await new Promise((r) => setTimeout(r, 300));
 
-    const templates = Object.entries(INSIGHT_TEMPLATES);
+    const templates = Object.entries(insightTemplates);
     const selected = templates.map(([key, template]) => ({
       key,
       title: template.title,
@@ -117,7 +166,7 @@ export default function AIInsightsSection({ onRefresh }) {
         <div>
           <h2 className="font-display text-2xl font-bold text-foreground">AI Daily Insights</h2>
           <p className="text-base text-muted-foreground mt-1">
-            Personalized guidance powered by AI + relationship science
+            Personalized guidance for {relationshipLabel}, shaped by this {relationshipTerms?.bond || "connection"}
           </p>
         </div>
         <Button

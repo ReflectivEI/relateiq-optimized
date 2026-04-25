@@ -7,7 +7,15 @@ import { Link } from "react-router-dom";
 import { Zap, BookOpen, ArrowRight, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function InsightTierBanner({ tonyProfile, drewProfile, tonyResponses, drewResponses }) {
+export default function InsightTierBanner({
+  tonyProfile,
+  drewProfile,
+  tonyResponses,
+  drewResponses,
+  participants = ["Tony", "Drew"],
+  relationshipNoun = "relationship",
+}) {
+  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
   const tonyHasAnswers = tonyResponses.length > 0;
   const drewHasAnswers = drewResponses.length > 0;
   const tonyReady = !!tonyProfile;
@@ -18,21 +26,21 @@ export default function InsightTierBanner({ tonyProfile, drewProfile, tonyRespon
 
   if (bothReady) {
     tier = 3;
-    message = "Full relationship intelligence is active. Deep insights available now.";
+    message = `Full ${relationshipNoun} intelligence is active. Deep insights available now.`;
   } else if (tonyReady || drewReady) {
-    const missingName = tonyReady ? "Drew" : "Tony";
+    const missingName = tonyReady ? secondaryPerson : primaryPerson;
     tier = 2;
-    message = `Partial relationship insights available. Full relationship intelligence unlocks when ${missingName}'s profile is complete.`;
+    message = `Partial ${relationshipNoun} insights are available. Full ${relationshipNoun} intelligence unlocks when ${missingName}'s profile is complete.`;
     cta = `Build ${missingName}'s profile`;
     ctaPath = "/questionnaire";
   } else if (tonyHasAnswers || drewHasAnswers) {
     tier = 1;
-    message = "Individual insights available now. Full relationship intelligence unlocks when both profiles are complete. Your individual insights are available now.";
+    message = `Individual insights are available now. Full ${relationshipNoun} intelligence unlocks when both profiles are complete.`;
     cta = "Generate profiles";
     ctaPath = "/profiles";
   } else {
     tier = 0;
-    message = "Start with the questionnaire to build your intelligence layer.";
+    message = `Start with the questionnaire to build your ${relationshipNoun} intelligence layer.`;
     cta = "Start questionnaire";
     ctaPath = "/questionnaire";
   }

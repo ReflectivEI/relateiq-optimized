@@ -47,9 +47,14 @@ export class DeterministicPipeline {
 
       // Step 3: Compute patterns
       this.recordStep("pattern_analysis", "Analyzing behavioral patterns...", null);
-      const tonyPatterns = computePatternProfile("Tony", state.tonyResponses);
-      const drewPatterns = computePatternProfile("Drew", state.drewResponses);
-      const misalignments = detectMisalignments(tonyPatterns, "Tony", drewPatterns, "Drew");
+      const primaryName = state.tony?.person_name || input.speaker || "Person A";
+      const secondaryName =
+        state.drew?.person_name ||
+        (input.speakingTo === input.speaker ? "Person B" : input.speakingTo) ||
+        "Person B";
+      const tonyPatterns = computePatternProfile(primaryName, state.tonyResponses);
+      const drewPatterns = computePatternProfile(secondaryName, state.drewResponses);
+      const misalignments = detectMisalignments(tonyPatterns, primaryName, drewPatterns, secondaryName);
       this.recordStep("patterns_computed", "Patterns analyzed", {
         tonyTraits: tonyPatterns.traits,
         drewTraits: drewPatterns.traits,

@@ -5,6 +5,8 @@
  */
 
 export function synthesizeRelationshipIntelligence({
+  participants = ["Tony", "Drew"],
+  relationshipTerms = { bond: "relationship", type: "romantic" },
   profiles = [],
   patternScores = {},
   recentCoachSessions = [],
@@ -13,8 +15,9 @@ export function synthesizeRelationshipIntelligence({
   triggers = [],
   predictiveOutputs = {},
 }) {
-  const tony = profiles.find((p) => p.person_name === "Tony");
-  const drew = profiles.find((p) => p.person_name === "Drew");
+  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const tony = profiles.find((p) => p.person_name === primaryPerson);
+  const drew = profiles.find((p) => p.person_name === secondaryPerson);
 
   if (!tony || !drew) {
     return {
@@ -24,7 +27,7 @@ export function synthesizeRelationshipIntelligence({
       top_3_risks: [],
       top_3_strengths: [],
       recent_shifts: [],
-      recommended_focus: "Complete both profiles to enable full intelligence",
+      recommended_focus: `Complete both profiles to enable full ${relationshipTerms.bond} intelligence`,
       confidence: 0,
       data_completeness: { profiles: false, patterns: false, sessions: false },
     };
@@ -148,7 +151,7 @@ export function synthesizeRelationshipIntelligence({
 
   // ─── PRIMARY DYNAMIC ──────────────────────────────────────────────────────────
   const repairSuccess = successfulRepairs.length / (repairEntries.length || 1);
-  let primaryDynamic = "Stable partnership with mutual commitment to growth";
+  let primaryDynamic = `Stable ${relationshipTerms.bond} with mutual commitment to growth`;
 
   if (relationshipState === "volatile") {
     primaryDynamic = "High tension requires immediate de-escalation focus";

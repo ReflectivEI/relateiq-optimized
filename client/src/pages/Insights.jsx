@@ -36,6 +36,7 @@ import PatternDriftTracker from "@/components/insights/PatternDriftTracker";
 import InsightTimeline from "@/components/insights/InsightTimeline";
 import { computePatternProfile } from "@/lib/patternEngine";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getRelationshipTerms, replaceParticipantNames } from "@/lib/relationshipParticipants";
 
 const CONFIDENCE_CONFIG = {
   early_signal: { label: "Early Signal", color: "bg-orange-100 text-orange-700 border-orange-200" },
@@ -51,6 +52,53 @@ const SOURCE_ITEMS = [
   { key: "checkins", icon: CalendarCheck, label: "Weekly Check-Ins" },
   { key: "questionnaire", icon: HelpCircle, label: "Questionnaire answers" },
 ];
+
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getRelationshipParticipantNames(relationship) {
+  return [
+    ...(Array.isArray(relationship?.participant_names) ? relationship.participant_names : []),
+    ...(Array.isArray(relationship?.participants) ? relationship.participants : []),
+  ]
+    .map((name) => String(name || "").trim())
+    .filter(Boolean);
+}
+
+function getHiddenParticipantNames(relationships = [], activeParticipants = []) {
+  const activeSet = new Set(activeParticipants);
+  const hidden = new Set();
+  relationships.forEach((relationship) => {
+    getRelationshipParticipantNames(relationship).forEach((name) => {
+      if (!activeSet.has(name)) hidden.add(name);
+    });
+  });
+  return [...hidden];
+}
+
+function buildEntryText(entry) {
+  return [
+    entry.perspective,
+    entry.core_insight,
+    entry.scenario,
+    ...(entry.behavioral_patterns || []),
+    ...(entry.risk_flags || []),
+    ...(entry.strengths || []),
+    entry.note,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function isEntryVisibleForParticipants(entry, hiddenParticipantNames) {
+  const haystack = buildEntryText(entry);
+  if (!haystack) return true;
+  return !hiddenParticipantNames.some((name) => {
+    const pattern = new RegExp(`\\b${escapeRegex(name)}\\b`, "i");
+    return pattern.test(haystack);
+  });
+}
 
 function DataAvailableBar({ tonyResponses, drewResponses, sessions, checkIns }) {
   const coachCount = sessions.filter((s) => s.tool_type === "coach").length;
@@ -373,14 +421,14 @@ function ContextInsightsView({ insights, ctx, contentRef, insightId, participant
         </>
       )}
 
-      <NotesPanel section="insights" relatedItemId={insightId} personName="Tony_Drew" />
+      <NotesPanel section="insights" relatedItemId={insightId} personName={`${participants[0]}_${participants[1]}`} />
     </div>
   );
 }
 
 // ─── DEEP INSIGHTS VIEW ───────────────────────────────────────────────────────
 
-function DeepInsightsView({ insights, ctx, contentRef, insightId, participants, relationshipLabel }) {
+function DeepInsightsView({ insights, ctx, contentRef, insightId, participants, relationshipLabel, terms }) {
   return (
     <div className="space-y-6" ref={contentRef}>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
@@ -410,13 +458,13 @@ function DeepInsightsView({ insights, ctx, contentRef, insightId, participants, 
             contentRef={contentRef}
             content={insights}
             filename="deep-insights.pdf"
-            title="Deep Relationship Analysis"
+            title={`Deep ${relationshipLabel} Analysis`}
           />
           <ExportBar ctx={ctx} content={`Compatibility Score: ${insights.compatibility_score}/100 — ${insights.compatibility_label}\n\n${insights.growth_summary}\n\nStrengths:\n${insights.strengths?.map(s => `• ${s}`).join("\n")}\n\nRisk Areas:\n${insights.risk_areas?.map(r => `• ${r}`).join("\n")}\n\nRecommendations:\n${insights.recommendations?.map((r, i) => `${i + 1}. ${r}`).join("\n")}`} />
         </>
       )}
 
-      <NotesPanel section="insights" relatedItemId={insightId} personName="Tony_Drew" />
+      <NotesPanel section="insights" relatedItemId={insightId} personName={`${participants[0]}_${participants[1]}`} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
@@ -498,7 +546,7 @@ function DeepInsightsView({ insights, ctx, contentRef, insightId, participants, 
               </tbody>
             </table>
           </div>
-          {ctx && <AskAIFollowUp ctx={ctx} sectionTitle="Partner Comparison" sectionContent={JSON.stringify(insights.comparison_table)} className="mt-4" />}
+          {ctx && <AskAIFollowUp ctx={ctx} sectionTitle={`${terms.counterpart} Comparison`} sectionContent={JSON.stringify(insights.comparison_table)} className="mt-4" />}
         </CardContent>
       </Card>
 
@@ -537,7 +585,7 @@ function DeepInsightsView({ insights, ctx, contentRef, insightId, participants, 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 
 export default function Insights() {
-  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
+  const { activeRelationshipId, activeRelationship, participants, relationshipLabel, relationships } = useRelationshipAuth();
   const [contextInsights, setContextInsights] = useState(null);
   const [deepInsights, setDeepInsights] = useState(null);
   const [insightsCtx, setInsightsCtx] = useState(null);
@@ -598,14 +646,21 @@ export default function Insights() {
   const drewProfile = profiles.find((p) => p.person_name === participants[1]);
   const existingDynamic = relationshipDynamics[0] || null;
   const bothReady = tonyProfile && drewProfile;
+  const terms = getRelationshipTerms(activeRelationship);
+
+  const hiddenParticipantNames = useMemo(() => {
+    return getHiddenParticipantNames(relationships, participants);
+  }, [relationships, participants]);
 
   // Compute relationship intelligence
   const patternScores = {
-    tony: computePatternProfile("Tony", tonyResponses),
-    drew: computePatternProfile("Drew", drewResponses),
+    tony: computePatternProfile(participants[0], tonyResponses),
+    drew: computePatternProfile(participants[1], drewResponses),
   };
 
   const relationshipIntelligence = synthesizeRelationshipIntelligence({
+    participants,
+    relationshipTerms: terms,
     profiles,
     patternScores,
     recentCoachSessions: recentSessions,
@@ -615,6 +670,10 @@ export default function Insights() {
   });
 
   const trend = getStateTrend(relationshipIntelligence, null);
+  const safeInsightEntries = useMemo(
+    () => insightEntries.filter((entry) => isEntryVisibleForParticipants(entry, hiddenParticipantNames)),
+    [insightEntries, hiddenParticipantNames],
+  );
 
   // Total data available — used to decide whether to auto-generate
   const totalData = tonyResponses.length + drewResponses.length + recentSessions.length + recentCheckIns.length;
@@ -631,7 +690,7 @@ export default function Insights() {
     ...buildContextObject({
       page: "Insights",
       sectionTitle,
-      scope: "Tony+Drew",
+      scope: `${participants[0]}+${participants[1]}`,
       sourceInputs: { sessions: recentSessions.length, checkIns: recentCheckIns.length },
       originalOutput: output,
       profiles,
@@ -756,13 +815,13 @@ export default function Insights() {
       compatibility_score: 72,
       compatibility_label: "Strong Foundation with Active Growth Edges",
       strengths: ["Mutual commitment to self-awareness and growth", "13-year shared history and deep knowledge of each other"],
-      risk_areas: ["Processing tempo mismatch — Tony withdraws, Drew pursues"],
+      risk_areas: [`Processing tempo mismatch — ${participants[0]} withdraws, ${participants[1]} pursues`],
       conflict_loops: ["Pursuer-distancer cycle triggered by silence"],
       shared_strengths: ["Investment in relationship tools", "Willingness to reflect"],
       comparison_table: [],
-      predictions: ["When Tony needs processing time and doesn't communicate it, Drew's anxiety will escalate — creating a cycle."],
-      recommendations: ["Agree on a time-limited processing signal Tony can use in the moment"],
-      growth_summary: "Tony and Drew are two self-aware people with a long history and a shared commitment to growth. The deepest work right now is around tempo — learning to negotiate processing needs before tension escalates.",
+      predictions: [`When ${participants[0]} needs processing time and doesn't communicate it, ${participants[1]}'s anxiety may escalate — creating a cycle.`],
+      recommendations: [`Agree on a time-limited processing signal ${participants[0]} can use in the moment.`],
+      growth_summary: `${participants[0]} and ${participants[1]} are two self-aware people with a meaningful shared history and a real commitment to growth. The deepest work right now is around tempo — learning to negotiate processing needs before tension escalates within this ${terms.bond}.`,
     };
     const dynamicFallback = {
       compatibility_patterns: [], mismatch_patterns: [], conflict_loops: [],
@@ -828,14 +887,14 @@ export default function Insights() {
     }
 
     setDeepInsights(normalizeDeepInsights(insightResult));
-    setInsightsCtx(makeCtx("Deep Couple Analysis", JSON.stringify(insightResult, null, 2)));
+    setInsightsCtx(makeCtx(`Deep ${relationshipLabel} Analysis`, JSON.stringify(insightResult, null, 2)));
     setActiveTab("deep");
     setLoading(false);
     setLoadingMode(null);
     queryClient.invalidateQueries({ queryKey: ["relationship-dynamic", activeRelationshipId] });
   };
 
-  const defaultCtx = makeCtx("Couple Analysis", null);
+  const defaultCtx = makeCtx(`${relationshipLabel} Analysis`, null);
 
   return (
     <div className="space-y-6">
@@ -867,6 +926,8 @@ export default function Insights() {
         drewProfile={drewProfile}
         tonyResponses={tonyResponses}
         drewResponses={drewResponses}
+        participants={participants}
+        relationshipNoun={terms.bond}
       />
 
       {/* Data available bar */}
@@ -892,8 +953,8 @@ export default function Insights() {
           icon={BookOpen}
           title="Full Deep Insights"
           description={bothReady
-            ? "Use this for the deeper partner comparison: shared strengths, risks, recurring loops, predictions, and grounded next steps."
-            : `A deeper couple analysis is still available now. It becomes more precise as both ${participants[0]} and ${participants[1]} complete more profile data.`}
+            ? `Use this for the deeper ${terms.counterpart} comparison: shared strengths, risks, recurring loops, predictions, and grounded next steps.`
+            : `A deeper ${terms.bond} analysis is still available now. It becomes more precise as both ${participants[0]} and ${participants[1]} complete more profile data.`}
           locked={false}
           active={activeTab === "deep"}
           loading={loadingMode === "deep"}
@@ -901,14 +962,14 @@ export default function Insights() {
         />
       </div>
 
-      {/* Waiting for partner notice — shown when only one person has questionnaire data */}
+      {/* Waiting for other-person notice — shown when only one person has questionnaire data */}
       {(tonyResponses.length === 0 || drewResponses.length === 0) && !loading && (
         <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-muted/40 border border-border/40">
           <Heart className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
           <p className="text-sm text-muted-foreground">
-            <strong className="text-foreground">Waiting for partner data:</strong>{" "}
+            <strong className="text-foreground">Waiting for {terms.counterpart} data:</strong>{" "}
             {tonyResponses.length === 0 ? participants[0] : participants[1]} hasn't completed any questionnaire answers yet.
-            Combined insights will deepen significantly once both partners have contributed data.
+            Combined insights will deepen significantly once both people in this {terms.bond} have contributed data.
           </p>
         </div>
       )}
@@ -946,7 +1007,7 @@ export default function Insights() {
           <PatternDriftTracker recentSessions={recentSessions} patternScores={patternScores} />
 
           {/* Timeline */}
-          <InsightTimeline sessions={recentSessions} repairs={repairEntries} insights={insightEntries} />
+          <InsightTimeline sessions={recentSessions} repairs={repairEntries} insights={safeInsightEntries} participants={participants} />
         </div>
       )}
 
@@ -1043,7 +1104,7 @@ export default function Insights() {
             )}
           </TabsContent>
           <TabsContent value="deep" className="mt-6">
-            {deepInsights && <DeepInsightsView insights={deepInsights} ctx={insightsCtx} contentRef={contentRef} insightId={existingDynamic?.id} participants={participants} relationshipLabel={relationshipLabel} />}
+            {deepInsights && <DeepInsightsView insights={deepInsights} ctx={insightsCtx} contentRef={contentRef} insightId={existingDynamic?.id} participants={participants} relationshipLabel={relationshipLabel} terms={terms} />}
           </TabsContent>
         </Tabs>
       )}

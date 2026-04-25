@@ -124,7 +124,7 @@ export default function Coach() {
   useEffect(() => {
     if (!participants.includes(speaker)) setSpeaker(participants[0]);
     if (!participants.includes(speakingTo) || speakingTo === speaker) {
-      setSpeakingTo(getPartnerName(participants[0], participants));
+      setSpeakingTo(getPartnerName(speaker, participants));
     }
   }, [participants, speaker, speakingTo]);
 
@@ -141,6 +141,11 @@ export default function Coach() {
   const { data: pastSessions = [] } = useQuery({
     queryKey: ["coach-sessions", activeRelationshipId],
     queryFn: () => api.entities.CoachSession.list("-created_date", 20),
+  });
+
+  const { data: recentCheckIns = [] } = useQuery({
+    queryKey: ["coach-checkins", activeRelationshipId],
+    queryFn: () => api.entities.CheckIn.list("-created_date", 20),
   });
 
   const { data: tonyResponses = [] } = useQuery({
@@ -168,9 +173,10 @@ export default function Coach() {
       tonyResponses: legacySlots.tonyResponses,
       drewResponses: legacySlots.drewResponses,
       triggers,
+      checkIns: recentCheckIns,
       coachSessions: pastSessions,
     });
-  }, [legacySlots, triggers, pastSessions]);
+  }, [legacySlots, triggers, recentCheckIns, pastSessions]);
 
   const speakerProfile = profiles.find((p) => p.person_name === speaker);
   const targetProfile = profiles.find((p) => p.person_name === speakingTo);

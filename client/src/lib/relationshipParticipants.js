@@ -37,12 +37,28 @@ export function getDisplayLabel(value) {
 export function getPerspectiveLabels(participants = ["Tony", "Drew"]) {
   const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
   return {
+    [primaryPerson]: `${primaryPerson} (Individual)`,
+    [secondaryPerson]: `${secondaryPerson} (Individual)`,
+    [`${primaryPerson}→${secondaryPerson}`]: `${primaryPerson} → ${secondaryPerson}`,
+    [`${secondaryPerson}→${primaryPerson}`]: `${secondaryPerson} → ${primaryPerson}`,
+    [`${primaryPerson}+${secondaryPerson}`]: `${primaryPerson} & ${secondaryPerson}`,
     Tony: `${primaryPerson} (Individual)`,
     Drew: `${secondaryPerson} (Individual)`,
     "Tony→Drew": `${primaryPerson} → ${secondaryPerson}`,
     "Drew→Tony": `${secondaryPerson} → ${primaryPerson}`,
     "Tony+Drew": `${primaryPerson} & ${secondaryPerson}`,
   };
+}
+
+export function getActivePerspectiveKeys(participants = ["Tony", "Drew"]) {
+  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  return [
+    primaryPerson,
+    secondaryPerson,
+    `${primaryPerson}→${secondaryPerson}`,
+    `${secondaryPerson}→${primaryPerson}`,
+    `${primaryPerson}+${secondaryPerson}`,
+  ];
 }
 
 export function getDisplayPerspective(value, participants = ["Tony", "Drew"]) {

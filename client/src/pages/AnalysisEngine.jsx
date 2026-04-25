@@ -51,6 +51,7 @@ export default function AnalysisEngine() {
   const prevPerspectiveRef = useRef(null);
   const analysisRef = useRef(null);
   const perspectiveLabels = getPerspectiveLabels(participants);
+  const activePerspectiveLabel = perspectiveLabels[perspective] || perspective;
 
   useEffect(() => {
     const defaultPerspective = `${primaryPerson}→${secondaryPerson}`;
@@ -310,8 +311,8 @@ export default function AnalysisEngine() {
                   confidenceScore: displayAnalysis.confidence_score,
                   frameworksUsed: displayAnalysis.frameworks_used || [],
                 }}
-                filename={`analysis-${perspectiveLabels[perspective].replace(/\\s+/g, "-")}.pdf`}
-                title={`${perspectiveLabels[perspective]} Analysis`}
+                filename={`analysis-${activePerspectiveLabel.replace(/\\s+/g, "-")}.pdf`}
+                title={`${activePerspectiveLabel} Analysis`}
                 showEmail={false}
               />
               <div ref={analysisRef}>

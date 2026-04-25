@@ -1,6 +1,6 @@
 /**
- * KnowledgeHub.jsx — Relationship Insights + Curated Psychology Resources
- * LGBTQ-inclusive, male couples guidance, communication-focused
+ * KnowledgeHub.jsx — Connection Insights + Curated Psychology Resources
+ * Relationship-type aware guidance across partners, friends, family, and other
  */
 import React, { useState } from "react";
 import { api } from "@/api/client";
@@ -14,6 +14,7 @@ import AIInsightsSection from "@/components/knowledge/AIInsightsSection";
 import { computePatternProfile } from "@/lib/patternEngine";
 import { getRiskSummary } from "@/lib/earlyWarningEngine";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 const RESOURCES = {
   core: [
@@ -139,7 +140,8 @@ function ResourceCard({ resource }) {
 
 export default function KnowledgeHub() {
   const [activeTab, setActiveTab] = useState("insights");
-  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
+  const { activeRelationshipId, activeRelationship, participants, relationshipLabel } = useRelationshipAuth();
+  const terms = getRelationshipTerms(activeRelationship);
 
   const { data: checkIns = [] } = useQuery({
     queryKey: ["checkins-knowledge", activeRelationshipId],
@@ -171,10 +173,10 @@ export default function KnowledgeHub() {
       {/* Hero */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-3">
         <h1 className="font-display text-5xl font-bold tracking-tight text-foreground">
-          Relationship Knowledge Hub
+          {terms.type === "romantic" ? "Relationship Knowledge Hub" : "Connection Knowledge Hub"}
         </h1>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          AI-generated insights + credible psychology resources for {relationshipLabel}, tailored to how you both communicate and connect.
+          AI-generated insights + credible psychology resources for {relationshipLabel}, tailored to how this {terms.bond} communicates, connects, and grows.
         </p>
       </motion.div>
 
@@ -196,14 +198,14 @@ export default function KnowledgeHub() {
 
         {/* AI INSIGHTS TAB */}
         <TabsContent value="insights" className="mt-4">
-          <AIInsightsSection />
+          <AIInsightsSection relationshipTerms={terms} relationshipLabel={relationshipLabel} />
         </TabsContent>
 
         {/* RESOURCES TAB */}
         <TabsContent value="resources" className="space-y-8 mt-4">
           {[
-            { title: "Core Relationship Science", icon: Library, resources: RESOURCES.core },
-            { title: "LGBTQ+ Relationships & Male Couples", icon: Heart, resources: RESOURCES.lgbtq },
+            { title: terms.type === "romantic" ? "Core Relationship Science" : `Core ${terms.typeLabel} Science`, icon: Library, resources: RESOURCES.core },
+            { title: terms.type === "romantic" ? "LGBTQ+ Relationships & Male Couples" : `Connection-Specific Support`, icon: Heart, resources: RESOURCES.lgbtq },
             { title: "Communication + Conflict", icon: BookOpen, resources: RESOURCES.communication },
           ].map((section) => (
             <div key={section.title} className="space-y-4">
@@ -226,28 +228,28 @@ export default function KnowledgeHub() {
             <Card className="border-2 border-[#0e6f72]/25 bg-white shadow-sm">
               <CardContent className="p-5 space-y-2">
                 <p className="text-sm font-bold text-[#0e6f72] uppercase tracking-wider flex items-center gap-2"><TrendingUp className="h-4 w-4" /> What Improved This Week</p>
-                <p className="text-base text-[#14263f]">You used the AI Coach 3 times to navigate difficult conversations.</p>
+                <p className="text-base text-[#14263f]">You used AI guidance and reflection tools to navigate recent conversations inside this {terms.bond}.</p>
               </CardContent>
             </Card>
 
             <Card className="border-2 border-[#14263f]/25 bg-[#eef4fb] shadow-sm">
               <CardContent className="p-5 space-y-2">
                 <p className="text-sm font-bold text-[#14263f] uppercase tracking-wider flex items-center gap-2"><ShieldAlert className="h-4 w-4" /> Pattern to Be Aware Of</p>
-                <p className="text-base text-[#14263f]">Conflict avoidance appeared in 2 check-ins. Notice when you're pulling away.</p>
+                <p className="text-base text-[#14263f]">Notice the moments when either person starts pulling back, going quiet, or losing clarity inside this {terms.bond}.</p>
               </CardContent>
             </Card>
 
             <Card className="border-2 border-[#0e6f72]/25 bg-white shadow-sm">
               <CardContent className="p-5 space-y-2">
                 <p className="text-sm font-bold text-[#0e6f72] uppercase tracking-wider flex items-center gap-2"><AlertCircle className="h-4 w-4" /> Challenges This Week</p>
-                <p className="text-base text-[#14263f]">Mood declined mid-week (maybe work stress?), but you recovered together.</p>
+                <p className="text-base text-[#14263f]">Look for recent stress, misattunement, or crossed expectations that may be shaping the tone of this {terms.bond}.</p>
               </CardContent>
             </Card>
 
             <Card className="border-2 border-[#14263f]/25 bg-[#eef4fb] shadow-sm">
               <CardContent className="p-5 space-y-2">
                 <p className="text-sm font-bold text-[#14263f] uppercase tracking-wider flex items-center gap-2"><Target className="h-4 w-4" /> Focus for Next Week</p>
-                <p className="text-base text-[#14263f]">Practice proactive repair conversations. Check in emotionally BEFORE tension builds.</p>
+                <p className="text-base text-[#14263f]">Practice proactive check-ins before tension builds so this {terms.bond} stays steady and easier to repair.</p>
               </CardContent>
             </Card>
           </div>
