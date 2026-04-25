@@ -1563,6 +1563,264 @@ async function getQuestionnaireResponseRecord(env: Env, id: string): Promise<Sto
   return records.find((record) => record.id === id) || null;
 }
 
+type QuestionnairePrefillLabels = {
+  counterpart: string;
+  counterpartPossessive: string;
+  yourCounterpart: string;
+  myCounterpart: string;
+  bond: string;
+  careWord: string;
+  affection: string;
+  affectionExtended: string;
+};
+
+function getQuestionnairePrefillLabels(relationshipType: RelationshipType): QuestionnairePrefillLabels {
+  switch (relationshipType) {
+    case "friendship":
+      return {
+        counterpart: "friend",
+        counterpartPossessive: "your friend's",
+        yourCounterpart: "your friend",
+        myCounterpart: "my friend",
+        bond: "friendship",
+        careWord: "cared for",
+        affection: "Signs of closeness or warmth",
+        affectionExtended: "Physical closeness or reassuring warmth",
+      };
+    case "family":
+      return {
+        counterpart: "family member",
+        counterpartPossessive: "your family member's",
+        yourCounterpart: "your family member",
+        myCounterpart: "my family member",
+        bond: "family connection",
+        careWord: "cared for",
+        affection: "Signs of warmth or reassurance",
+        affectionExtended: "Physical closeness or reassuring warmth",
+      };
+    case "other":
+      return {
+        counterpart: "other person",
+        counterpartPossessive: "the other person's",
+        yourCounterpart: "the other person",
+        myCounterpart: "the other person",
+        bond: "connection",
+        careWord: "cared for",
+        affection: "Signs of warmth or closeness",
+        affectionExtended: "Physical closeness or reassuring warmth",
+      };
+    case "romantic":
+    default:
+      return {
+        counterpart: "partner",
+        counterpartPossessive: "your partner's",
+        yourCounterpart: "your partner",
+        myCounterpart: "my partner",
+        bond: "relationship",
+        careWord: "loved",
+        affection: "Lack of affection",
+        affectionExtended: "Physical affection or closeness",
+      };
+  }
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function applyQuestionnairePrefillTextReplacements(
+  text: string,
+  relationshipType: RelationshipType,
+  sourceCounterpartName?: string,
+  targetCounterpartName?: string,
+) {
+  const labels = getQuestionnairePrefillLabels(relationshipType);
+  let next = String(text || "");
+  if (sourceCounterpartName && targetCounterpartName && sourceCounterpartName !== targetCounterpartName) {
+    const sourcePattern = new RegExp(`\\b${escapeRegExp(sourceCounterpartName)}\\b`, "gi");
+    next = next.replace(sourcePattern, targetCounterpartName);
+  }
+  return next
+    .replace(/\byour partner's\b/gi, labels.counterpartPossessive)
+    .replace(/\byour partner\b/gi, labels.yourCounterpart)
+    .replace(/\bmy partner\b/gi, labels.myCounterpart)
+    .replace(/\bpartner's\b/gi, labels.counterpartPossessive)
+    .replace(/\bpartner\b/gi, labels.counterpart)
+    .replace(/\bthis relationship\b/gi, `this ${labels.bond}`)
+    .replace(/\bthe relationship\b/gi, `the ${labels.bond}`)
+    .replace(/\bin the relationship\b/gi, `in the ${labels.bond}`)
+    .replace(/\bour relationship\b/gi, `our ${labels.bond}`)
+    .replace(/\bthe relationship's\b/gi, `the ${labels.bond}'s`)
+    .replace(/\brelationship\b/gi, labels.bond)
+    .replace(/\bfully loved\b/gi, labels.careWord)
+    .replace(/\blove look like\b/gi, relationshipType === "romantic" ? "love look like" : "care and closeness look like")
+    .replace(/\bfeel loved or approved of\b/gi, relationshipType === "romantic" ? "feel loved or approved of" : "feel accepted, cared for, or approved of")
+    .replace(/\blove, compliments, or care\b/gi, relationshipType === "romantic" ? "love, compliments, or care" : "care, compliments, or support")
+    .replace(/\bLack of affection\b/gi, labels.affection)
+    .replace(/\bPhysical affection or closeness\b/gi, labels.affectionExtended)
+    .replace(/\bPhysical affection\b/gi, labels.affection);
+}
+
+const PREFILL_MANUAL_REVIEW_PATTERN =
+  /\b(sex|sexual|kiss(?:ing)?|make\s*out|boyfriend|girlfriend|husband|wife|dating|date\s*night|romantic|marriage|married|top\b|bottom\b|dominant|submissive|bedroom|orgasm|foreplay)\b/i;
+
+function questionnaireAnswerNeedsManualReview(value: unknown, relationshipType: RelationshipType) {
+  if (relationshipType === "romantic") return false;
+  return typeof value === "string" && PREFILL_MANUAL_REVIEW_PATTERN.test(value);
+}
+
+function adaptQuestionnaireFieldValue(
+  value: unknown,
+  relationshipType: RelationshipType,
+  sourceCounterpartName?: string,
+  targetCounterpartName?: string,
+): unknown {
+  if (typeof value === "string") {
+    return applyQuestionnairePrefillTextReplacements(
+      value,
+      relationshipType,
+      sourceCounterpartName,
+      targetCounterpartName,
+    );
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) =>
+      typeof entry === "string"
+        ? applyQuestionnairePrefillTextReplacements(entry, relationshipType, sourceCounterpartName, targetCounterpartName)
+        : entry,
+    );
+  }
+  return value;
+}
+
+async function prefillQuestionnaireForRelationshipPersistent(
+  env: Env,
+  relationship: RelationshipSummary,
+  personName: string,
+  options?: { overwrite?: boolean },
+) {
+  const normalizedPerson = normalizeText(personName);
+  const sourceRecords = await getRelationshipQuestionnaireRecords(env, DEFAULT_RELATIONSHIP_ID, normalizedPerson);
+  if (sourceRecords.length === 0) {
+    return {
+      ok: false as const,
+      error: "baseline_questionnaire_not_found",
+      relationship_id: relationship.id,
+      relationship_name: relationship.name,
+      person_name: normalizedPerson,
+    };
+  }
+
+  const existingRecords = await getRelationshipQuestionnaireRecords(env, relationship.id, normalizedPerson);
+  const existingByQuestionId = new Map(
+    existingRecords.map((record) => [normalizeText(record.question_id), record]),
+  );
+  const targetCounterpartName =
+    relationship.participant_names.find(
+      (entry) => normalizeText(entry).toLowerCase() !== normalizedPerson.toLowerCase(),
+    ) || relationship.participant_names[1] || "Other Person";
+  const sourceCounterpartName = normalizedPerson === "Tony" ? "Drew" : normalizedPerson === "Drew" ? "Tony" : "";
+
+  let copied = 0;
+  let skippedExisting = 0;
+  const manualReviewQuestionIds: string[] = [];
+
+  for (const sourceRecord of sourceRecords) {
+    const questionId = normalizeText(sourceRecord.question_id);
+    if (!questionId) continue;
+    const existing = existingByQuestionId.get(questionId);
+    if (existing && !options?.overwrite) {
+      skippedExisting += 1;
+      continue;
+    }
+
+    const sourceAnswer = sourceRecord.answer;
+    if (questionnaireAnswerNeedsManualReview(sourceAnswer, relationship.type)) {
+      manualReviewQuestionIds.push(questionId);
+      continue;
+    }
+
+    const payload: Record<string, unknown> = {
+      ...sourceRecord,
+      person_name: normalizedPerson,
+      question_id: questionId,
+      category: sourceRecord.category,
+      question_text: adaptQuestionnaireFieldValue(
+        sourceRecord.question_text,
+        relationship.type,
+        sourceCounterpartName,
+        targetCounterpartName,
+      ),
+      answer: adaptQuestionnaireFieldValue(
+        sourceAnswer,
+        relationship.type,
+        sourceCounterpartName,
+        targetCounterpartName,
+      ),
+      selected_options: adaptQuestionnaireFieldValue(
+        sourceRecord.selected_options,
+        relationship.type,
+        sourceCounterpartName,
+        targetCounterpartName,
+      ),
+      ranking: adaptQuestionnaireFieldValue(
+        sourceRecord.ranking,
+        relationship.type,
+        sourceCounterpartName,
+        targetCounterpartName,
+      ),
+      mode: sourceRecord.mode,
+      tags: sourceRecord.tags,
+      weight: sourceRecord.weight,
+    };
+
+    await upsertQuestionnaireResponse(env, payload, normalizeText(existing?.id), relationship.id);
+    copied += 1;
+  }
+
+  return {
+    ok: true as const,
+    relationship_id: relationship.id,
+    relationship_name: relationship.name,
+    person_name: normalizedPerson,
+    copied,
+    skipped_existing: skippedExisting,
+    manual_review_question_ids: manualReviewQuestionIds,
+  };
+}
+
+async function prefillQuestionnairesFromBaselinePersistent(
+  env: Env,
+  user: PublicUser,
+  options?: {
+    relationshipId?: string;
+    personName?: string;
+    overwrite?: boolean;
+    allEligible?: boolean;
+  },
+) {
+  const relationships = await getRelationshipsForUserPersistent(env, user.id);
+  const targetRelationships = relationships.filter((relationship) => {
+    if (relationship.type === "romantic") return false;
+    if (options?.relationshipId && relationship.id !== options.relationshipId) return false;
+    if (options?.personName && normalizeText(relationship.current_person_name) !== normalizeText(options.personName)) return false;
+    return Boolean(relationship.current_person_name);
+  });
+
+  const results = [];
+  for (const relationship of targetRelationships) {
+    results.push(
+      await prefillQuestionnaireForRelationshipPersistent(env, relationship, relationship.current_person_name, {
+        overwrite: options?.overwrite,
+      }),
+    );
+    if (!options?.allEligible && options?.relationshipId) {
+      break;
+    }
+  }
+  return results;
+}
+
 async function upsertQuestionnaireResponse(
   env: Env,
   incoming: Record<string, unknown>,
@@ -4159,6 +4417,29 @@ export default {
           responseCount: responses.length,
           expectedQuestions: 94,
           ready: responses.length === 94,
+        },
+        request,
+        env,
+      );
+    }
+
+    if (url.pathname === "/api/questionnaire/prefill" && request.method === "POST") {
+      const user = await readSessionUser(request, env, false);
+      if (!user) return json({ error: "unauthorized" }, request, env, 401);
+
+      const body = await readJson(request);
+      const results = await prefillQuestionnairesFromBaselinePersistent(env, user, {
+        relationshipId: normalizeText(body?.relationship_id),
+        personName: normalizeText(body?.person_name),
+        overwrite: Boolean(body?.overwrite),
+        allEligible: Boolean(body?.all_eligible),
+      });
+
+      return json(
+        {
+          ok: true,
+          results,
+          relationships: await getRelationshipsForUserPersistent(env, user.id),
         },
         request,
         env,

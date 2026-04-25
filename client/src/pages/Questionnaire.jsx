@@ -8,17 +8,19 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { getQuestionnaireContent } from "@/lib/questions";
 import QuestionCard from "@/components/questionnaire/QuestionCard";
-import { Lock, Globe, CheckCircle2, Sparkles } from "lucide-react";
+import { Lock, Globe, CheckCircle2, Sparkles, CopyPlus, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AskCoachDrawer from "@/components/ai/AskCoachDrawer";
 import { buildContextObject } from "@/lib/aiCoachService";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { toast } from "sonner";
 
 export default function Questionnaire() {
   const { activeRelationshipId, activeRelationship, participants } = useRelationshipAuth();
   const [person, setPerson] = useState(participants[0]);
   const [activeCategory, setActiveCategory] = useState("surface");
   const [mode, setMode] = useState("individual");
+  const [prefilling, setPrefilling] = useState(false);
   const queryClient = useQueryClient();
   const relationshipType = activeRelationship?.type || "romantic";
   const { questions, categories: questionCategories } = getQuestionnaireContent(relationshipType);
@@ -43,6 +45,7 @@ export default function Questionnaire() {
   const totalAnswered = Math.min([...answeredIds].filter((id) => validQuestionIds.has(id)).length, questions.length);
   const totalQuestions = questions.length;
   const progress = totalQuestions > 0 ? (totalAnswered / totalQuestions) * 100 : 0;
+  const canPrefillFromBaseline = relationshipType !== "romantic" && (person === "Tony" || person === "Drew");
 
   // New question IDs added in this enhancement — used to show "new questions" banner
   const NEW_QUESTION_IDS = new Set(["cf9", "cf10", "cf11", "d9", "d10", "nv9", "nv10", "p8"]);
@@ -70,6 +73,42 @@ export default function Questionnaire() {
       });
     }
     queryClient.invalidateQueries({ queryKey: ["responses", activeRelationshipId, person] });
+  };
+
+  const handlePrefillFromBaseline = async () => {
+    setPrefilling(true);
+    try {
+      const result = await api.questionnaire.prefillFromBaseline({
+        relationship_id: activeRelationshipId,
+        person_name: person,
+      });
+      const currentResult =
+        (result?.results || []).find(
+          (entry) =>
+            entry.relationship_id === activeRelationshipId &&
+            String(entry.person_name || "").trim().toLowerCase() === person.trim().toLowerCase(),
+        ) || null;
+      await queryClient.invalidateQueries({ queryKey: ["responses", activeRelationshipId, person] });
+      if (!currentResult) {
+        toast.message("No questionnaire answers were copied for this connection.");
+        return;
+      }
+      if (currentResult.error) {
+        toast.error("We couldn't find a baseline questionnaire to copy from yet.");
+        return;
+      }
+      if (currentResult.manual_review_question_ids?.length) {
+        toast.success(
+          `Copied ${currentResult.copied} answers. ${currentResult.manual_review_question_ids.length} questions still need a quick manual review.`,
+        );
+      } else {
+        toast.success(`Copied ${currentResult.copied} baseline answers into this ${relationshipType} questionnaire.`);
+      }
+    } catch (error) {
+      toast.error("Unable to prefill this questionnaire right now.");
+    } finally {
+      setPrefilling(false);
+    }
   };
 
   return (
@@ -120,6 +159,26 @@ export default function Questionnaire() {
         </div>
         <Progress value={progress} className="h-2" />
       </div>
+
+      {canPrefillFromBaseline && totalAnswered < totalQuestions && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 md:flex-row md:items-center md:justify-between"
+        >
+          <div>
+            <p className="text-sm font-medium text-foreground">Use your Tony & Drew baseline as a starting point</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              We can copy the answers that still fit this {relationshipType} context, adapt the wording where possible,
+              and leave a smaller set for manual review.
+            </p>
+          </div>
+          <Button type="button" onClick={handlePrefillFromBaseline} disabled={prefilling} className="gap-2">
+            {prefilling ? <Loader2 className="h-4 w-4 animate-spin" /> : <CopyPlus className="h-4 w-4" />}
+            {prefilling ? "Prefilling..." : "Prefill From Tony & Drew"}
+          </Button>
+        </motion.div>
+      )}
 
       {/* Categories */}
       <div className="flex flex-wrap gap-2">

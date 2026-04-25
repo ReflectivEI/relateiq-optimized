@@ -263,6 +263,14 @@ export const api = {
       return request(`/api/invite/${token}`, { method: "POST" });
     },
   },
+  questionnaire: {
+    prefillFromBaseline(payload) {
+      return request("/api/questionnaire/prefill", {
+        method: "POST",
+        body: payload,
+      });
+    },
+  },
   playLab: {
     createSession(payload) {
       return request("/api/play-lab/session", {
