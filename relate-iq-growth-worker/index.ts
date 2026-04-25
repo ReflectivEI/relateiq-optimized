@@ -1956,14 +1956,16 @@ async function upsertQuestionnaireResponse(
 ): Promise<StoredRecord> {
   if (relationshipId !== DEFAULT_RELATIONSHIP_ID) {
     const person = normalizeText(incoming.person_name) || normalizeText(existingId?.split(":")[0]) || "Participant";
+    const provisionalId = normalizeText(existingId);
+    const current = provisionalId ? await getEntityRecord(env, "QuestionnaireResponse", provisionalId, relationshipId) : null;
     const questionId =
       normalizeText(incoming.question_id) ||
+      normalizeText(current?.question_id) ||
       normalizeText(existingId?.split(":").slice(1).join(":")) ||
       createId("question");
     const baseId =
-      normalizeText(existingId) ||
+      provisionalId ||
       `question_${slugifyEntity(relationshipId)}_${slugifyEntity(person)}_${slugifyEntity(questionId)}`;
-    const current = existingId ? await getEntityRecord(env, "QuestionnaireResponse", baseId, relationshipId) : null;
     const timestamp = nowIso();
     const record: StoredRecord = {
       ...(current || {}),
