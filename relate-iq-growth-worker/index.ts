@@ -1724,7 +1724,7 @@ async function rewriteQuestionnaireAnswersWithAi(
         : "non-romantic relationship";
 
   const rewrites = new Map<string, string>();
-  const batches = chunkArray(stringAnswerRecords, 12);
+  const batches = chunkArray(stringAnswerRecords, 50);
 
   for (const batch of batches) {
     const messages: GroqMessage[] = [
