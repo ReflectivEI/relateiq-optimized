@@ -1693,6 +1693,102 @@ function adaptQuestionnaireFieldValue(
   return value;
 }
 
+function chunkArray<T>(items: T[], size: number) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
+
+async function rewriteQuestionnaireAnswersWithAi(
+  env: Env,
+  relationship: RelationshipSummary,
+  personName: string,
+  sourceRecords: QuestionnaireSummary[],
+  sourceCounterpartName?: string,
+  targetCounterpartName?: string,
+) {
+  if (relationship.type === "romantic") return new Map<string, string>();
+
+  const stringAnswerRecords = sourceRecords.filter(
+    (record) => typeof record.answer === "string" && normalizeText(record.answer),
+  );
+  if (stringAnswerRecords.length === 0) return new Map<string, string>();
+
+  const relationshipNoun =
+    relationship.type === "friendship"
+      ? "best-friend / close-friend relationship"
+      : relationship.type === "family"
+        ? "family relationship"
+        : "non-romantic relationship";
+
+  const rewrites = new Map<string, string>();
+  const batches = chunkArray(stringAnswerRecords, 12);
+
+  for (const batch of batches) {
+    const messages: GroqMessage[] = [
+      {
+        role: "system",
+        content:
+          "You rewrite questionnaire answers for RelateIQ. Transform previously romantic answers so they fit a new relationship context without inventing new life history. Return strict JSON with one key: rewrites. rewrites must be an array of objects with question_id and answer. Rules: keep the speaker's personality, needs, habits, boundaries, stress patterns, and communication style intact; rewrite references to the original romantic counterpart so they fit the new context; for friendship, make the answer sound like it is about a close best friend; for family, make it sound like it is about a family member; for other, make it sound like it is about a meaningful but non-romantic person. Do not be romantic or sexual unless the new context is romantic. If the original answer is deeply romantic or sexual, convert it into the closest non-romantic equivalent around trust, closeness, comfort, boundaries, loyalty, or support. Keep answers concise, natural, and first-person. Do not mention that you are rewriting anything.",
+      },
+      {
+        role: "user",
+        content: JSON.stringify({
+          relationship_type: relationship.type,
+          relationship_name: relationship.name,
+          target_relationship_context: relationshipNoun,
+          speaker: personName,
+          original_counterpart: sourceCounterpartName || "the original counterpart",
+          new_counterpart: targetCounterpartName || "the other person",
+          rewrites: batch.map((record) => ({
+            question_id: normalizeText(record.question_id),
+            question_text: normalizeText(record.question_text),
+            original_answer: normalizeText(record.answer),
+          })),
+        }),
+      },
+    ];
+
+    try {
+      const groq = await callGroq(
+        env,
+        messages,
+        batch.length + relationship.id.length + personName.length,
+        { jsonMode: true },
+      );
+      const parsed = parseJsonObject(groq.text);
+      const items = Array.isArray(parsed?.rewrites) ? parsed.rewrites : [];
+      for (const item of items) {
+        if (!isObject(item)) continue;
+        const questionId = normalizeText(item.question_id);
+        const answer = normalizeText(item.answer);
+        if (!questionId || !answer) continue;
+        rewrites.set(questionId, answer);
+      }
+    } catch {
+      for (const record of batch) {
+        const questionId = normalizeText(record.question_id);
+        if (!questionId) continue;
+        rewrites.set(
+          questionId,
+          String(
+            adaptQuestionnaireFieldValue(
+              record.answer,
+              relationship.type,
+              sourceCounterpartName,
+              targetCounterpartName,
+            ) || "",
+          ),
+        );
+      }
+    }
+  }
+
+  return rewrites;
+}
+
 async function prefillQuestionnaireForRelationshipPersistent(
   env: Env,
   relationship: RelationshipSummary,
@@ -1720,6 +1816,14 @@ async function prefillQuestionnaireForRelationshipPersistent(
       (entry) => normalizeText(entry).toLowerCase() !== normalizedPerson.toLowerCase(),
     ) || relationship.participant_names[1] || "Other Person";
   const sourceCounterpartName = normalizedPerson === "Tony" ? "Drew" : normalizedPerson === "Drew" ? "Tony" : "";
+  const aiRewrites = await rewriteQuestionnaireAnswersWithAi(
+    env,
+    relationship,
+    normalizedPerson,
+    sourceRecords,
+    sourceCounterpartName,
+    targetCounterpartName,
+  );
 
   let copied = 0;
   let skippedExisting = 0;
@@ -1751,12 +1855,14 @@ async function prefillQuestionnaireForRelationshipPersistent(
         sourceCounterpartName,
         targetCounterpartName,
       ),
-      answer: adaptQuestionnaireFieldValue(
-        sourceAnswer,
-        relationship.type,
-        sourceCounterpartName,
-        targetCounterpartName,
-      ),
+      answer:
+        aiRewrites.get(questionId) ||
+        adaptQuestionnaireFieldValue(
+          sourceAnswer,
+          relationship.type,
+          sourceCounterpartName,
+          targetCounterpartName,
+        ),
       selected_options: adaptQuestionnaireFieldValue(
         sourceRecord.selected_options,
         relationship.type,
