@@ -4,8 +4,12 @@
  */
 import React, { useState } from "react";
 import { Shield, X } from "lucide-react";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 export default function PrivacyNotice({ className = "" }) {
+  const { activeRelationship } = useRelationshipAuth();
+  const terms = getRelationshipTerms(activeRelationship);
   const [dismissed, setDismissed] = useState(false);
   if (dismissed) return null;
 
@@ -14,7 +18,7 @@ export default function PrivacyNotice({ className = "" }) {
       <Shield className="w-4 h-4 text-primary shrink-0 mt-0.5" />
       <p className="text-sm text-muted-foreground flex-1 leading-relaxed">
         <span className="font-medium text-foreground">Your responses are private.</span>{" "}
-        You decide what to share and when. Nothing is visible to your partner unless you choose to share it.
+        You decide what to share and when. Nothing is visible to your {terms.counterpart} unless you choose to share it.
       </p>
       <button onClick={() => setDismissed(true)} className="text-muted-foreground/50 hover:text-muted-foreground transition-colors">
         <X className="w-4 h-4" />

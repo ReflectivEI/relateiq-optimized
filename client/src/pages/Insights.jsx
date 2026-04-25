@@ -65,9 +65,12 @@ function buildEntryText(entry) {
     entry.core_insight,
     entry.scenario,
     ...(entry.behavioral_patterns || []),
+    ...(entry.relationship_dynamics || []),
     ...(entry.risk_flags || []),
     ...(entry.strengths || []),
     entry.note,
+    ...(entry.recommended_actions || []),
+    entry.full_output_json,
   ]
     .filter(Boolean)
     .join("\n");

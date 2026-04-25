@@ -3,7 +3,7 @@
  * Context-aware guidance with smart suggestions, multi-output modes, and predictive layer.
  * Routes through pipelineEngine → deterministic pattern analysis → AI Coach
  */
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { pipelineEngine } from "@/lib/pipelineEngine";
@@ -116,8 +116,8 @@ export default function Coach() {
     () => [...new Set((participants || []).map((person) => String(person || "").trim()).filter(Boolean))].slice(0, 2),
     [participants],
   );
-  const [speaker, setSpeaker] = useState(participants[0]);
-  const [speakingTo, setSpeakingTo] = useState(participants[1]);
+  const [speaker, setSpeaker] = useState(activeParticipants[0] || "");
+  const [speakingTo, setSpeakingTo] = useState(activeParticipants[1] || "");
   const [situation, setSituation] = useState("");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState(null);
@@ -133,6 +133,17 @@ export default function Coach() {
   const [editingSessionId, setEditingSessionId] = useState(null);
   const responseRef = useRef(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (activeParticipants.length < 2) {
+      setSpeaker(activeParticipants[0] || "");
+      setSpeakingTo("");
+      return;
+    }
+
+    setSpeaker(activeParticipants[0]);
+    setSpeakingTo(activeParticipants[1]);
+  }, [activeParticipants, activeRelationshipId]);
 
   useEffect(() => {
     const normalizedSpeaker = normalizeParticipantSelection(speaker, activeParticipants, activeParticipants[0]);
