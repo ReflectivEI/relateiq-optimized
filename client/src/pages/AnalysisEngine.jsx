@@ -27,10 +27,15 @@ import AskAIButton from "@/components/askAI/AskAIButton";
 import { buildContext } from "@/lib/contextBuilder";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
-import { getPerspectiveLabels } from "@/lib/relationshipParticipants";
+import {
+  containsForeignParticipantNames,
+  getForeignParticipantNames,
+  getPerspectiveLabels,
+  presentRelationshipText,
+} from "@/lib/relationshipParticipants";
 
 export default function AnalysisEngine() {
-  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
+  const { activeRelationshipId, activeRelationship, participants, relationshipLabel, relationships } = useRelationshipAuth();
   const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   const perspectives = useMemo(
     () => [primaryPerson, secondaryPerson, `${primaryPerson}→${secondaryPerson}`, `${secondaryPerson}→${primaryPerson}`],
@@ -51,6 +56,10 @@ export default function AnalysisEngine() {
   const prevPerspectiveRef = useRef(null);
   const analysisRef = useRef(null);
   const perspectiveLabels = getPerspectiveLabels(participants);
+  const hiddenParticipantNames = useMemo(
+    () => getForeignParticipantNames(relationships, participants),
+    [relationships, participants],
+  );
   const activePerspectiveLabel =
     perspectiveLabels[perspective] ||
     perspective ||
@@ -58,6 +67,66 @@ export default function AnalysisEngine() {
   const exportFilenameLabel = String(activePerspectiveLabel || `${primaryPerson}-${secondaryPerson}`)
     .replace(/\s+/g, "-")
     .replace(/[^\w-]/g, "");
+
+  const sanitizeInsightPayload = (activePerspective, result) => {
+    const payload = {
+      perspective: presentRelationshipText(activePerspective, participants, activeRelationship),
+      mode,
+      core_insight: presentRelationshipText(result.core_insight, participants, activeRelationship),
+      behavioral_patterns: (result.behavioral_patterns || []).map((item) =>
+        presentRelationshipText(item, participants, activeRelationship),
+      ),
+      relationship_dynamics: (result.relationship_dynamics || []).map((item) =>
+        presentRelationshipText(item, participants, activeRelationship),
+      ),
+      risk_flags: (result.risk_flags || []).map((item) =>
+        presentRelationshipText(item, participants, activeRelationship),
+      ),
+      strengths: (result.strengths || []).map((item) =>
+        presentRelationshipText(item, participants, activeRelationship),
+      ),
+      recommended_actions: (result.recommended_actions || []).map((item) =>
+        presentRelationshipText(item, participants, activeRelationship),
+      ),
+      confidence_score: result.confidence_score,
+      frameworks_used: result.frameworks_used,
+      scenario: presentRelationshipText(scenario.trim() || null, participants, activeRelationship),
+      week_label: `Week of ${format(new Date(), "MMM d")}`,
+    };
+
+    const haystack = [
+      payload.perspective,
+      payload.core_insight,
+      payload.scenario,
+      ...(payload.behavioral_patterns || []),
+      ...(payload.relationship_dynamics || []),
+      ...(payload.risk_flags || []),
+      ...(payload.strengths || []),
+      ...(payload.recommended_actions || []),
+      JSON.stringify(result),
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    if (containsForeignParticipantNames(haystack, hiddenParticipantNames)) {
+      return null;
+    }
+
+    return {
+      ...payload,
+      full_output_json: JSON.stringify({
+        ...result,
+        perspective: payload.perspective,
+        core_insight: payload.core_insight,
+        behavioral_patterns: payload.behavioral_patterns,
+        relationship_dynamics: payload.relationship_dynamics,
+        risk_flags: payload.risk_flags,
+        strengths: payload.strengths,
+        recommended_actions: payload.recommended_actions,
+        scenario: payload.scenario,
+      }),
+    };
+  };
 
   useEffect(() => {
     const defaultPerspective = `${primaryPerson}→${secondaryPerson}`;
@@ -124,21 +193,10 @@ export default function AnalysisEngine() {
       setDisplayAnalysis(applyMode(result, mode));
 
       // Auto-save to Insight Library
-      api.entities.InsightEntry.create({
-        perspective: activePerspective,
-        mode: mode,
-        core_insight: result.core_insight,
-        behavioral_patterns: result.behavioral_patterns,
-        relationship_dynamics: result.relationship_dynamics,
-        risk_flags: result.risk_flags,
-        strengths: result.strengths,
-        recommended_actions: result.recommended_actions,
-        confidence_score: result.confidence_score,
-        frameworks_used: result.frameworks_used,
-        scenario: scenario.trim() || null,
-        week_label: `Week of ${format(new Date(), "MMM d")}`,
-        full_output_json: JSON.stringify(result),
-      }).catch(() => {}); // fire-and-forget, non-blocking
+      const safeInsightPayload = sanitizeInsightPayload(activePerspective, result);
+      if (safeInsightPayload) {
+        api.entities.InsightEntry.create(safeInsightPayload).catch(() => {}); // fire-and-forget, non-blocking
+      }
     } catch (err) {
       if (err instanceof CreditLimitError) setCreditError(true);
     }

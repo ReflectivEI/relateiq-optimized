@@ -1805,10 +1805,17 @@ async function prefillQuestionnaireForRelationshipPersistent(
   env: Env,
   relationship: RelationshipSummary,
   personName: string,
-  options?: { overwrite?: boolean },
+  options?: { overwrite?: boolean; questionIds?: string[] },
 ) {
   const normalizedPerson = normalizeText(personName);
-  const sourceRecords = await getRelationshipQuestionnaireRecords(env, DEFAULT_RELATIONSHIP_ID, normalizedPerson);
+  const allSourceRecords = await getRelationshipQuestionnaireRecords(env, DEFAULT_RELATIONSHIP_ID, normalizedPerson);
+  const requestedQuestionIds = new Set(
+    (options?.questionIds || []).map((questionId) => normalizeText(questionId)).filter(Boolean),
+  );
+  const sourceRecords =
+    requestedQuestionIds.size > 0
+      ? allSourceRecords.filter((record) => requestedQuestionIds.has(normalizeText(record.question_id)))
+      : allSourceRecords;
   if (sourceRecords.length === 0) {
     return {
       ok: false as const,
@@ -1915,6 +1922,7 @@ async function prefillQuestionnairesFromBaselinePersistent(
     personName?: string;
     overwrite?: boolean;
     allEligible?: boolean;
+    questionIds?: string[];
   },
 ) {
   const relationships = await getRelationshipsForUserPersistent(env, user.id);
@@ -1930,6 +1938,7 @@ async function prefillQuestionnairesFromBaselinePersistent(
     results.push(
       await prefillQuestionnaireForRelationshipPersistent(env, relationship, relationship.current_person_name, {
         overwrite: options?.overwrite,
+        questionIds: options?.questionIds,
       }),
     );
     if (!options?.allEligible && options?.relationshipId) {
@@ -4552,6 +4561,9 @@ export default {
         personName: normalizeText(body?.person_name),
         overwrite: Boolean(body?.overwrite),
         allEligible: Boolean(body?.all_eligible),
+        questionIds: Array.isArray(body?.question_ids)
+          ? body.question_ids.map((value) => normalizeText(value)).filter(Boolean)
+          : [],
       });
 
       return json(

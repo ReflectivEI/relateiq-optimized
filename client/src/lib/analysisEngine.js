@@ -415,8 +415,8 @@ export function computeAnalysisDelta(prevAnalysis, nextAnalysis) {
  * Perspective switching ALWAYS recomputes — reuse_allowed = (prev === current).
  */
 export async function generateAnalysis({
-  perspective = "Tony→Drew",
-  participants = ["Tony", "Drew"],
+  perspective = null,
+  participants = ["Person A", "Other Person"],
   analysis_type = "deep",
   tonyResponses = [],
   drewResponses = [],
@@ -428,7 +428,7 @@ export async function generateAnalysis({
   scenario = null,
   previousPerspective = null,
 }) {
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   const resolvedPerspective = perspective || `${primaryPerson}→${secondaryPerson}`;
   // ── REUSE GATE ────────────────────────────────────────────────────────────
   const reuse_allowed = previousPerspective !== null && previousPerspective === resolvedPerspective;

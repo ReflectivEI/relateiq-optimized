@@ -5,7 +5,7 @@
  */
 
 export function synthesizeRelationshipIntelligence({
-  participants = ["Tony", "Drew"],
+  participants = ["Person A", "Other Person"],
   relationshipTerms = { bond: "relationship", type: "romantic" },
   profiles = [],
   patternScores = {},
@@ -15,7 +15,7 @@ export function synthesizeRelationshipIntelligence({
   triggers = [],
   predictiveOutputs = {},
 }) {
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   const tony = profiles.find((p) => p.person_name === primaryPerson);
   const drew = profiles.find((p) => p.person_name === secondaryPerson);
 
