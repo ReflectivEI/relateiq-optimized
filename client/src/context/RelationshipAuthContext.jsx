@@ -30,6 +30,7 @@ export function RelationshipAuthProvider({ children }) {
     setUser(null);
     setRelationships([]);
     setActiveRelationshipId("");
+    setLoading(false);
     setError("");
     api.session.clearStoredSession();
     queryClientInstance.clear();

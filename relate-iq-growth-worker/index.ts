@@ -882,21 +882,25 @@ async function countQuestionnaireResponsesForPersonPersistent(
   relationshipId: string,
   personName: string,
 ) {
-  const records = await listQuestionnaireResponseRecords(env);
-  const normalized = normalizeText(personName).toLowerCase();
-  return records.filter((record) => {
-    const entityRelationshipId =
-      normalizeText(
-        (record.relationship_id as string | undefined) ||
-          (record.data?.relationship_id as string | undefined),
-      );
-    const responsePerson = normalizeText(
-      (record.data?.person_name as string | undefined) ||
-        (record.data?.person as string | undefined) ||
-        (record.person_name as string | undefined),
-    ).toLowerCase();
-    return entityRelationshipId === relationshipId && responsePerson === normalized;
-  }).length;
+  if (relationshipId === DEFAULT_RELATIONSHIP_ID && (personName === "Tony" || personName === "Drew")) {
+    const questionnaire = await loadUploadedQuestionnaire(env, personName as PersonId);
+    return questionnaire?.responses?.length || 0;
+  }
+
+  if (!env.QUESTIONNAIRES) return 0;
+
+  const prefix = `data:${slugifyEntity("QuestionnaireResponse")}:question_${slugifyEntity(relationshipId)}_${slugifyEntity(normalizeText(personName))}_`;
+  let cursor: string | undefined;
+  let count = 0;
+
+  while (count < 94) {
+    const page = await env.QUESTIONNAIRES.list({ prefix, cursor, limit: 100 });
+    count += page.keys.length;
+    if (page.list_complete || !page.cursor) break;
+    cursor = page.cursor;
+  }
+
+  return count;
 }
 
 function isSeededBaselineRelationship(relationshipId: string) {
