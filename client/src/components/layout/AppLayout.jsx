@@ -50,13 +50,14 @@ const navGroups = [
     id: "core",
     label: "Core Workspace",
     items: [
-      { path: "/", label: "Home", icon: LayoutDashboard },
+      { path: "/coach", label: "AI Coach", icon: Bot },
+      { path: "/chat", label: "Relationship Chat", icon: MessagesSquare },
+      { path: "/knowledge", label: "Knowledge Hub", icon: BookOpenText },
+      { path: "/daily", label: "Daily Connections", icon: Handshake },
       { path: "/journal", label: "Journal", icon: NotebookPen },
-      { path: "/health-report", label: "Health Report", icon: ActivitySquare },
-      { path: "/vision", label: "Vision Board", icon: Telescope },
-      { path: "/playbook", label: "Playbook", icon: BookOpenText },
-      { path: "/play-lab-ii", label: "Play Lab II", icon: Layers3 },
-      { path: "/play-lab", label: "Play Lab", icon: Gamepad2 },
+      { path: "/analysis", label: "Analysis Engine", icon: BrainCircuit },
+      { path: "/repair", label: "Proactive Repair", icon: ShieldAlert },
+      { path: "/insights", label: "Insights", icon: BarChart3 },
     ],
   },
   {
@@ -65,28 +66,28 @@ const navGroups = [
     items: [
       { path: "/profiles", label: "Profiles", icon: Users },
       { path: "/questionnaire", label: "Questionnaire", icon: ClipboardList },
-      { path: "/analysis", label: "Analysis Engine", icon: BrainCircuit },
-      { path: "/insights", label: "Insights", icon: BarChart3 },
       { path: "/roadmap", label: "Growth Roadmap", icon: TrendingUp },
-      { path: "/daily", label: "Daily Connections", icon: Handshake },
       { path: "/insight-library", label: "Insight Library", icon: LibraryBig },
-      { path: "/knowledge", label: "Knowledge Hub", icon: BookOpenText },
+      { path: "/health-report", label: "Health Report", icon: ActivitySquare },
+      { path: "/vision", label: "Vision Board", icon: Telescope },
+      { path: "/playbook", label: "Playbook", icon: BookOpenText },
+      { path: "/play-lab-ii", label: "Play Lab II", icon: Layers3 },
+      { path: "/play-lab", label: "Play Lab", icon: Gamepad2 },
     ],
   },
   {
     id: "support",
     label: "Support Tools",
     items: [
-      { path: "/coach", label: "AI Coach", icon: Bot },
       { path: "/check-in", label: "Check-In", icon: CalendarCheck2 },
       { path: "/tools", label: "Smart Tools", icon: Wrench },
       { path: "/triggers", label: "Triggers", icon: ShieldAlert },
-      { path: "/repair", label: "Proactive Repair", icon: ShieldAlert },
-      { path: "/chat", label: "Relationship Chat", icon: MessagesSquare },
       { path: "/appendix", label: "Appendix", icon: BookMarked },
     ],
   },
 ];
+
+const homeNavItem = { path: "/", label: "Home", icon: LayoutDashboard };
 
 function generateTemporaryPassword() {
   const base = crypto.randomUUID().replace(/-/g, "");
@@ -487,6 +488,20 @@ export default function AppLayout() {
           )}
         </div>
         <nav className={cn("flex-1 overflow-y-auto", sidebarCollapsed ? "p-3 space-y-2" : "p-4 space-y-4")}>
+          <Link
+            to={homeNavItem.path}
+            title={sidebarCollapsed ? homeNavItem.label : undefined}
+            className={cn(
+              "flex items-center rounded-2xl border text-sm font-medium transition-all duration-200",
+              sidebarCollapsed ? "justify-center px-3 py-3" : "gap-3 px-3 py-2.5",
+              location.pathname === homeNavItem.path
+                ? "border-primary/40 bg-primary/15 text-white shadow-sm"
+                : "border-transparent text-teal-200/85 hover:border-primary/20 hover:bg-sidebar-accent hover:text-white",
+            )}
+          >
+            <homeNavItem.icon className="w-4.5 h-4.5 shrink-0" />
+            {!sidebarCollapsed && homeNavItem.label}
+          </Link>
           {visibleNavGroups.map((group) => {
             const groupHasActiveItem = group.items.some((item) => location.pathname === item.path);
             return (
@@ -580,6 +595,19 @@ export default function AppLayout() {
         {mobileOpen && (
           <nav className="space-y-3 border-b border-border bg-card px-4 pb-4">
             <div className="rounded-2xl border border-border/60 bg-muted/20 p-3">
+              <Link
+                to={homeNavItem.path}
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "mb-3 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+                  location.pathname === homeNavItem.path
+                    ? "border-primary/30 bg-primary/10 text-foreground"
+                    : "border-transparent text-muted-foreground hover:bg-background hover:text-foreground"
+                )}
+              >
+                <homeNavItem.icon className="h-4 w-4" />
+                {homeNavItem.label}
+              </Link>
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                 Active Connection
               </p>

@@ -5,18 +5,19 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  User,
   Sparkles,
   BarChart3,
-  CalendarCheck,
   ArrowRight,
   Star,
   Zap,
-  Gamepad2,
   HeartHandshake,
   Expand,
   ChevronDown,
   ChevronUp,
+  MessagesSquare,
+  LibraryBig,
+  NotebookPen,
+  BrainCircuit,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AskAIButton from "@/components/askAI/AskAIButton";
@@ -36,45 +37,59 @@ import {
 
 const quickActions = [
   {
-    title: "Build Profiles",
-    description: "Answer questions to build your relationship context",
-    icon: User,
-    path: "/questionnaire",
-    color: "bg-primary/10 text-primary",
-  },
-  {
     title: "AI Coach",
-    description: "Get guidance for sensitive conversations",
+    description: "Get context-aware guidance for the situation in front of you.",
     icon: Sparkles,
     path: "/coach",
     color: "bg-primary/10 text-primary",
   },
   {
-    title: "View Insights",
-    description: "See patterns, compatibility, and growth areas",
-    icon: BarChart3,
-    path: "/insights",
+    title: "Relationship Chat",
+    description: "Talk through tension, context, or decisions in real time.",
+    icon: MessagesSquare,
+    path: "/chat",
     color: "bg-primary/10 text-primary",
   },
   {
-    title: "Weekly Check-In",
-    description: "Reflect on how communication went this week",
-    icon: CalendarCheck,
-    path: "/check-in",
+    title: "Knowledge Hub",
+    description: "Review intelligence and synthesized context for this pairing.",
+    icon: LibraryBig,
+    path: "/knowledge",
+    color: "bg-primary/10 text-primary",
+  },
+  {
+    title: "Daily Connections",
+    description: "Log the moments, signals, and interactions shaping this bond.",
+    icon: HeartHandshake,
+    path: "/daily",
+    color: "bg-primary/10 text-primary",
+  },
+  {
+    title: "Journal",
+    description: "Capture reflections and keep a clean record of what matters.",
+    icon: NotebookPen,
+    path: "/journal",
+    color: "bg-primary/10 text-primary",
+  },
+  {
+    title: "Analysis Engine",
+    description: "Generate structured analysis from questionnaire and live data.",
+    icon: BrainCircuit,
+    path: "/analysis",
     color: "bg-primary/10 text-primary",
   },
   {
     title: "Proactive Repair",
-    description: "Get a script to repair tension or reconnect after conflict",
+    description: "Repair tension early with scripts and next-step guidance.",
     icon: HeartHandshake,
     path: "/repair",
     color: "bg-primary/10 text-primary",
   },
   {
-    title: "Play Lab",
-    description: "Learn more about each other through short interactive rounds",
-    icon: Gamepad2,
-    path: "/play-lab",
+    title: "Insights",
+    description: "Surface high-signal patterns, shifts, and blind spots quickly.",
+    icon: BarChart3,
+    path: "/insights",
     color: "bg-primary/10 text-primary",
   },
 ];
@@ -357,15 +372,15 @@ export default function Home() {
             >
               <Link to={action.path}>
                 <Card className="group border border-border/50 hover:border-primary/20 hover:shadow-md transition-all duration-300 cursor-pointer">
-                  <CardContent className="flex items-start gap-4 p-6">
+                  <CardContent className="flex items-start gap-4 p-5">
                     <div className={`h-12 w-12 rounded-2xl ${action.color} flex items-center justify-center flex-shrink-0`}>
                       <action.icon className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-medium text-foreground transition-colors group-hover:text-primary">
+                      <h3 className="text-base font-medium text-foreground transition-colors group-hover:text-primary">
                         {action.title}
                       </h3>
-                      <p className="mt-1 text-base text-muted-foreground">
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
                         {action.description}
                       </p>
                     </div>
