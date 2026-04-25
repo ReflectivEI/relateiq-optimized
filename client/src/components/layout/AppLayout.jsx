@@ -43,6 +43,7 @@ import PageBanner from "@/components/layout/PageBanner";
 import ThemeToggle from "@/components/layout/ThemeToggle";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 const navGroups = [
   {
@@ -272,8 +273,10 @@ export default function AppLayout() {
       setRelationshipType("romantic");
       setCreateOpen(false);
       setInviteOpen(true);
+      toast.success("Connection created. Invite details are ready to share.");
     } catch (error) {
       setRelationshipError(error instanceof Error ? error.message : "Unable to create relationship.");
+      toast.error("Unable to create connection.");
     }
   };
 
@@ -298,8 +301,10 @@ export default function AppLayout() {
         : null,
       );
       await loadManagedRows();
+      toast.success("Invite link and assigned login saved for this connection.");
     } catch (error) {
       setRelationshipError(error instanceof Error ? error.message : "Unable to create invite.");
+      toast.error("Unable to create invite.");
     }
   };
 
@@ -322,13 +327,16 @@ export default function AppLayout() {
       updateRelationships(result.relationships || relationships, activeRelationshipId);
       setManagedRows(result.adminRows || []);
       resetConnectionForm();
+      toast.success("Managed connection changes saved.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to update managed connection.";
       if (message.includes("relationship_not_found")) {
         await loadManagedRows();
         setRelationshipError("That connection list was stale. The panel has been refreshed; please select the row again.");
+        toast.error("That connection row was stale. The panel has been refreshed.");
       } else {
         setRelationshipError(message);
+        toast.error("Unable to save managed connection changes.");
       }
     }
   };
@@ -348,13 +356,16 @@ export default function AppLayout() {
       if (selectedManagedRelationshipId === resolvedRelationshipId) {
         resetConnectionForm();
       }
+      toast.success("Managed connection deleted.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to delete managed connection.";
       if (message.includes("relationship_not_found")) {
         await loadManagedRows();
         setRelationshipError("That connection list was stale. The panel has been refreshed; please try again.");
+        toast.error("That connection row was stale. The panel has been refreshed.");
       } else {
         setRelationshipError(message);
+        toast.error("Unable to delete managed connection.");
       }
     }
   };
@@ -373,8 +384,10 @@ export default function AppLayout() {
       setSupportStyle("");
       setSupportNotes("");
       setCommunicationNote("");
+      toast.success("Onboarding notes saved for this connection.");
     } catch (error) {
       setRelationshipError(error instanceof Error ? error.message : "Unable to save onboarding.");
+      toast.error("Unable to save onboarding.");
     }
   };
 

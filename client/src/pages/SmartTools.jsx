@@ -28,6 +28,7 @@ import { suggestSmartTools } from "@/lib/toolTriggerEngine";
 import { computePatternProfile } from "@/lib/patternEngine";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import { getPartnerName, getRelationshipTerms } from "@/lib/relationshipParticipants";
+import { toast } from "sonner";
 
 function buildTools(counterpart) {
   return [
@@ -171,6 +172,7 @@ export default function SmartTools() {
       drewResponses: participants[1] === person ? userResponses : partnerResponses,
     }));
     setLoading(false);
+    toast.success(`${currentTool.label} saved to this connection's tool history.`);
   };
 
   const currentTool = tools.find((t) => t.id === activeTool);

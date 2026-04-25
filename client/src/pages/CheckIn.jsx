@@ -22,6 +22,7 @@ import PrivacyBanner from "@/components/ui/PrivacyBanner";
 import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import { getPartnerName, getRelationshipTerms } from "@/lib/relationshipParticipants";
+import { toast } from "sonner";
 
 function stripDuplicateReflectionHeading(value = "") {
   return value
@@ -139,6 +140,7 @@ export default function CheckIn() {
     setForm({ what_worked: "", what_could_improve: "", mood: "", gratitude: "", connected_moment: "", distance_moment: "", unasked_need: "" });
     setSubmitting(false);
     queryClient.invalidateQueries({ queryKey: ["checkins", activeRelationshipId, person] });
+    toast.success(`Check-in saved for ${person}.`);
   };
 
   // Detect mood trend from past check-ins
