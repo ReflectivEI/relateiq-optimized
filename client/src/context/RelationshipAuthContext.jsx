@@ -49,6 +49,10 @@ export function RelationshipAuthProvider({ children }) {
         resetToSignedOut();
         return null;
       }
+      if (err instanceof Error && /failed to fetch/i.test(err.message)) {
+        resetToSignedOut();
+        return null;
+      }
       throw err;
     }
   };
@@ -68,6 +72,8 @@ export function RelationshipAuthProvider({ children }) {
         if (!cancelled) syncBootstrap(payload);
       } catch (err) {
         if (!cancelled && err?.status === 401) {
+          resetToSignedOut();
+        } else if (!cancelled && err instanceof Error && /failed to fetch/i.test(err.message)) {
           resetToSignedOut();
         } else if (!cancelled) {
           setError(err instanceof Error ? err.message : "Unable to load relationship context.");
