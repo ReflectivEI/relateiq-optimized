@@ -12,6 +12,8 @@
  */
 
 const IS_DIRECTIONAL = (p) => typeof p === "string" && p.includes("→");
+const asArray = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
+const asString = (value, fallback = "") => (typeof value === "string" ? value : fallback);
 
 // ─── GUARD ────────────────────────────────────────────────────────────────────
 
@@ -36,48 +38,57 @@ export function assertBaseExists(base, mode) {
 export function toDeep(base) {
   if (!base) return null;
   const isDir = IS_DIRECTIONAL(base.perspective);
+  const behavioralPatterns = asArray(base.behavioral_patterns);
+  const relationshipDynamics = asArray(base.relationship_dynamics);
+  const riskFlags = asArray(base.risk_flags);
+  const strengths = asArray(base.strengths);
+  const recommendedActions = asArray(base.recommended_actions);
+  const sourceSignals = asArray(base.source_signals);
+  const frameworksUsed = asArray(base.frameworks_used);
+  const misalignmentAreas = asArray(base.misalignment_areas);
+  const communicationRiskPoints = asArray(base.communication_risk_points);
 
   const sections = [
     {
       title: "Behavioral Patterns",
-      items: base.behavioral_patterns,
+      items: behavioralPatterns,
       description: "Observed behavioral tendencies from questionnaire data",
     },
     {
       title: "Relationship Dynamics",
-      items: base.relationship_dynamics,
+      items: relationshipDynamics,
       description: "Interaction patterns between the two people",
     },
     {
       title: "Risk Flags",
-      items: base.risk_flags,
+      items: riskFlags,
       description: "Specific conditions likely to cause breakdown",
     },
     {
       title: "Strengths",
-      items: base.strengths,
+      items: strengths,
       description: "Genuine assets from actual data",
     },
     {
       title: "Recommended Actions",
-      items: base.recommended_actions,
+      items: recommendedActions,
       description: "Specific, immediately actionable steps",
     },
   ];
 
   if (isDir) {
-    if (base.directional_impact)
+    if (asString(base.directional_impact))
       sections.push({ title: "What This Means for Them", items: [base.directional_impact] });
-    if (base.misalignment_areas?.length)
-      sections.push({ title: "Misalignment Areas", items: base.misalignment_areas });
-    if (base.perception_gap)
+    if (misalignmentAreas.length)
+      sections.push({ title: "Misalignment Areas", items: misalignmentAreas });
+    if (asString(base.perception_gap))
       sections.push({ title: "Perception Gap", items: [base.perception_gap] });
-    if (base.communication_risk_points?.length)
-      sections.push({ title: "Communication Risk Points", items: base.communication_risk_points });
+    if (communicationRiskPoints.length)
+      sections.push({ title: "Communication Risk Points", items: communicationRiskPoints });
   }
 
-  sections.push({ title: "Source Signals", items: base.source_signals });
-  sections.push({ title: "Frameworks Applied", items: base.frameworks_used });
+  sections.push({ title: "Source Signals", items: sourceSignals });
+  sections.push({ title: "Frameworks Applied", items: frameworksUsed });
 
   return {
     ...base,
@@ -102,18 +113,22 @@ export function toDeep(base) {
 export function toExplain(base) {
   if (!base) return null;
   const isDir = IS_DIRECTIONAL(base.perspective);
+  const behavioralPatterns = asArray(base.behavioral_patterns);
+  const relationshipDynamics = asArray(base.relationship_dynamics);
+  const riskFlags = asArray(base.risk_flags);
+  const strengths = asArray(base.strengths);
 
   // Transform each array item with interpretive framing
-  const explainedPatterns = base.behavioral_patterns.slice(0, 3).map(
+  const explainedPatterns = behavioralPatterns.slice(0, 3).map(
     (p) => `This suggests: ${p}`
   );
-  const explainedDynamics = base.relationship_dynamics.slice(0, 3).map(
+  const explainedDynamics = relationshipDynamics.slice(0, 3).map(
     (d) => `This likely means: ${d}`
   );
-  const explainedRisks = base.risk_flags.slice(0, 2).map(
+  const explainedRisks = riskFlags.slice(0, 2).map(
     (r) => `Watch for this: ${r}`
   );
-  const explainedStrengths = base.strengths.slice(0, 3).map(
+  const explainedStrengths = strengths.slice(0, 3).map(
     (s) => `This is working: ${s}`
   );
 
@@ -124,14 +139,14 @@ export function toExplain(base) {
     { title: "What's Working", items: explainedStrengths },
   ];
 
-  if (isDir && base.directional_impact) {
+  if (isDir && asString(base.directional_impact)) {
     sections.push({
       title: "What This Means for Them",
       items: [`This likely means: ${base.directional_impact}`],
     });
   }
 
-  if (isDir && base.perception_gap) {
+  if (isDir && asString(base.perception_gap)) {
     sections.push({
       title: "Why It Gets Misread",
       items: [`This suggests a gap: ${base.perception_gap}`],
@@ -163,28 +178,31 @@ export function toExplain(base) {
 export function toRecap(base) {
   if (!base) return null;
   const isDir = IS_DIRECTIONAL(base.perspective);
+  const behavioralPatterns = asArray(base.behavioral_patterns);
+  const riskFlags = asArray(base.risk_flags);
+  const recommendedActions = asArray(base.recommended_actions);
 
   // Exactly 4 bullets max — priority order
   const bullets = [];
 
   // Bullet 1: Top behavioral pattern (context setter)
-  if (base.behavioral_patterns[0]) {
-    bullets.push(`⬤ Pattern: ${base.behavioral_patterns[0]}`);
+  if (behavioralPatterns[0]) {
+    bullets.push(`⬤ Pattern: ${behavioralPatterns[0]}`);
   }
 
   // Bullets 2–3: Top 2 risks (most actionable)
-  base.risk_flags.slice(0, 2).forEach((r) => {
+  riskFlags.slice(0, 2).forEach((r) => {
     bullets.push(`⚠ Risk: ${r}`);
   });
 
   // Bullet 4: Single best action
-  if (base.recommended_actions[0]) {
-    bullets.push(`→ Do this: ${base.recommended_actions[0]}`);
+  if (recommendedActions[0]) {
+    bullets.push(`→ Do this: ${recommendedActions[0]}`);
   }
 
   // Directional bonus: perception gap if present (replaces bullet 1 if more relevant)
   const directionalNote =
-    isDir && base.perception_gap ? `Gap: ${base.perception_gap}` : null;
+    isDir && asString(base.perception_gap) ? `Gap: ${base.perception_gap}` : null;
 
   return {
     ...base,
@@ -217,12 +235,17 @@ export function toRecap(base) {
 export function toSummary(base) {
   if (!base) return null;
   const isDir = IS_DIRECTIONAL(base.perspective);
+  const behavioralPatterns = asArray(base.behavioral_patterns);
+  const relationshipDynamics = asArray(base.relationship_dynamics);
+  const riskFlags = asArray(base.risk_flags);
+  const strengths = asArray(base.strengths);
+  const recommendedActions = asArray(base.recommended_actions);
 
   // Synthesize 2-3 sentences from base fields
-  const sentence1 = base.core_insight;
+  const sentence1 = asString(base.core_insight, "A structured analysis was generated from the available data.");
 
-  const topPattern = base.behavioral_patterns[0] || "";
-  const topDynamic = base.relationship_dynamics[0] || "";
+  const topPattern = behavioralPatterns[0] || "";
+  const topDynamic = relationshipDynamics[0] || "";
   const sentence2 = topPattern && topDynamic
     ? `The dominant pattern is: ${topPattern}. This plays out as: ${topDynamic}`
     : topPattern
@@ -231,8 +254,8 @@ export function toSummary(base) {
     ? `The key dynamic at play: ${topDynamic}`
     : "";
 
-  const topRisk = base.risk_flags[0] || "";
-  const topStrength = base.strengths[0] || "";
+  const topRisk = riskFlags[0] || "";
+  const topStrength = strengths[0] || "";
   const sentence3 = topRisk && topStrength
     ? `The primary risk is "${topRisk}", while the key strength to leverage is "${topStrength}".`
     : topRisk
@@ -241,7 +264,7 @@ export function toSummary(base) {
     ? `A key strength to build on: "${topStrength}".`
     : "";
 
-  const directionalNote = isDir && base.directional_impact
+  const directionalNote = isDir && asString(base.directional_impact)
     ? `Impact on partner: ${base.directional_impact}`
     : null;
 
@@ -261,8 +284,8 @@ export function toSummary(base) {
         ...(directionalNote
           ? [{ title: "Directional Impact", items: [directionalNote] }]
           : []),
-        ...(base.recommended_actions.length > 0
-          ? [{ title: "Key Actions", items: base.recommended_actions.slice(0, 2) }]
+        ...(recommendedActions.length > 0
+          ? [{ title: "Key Actions", items: recommendedActions.slice(0, 2) }]
           : []),
       ],
       confidence: base.confidence_score,
@@ -283,8 +306,8 @@ export function toActionPlan(base) {
   if (!base) return null;
   const isDir = IS_DIRECTIONAL(base.perspective);
 
-  const actions = base.recommended_actions;
-  const risks = base.risk_flags;
+  const actions = asArray(base.recommended_actions);
+  const risks = asArray(base.risk_flags);
 
   // Step 1: Immediate — first action
   const step1 = actions[0]
@@ -331,8 +354,8 @@ export function toActionPlan(base) {
           title: "Risks to Actively Avoid",
           items: warningItems,
         },
-        ...(isDir && base.communication_risk_points?.length
-          ? [{ title: "Communication Risk Points", items: base.communication_risk_points }]
+        ...(isDir && asArray(base.communication_risk_points).length
+          ? [{ title: "Communication Risk Points", items: asArray(base.communication_risk_points) }]
           : []),
       ],
       confidence: base.confidence_score,

@@ -21,6 +21,7 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import VoiceRecorder from "@/components/reflection/VoiceRecorder";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 import {
   createPlayLabSession,
   evaluatePlayLab,
@@ -315,15 +316,17 @@ function ReviewPanel({ review, onContinue, isLastRound, partnerLabel }) {
 
 export default function PlayLabII() {
   const { activeRelationship, activeRelationshipId, primaryPerson, relationshipLabel, secondaryPerson, user } = useRelationshipAuth();
+  const relationshipTerms = getRelationshipTerms(activeRelationship);
   const participants = useMemo(
     () => ({
       primary: primaryPerson || "You",
-      secondary: secondaryPerson || "Your Partner",
+      secondary: secondaryPerson || relationshipTerms.counterpart,
     }),
-    [primaryPerson, secondaryPerson],
+    [primaryPerson, relationshipTerms.counterpart, secondaryPerson],
   );
   const normalizedRelationshipType = String(activeRelationship?.type || "").toLowerCase();
   const recommendedDeckId = normalizedRelationshipType === "romantic" ? "partners" : "friends";
+  const availableDeckIds = normalizedRelationshipType === "romantic" ? ["partners", "friends"] : ["friends"];
 
   const [currentState, setCurrentState] = useState("entry");
   const [selectedDeckId, setSelectedDeckId] = useState("");
@@ -610,6 +613,22 @@ export default function PlayLabII() {
 
   const instructions = selectedDeck.instructions;
   const theme = DECK_THEMES[selectedDeck.id];
+  const selectedDeckLabel =
+    selectedDeck.id === "partners"
+      ? "partner"
+      : relationshipTerms.type === "friendship"
+      ? "friend"
+      : relationshipTerms.type === "family"
+      ? "family member"
+      : relationshipTerms.counterpart;
+  const deckSelectionTitle =
+    normalizedRelationshipType === "romantic"
+      ? "Separate decks for partners and friends"
+      : `Choose a ${relationshipTerms.typeLabel.toLowerCase()} deck`;
+  const deckSelectionCopy =
+    normalizedRelationshipType === "romantic"
+      ? "Each deck has its own question bank, tone, and learning path. Read the card aloud, let the other person answer, then capture what they really said by typing or voice memo."
+      : `This deck keeps the card flow tuned to a ${relationshipTerms.bond}. Read the card aloud, let the other person answer, then capture what they really said by typing or voice memo.`;
 
   return (
     <div className="space-y-8">
@@ -653,15 +672,15 @@ export default function PlayLabII() {
           >
             <div className="rounded-[1.75rem] border border-[#0e6f72]/18 bg-white p-6 shadow-[0_18px_38px_rgba(15,23,42,0.06)]">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#0e6f72]/80">Choose a Deck</p>
-              <h2 className="mt-3 text-3xl font-semibold text-[#14263f]">Separate decks for partners and friends</h2>
+              <h2 className="mt-3 text-3xl font-semibold text-[#14263f]">{deckSelectionTitle}</h2>
               <p className="mt-2 max-w-3xl text-[15px] leading-7 text-[#4e6077]">
-                Each deck has its own question bank, tone, and learning path. Read the card aloud, let the other person
-                answer, then capture what they really said by typing or voice memo.
+                {deckSelectionCopy}
               </p>
             </div>
-            <div className="grid gap-5 xl:grid-cols-2">
-              <DeckSelectionCard deckId="partners" recommended={recommendedDeckId === "partners"} onSelect={handleDeckSelect} />
-              <DeckSelectionCard deckId="friends" recommended={recommendedDeckId === "friends"} onSelect={handleDeckSelect} />
+            <div className={`grid gap-5 ${availableDeckIds.length > 1 ? "xl:grid-cols-2" : ""}`}>
+              {availableDeckIds.map((deckId) => (
+                <DeckSelectionCard key={deckId} deckId={deckId} recommended={recommendedDeckId === deckId} onSelect={handleDeckSelect} />
+              ))}
             </div>
           </motion.section>
         ) : null}
@@ -683,7 +702,7 @@ export default function PlayLabII() {
                     </span>
                     <span className="text-sm text-[#4e6077]">Round {currentRound} of {TOTAL_ROUNDS}</span>
                   </div>
-                  <h2 className="text-3xl font-semibold text-[#14263f]">How well do you know your {selectedDeck.id === "friends" ? "friend" : "partner"}?</h2>
+                  <h2 className="text-3xl font-semibold text-[#14263f]">How well do you know your {selectedDeckLabel}?</h2>
                   <p className="max-w-3xl text-[15px] leading-7 text-[#4e6077]">
                     One person reads the card, the other answers. Capture the real response, compare it to your instinct,
                     and let the app learn from both.

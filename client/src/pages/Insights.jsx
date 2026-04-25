@@ -744,6 +744,8 @@ export default function Insights() {
         tonyProfile, drewProfile, tonyResponses, drewResponses,
         sessions: recentSessions, checkIns: recentCheckIns,
         relationshipDynamic: existingDynamic,
+        relationshipTerms: terms,
+        relationshipLabel,
       }),
       model: "claude_sonnet_4_6",
       partnerLanguage: { personName: participants[0], partnerName: participants[1], replacePronouns: false },
@@ -859,7 +861,15 @@ export default function Insights() {
     try {
       [insightResult, dynamicResult] = await Promise.all([
       safeInvokeLLM({
-        prompt: buildInsightsPrompt({ tonyProfile, drewProfile, tonyResponses, drewResponses, relationshipDynamic: existingDynamic }),
+        prompt: buildInsightsPrompt({
+          tonyProfile,
+          drewProfile,
+          tonyResponses,
+          drewResponses,
+          relationshipDynamic: existingDynamic,
+          relationshipTerms: terms,
+          relationshipLabel,
+        }),
         model: "claude_sonnet_4_6",
         partnerLanguage: { personName: participants[0], partnerName: participants[1], replacePronouns: false },
         response_json_schema: {
@@ -879,7 +889,14 @@ export default function Insights() {
         },
       }, 40000, deepFallback, validateDeepInsightsOutput),
       safeInvokeLLM({
-        prompt: buildDynamicUpdatePrompt({ tonyProfile, drewProfile, recentSessions, recentCheckIns }),
+        prompt: buildDynamicUpdatePrompt({
+          tonyProfile,
+          drewProfile,
+          recentSessions,
+          recentCheckIns,
+          relationshipTerms: terms,
+          relationshipLabel,
+        }),
         model: "gpt_5_mini",
         partnerLanguage: { personName: participants[0], partnerName: participants[1], replacePronouns: false },
         response_json_schema: {
@@ -928,7 +945,7 @@ export default function Insights() {
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">Insights</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Relationship intelligence generated for {relationshipLabel} from everything the system knows — sessions, check-ins, questionnaire answers, and lived situations.
+          {terms.type === "romantic" ? "Relationship" : "Connection"} intelligence generated for {relationshipLabel} from everything the system knows — sessions, check-ins, questionnaire answers, and lived situations.
         </p>
         {lastUpdated && (
           <p className="text-xs text-muted-foreground/60 mt-1">
@@ -969,7 +986,7 @@ export default function Insights() {
         <ModeCard
           icon={Zap}
           title="Context Insights"
-          description="Best for a fast, broad read of the relationship using sessions, tools, check-ins, and questionnaire patterns already in the system."
+          description={`Best for a fast, broad read of this ${terms.bond} using sessions, tools, check-ins, and questionnaire patterns already in the system.`}
           sources={SOURCE_ITEMS}
           active={activeTab === "context"}
           loading={loadingMode === "context"}
@@ -1079,7 +1096,7 @@ export default function Insights() {
         <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/40 border border-border/40">
           <Lightbulb className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
           <p className="text-sm text-muted-foreground">
-            <strong className="text-foreground">Deeper relationship intelligence</strong> becomes available as both profiles are completed. Both Context and Deep Insights are available now — they'll improve with more data.
+            <strong className="text-foreground">Deeper {terms.bond} intelligence</strong> becomes available as both profiles are completed. Both Context and Deep Insights are available now — they'll improve with more data.
           </p>
         </div>
       )}

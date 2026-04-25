@@ -14,7 +14,7 @@ import ResponseExportBar from "@/components/export/ResponseExportBar";
 import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 function buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel, viewMode, participants, relationshipLabel, relationshipTerms }) {
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants || [];
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants || [];
   const terms = relationshipTerms || getRelationshipTerms("romantic");
   const subject =
     viewMode === primaryPerson
@@ -68,8 +68,8 @@ export default function AIHealthReport({
   reflections,
   coachSessions,
   viewMode = "compare",
-  participants = ["Tony", "Drew"],
-  relationshipLabel = "this relationship",
+  participants = ["Person A", "Other Person"],
+  relationshipLabel = "this connection",
   relationshipTerms,
 }) {
   const [report, setReport] = useState(null);
@@ -120,7 +120,7 @@ export default function AIHealthReport({
             <div>
               <p className="text-lg font-semibold text-foreground">Generate Your Health Report</p>
               <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-                AI will analyze your check-ins, reflections, and coach sessions to produce a personalised weekly narrative.
+                AI will analyze your check-ins, reflections, and coach sessions to produce a personalized weekly narrative for this connection.
               </p>
             </div>
             <Button onClick={generate} disabled={loading || (checkIns.length === 0 && reflections.length === 0)} className="gap-2">

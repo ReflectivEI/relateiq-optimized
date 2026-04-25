@@ -178,12 +178,12 @@ export function inferParticipantNames({
     primaryName ||
     primaryProfile?.person_name ||
     primaryResponses[0]?.person_name ||
-    "Tony";
+    "Person A";
   const inferredSecondary =
     secondaryName ||
     secondaryProfile?.person_name ||
     secondaryResponses[0]?.person_name ||
-    (inferredPrimary === "Tony" ? "Drew" : "Other Person");
+    "Other Person";
   return [inferredPrimary, inferredSecondary];
 }
 
@@ -339,14 +339,16 @@ One sentence naming the emotional register used and why it specifically suits ${
 
 // ─── PROFILE GENERATION PROMPT ────────────────────────────────────────────────
 
-export function buildProfileGenerationPrompt(name, answersText, responses = []) {
+export function buildProfileGenerationPrompt(name, answersText, responses = [], relationshipContext = {}) {
   const tagSummary = aggregateTags(responses);
   const temporalCtx = buildTemporalContext(responses);
   const dominantTags = getDominantTags(responses, 10).join(", ");
+  const bond = relationshipContext.bond || "connection";
+  const counterpart = relationshipContext.counterpart || "other person";
 
   return `${RELATIONSHIP_COACH_SYSTEM}
 
-You are analyzing the COMPLETE accumulated questionnaire history for ${name}, one half of a 13-year LGBTQ+ relationship.
+You are analyzing the COMPLETE accumulated questionnaire history for ${name} inside a ${bond}.
 This profile must feel scarily accurate — specific, not generic. It should read like a trained therapist who has worked with ${name} for months.
 
 COMPLETE QUESTIONNAIRE DATA:
@@ -373,7 +375,7 @@ Return a JSON object with ALL of these fields:
 - personality_traits: Array of 6–8 nuanced traits (not just "caring" — be specific)
 - growth_areas: Array of 3–5 specific, named growth opportunities
 - past_patterns: 2-sentence description grounded in family/upbringing answers
-- partner_perception: 2-sentence description from partner_perception answers
+- partner_perception: 2-sentence description of how this ${counterpart} is likely to experience ${name}, grounded in the relevant answers
 - love_language: Primary love language with 1-sentence explanation grounded in answers
 - ai_behavioral_summary: 4–5 sentence warm, precise behavioral portrait that feels uniquely like ${name}
 - trait_weights: Object with 0.0–1.0 scores for: sensitivity_to_tone, need_for_space, directness, emotional_expressiveness, conflict_avoidance, empathy, need_for_validation, vulnerability_comfort, rumination_tendency, stress_withdrawal`;
@@ -618,6 +620,8 @@ export function buildInsightsPrompt({
   tonyResponses = [],
   drewResponses = [],
   relationshipDynamic = null,
+  relationshipTerms = null,
+  relationshipLabel = "this connection",
 }) {
   const [primaryPerson, secondaryPerson] = inferParticipantNames({
     primaryProfile: tonyProfile,
@@ -641,10 +645,12 @@ export function buildInsightsPrompt({
   Risk areas: ${(relationshipDynamic.risk_areas || []).join(", ") || "none yet"}
   Shared strengths: ${(relationshipDynamic.shared_strengths || []).join(", ") || "none yet"}`
     : "";
+  const bond = relationshipTerms?.bond || "connection";
+  const counterpart = relationshipTerms?.counterpart || "other person";
 
   return `${RELATIONSHIP_COACH_SYSTEM}
 
-Perform a comprehensive, deeply personalized relationship intelligence analysis for ${primaryPerson} and ${secondaryPerson}.
+Perform a comprehensive, deeply personalized ${bond} intelligence analysis for ${primaryPerson} and ${secondaryPerson} within ${relationshipLabel}.
 Use ALL available data. Quote actual words from their answers. This must read like it was written by someone who has studied ${primaryPerson} and ${secondaryPerson} for years — not generic relationship content.
 
 ═══════════════════════════════════════
@@ -677,7 +683,9 @@ ANALYSIS INSTRUCTIONS:
 - For comparison_table: compare actual documented differences, not assumptions
 - For predictions: ground each in specific documented behaviors ("When ${primaryPerson} goes quiet, ${secondaryPerson}'s pattern of X means Y is likely")
 - Where temporal data shows change, name it explicitly: "Earlier data shows X; more recent answers show Y — indicating growth/regression"
-- DO NOT produce generic advice applicable to any couple
+- Match the language to a ${bond}, not automatically to a romantic couple
+- When referencing ${secondaryPerson}, describe them as ${primaryPerson}'s ${counterpart} if a role label is needed
+- DO NOT produce generic advice applicable to any pair
 
 Generate valid JSON with these exact fields:
 - compatibility_score: number 0-100
@@ -702,6 +710,8 @@ export function buildContextInsightsPrompt({
   sessions = [],
   checkIns = [],
   relationshipDynamic = null,
+  relationshipTerms = null,
+  relationshipLabel = "this connection",
 }) {
   const [primaryPerson, secondaryPerson] = inferParticipantNames({
     primaryProfile: tonyProfile,
@@ -727,6 +737,7 @@ export function buildContextInsightsPrompt({
   const dynamicCtx = relationshipDynamic?.ai_dynamic_summary
     ? `PREVIOUSLY DETECTED DYNAMIC:\n${relationshipDynamic.ai_dynamic_summary}`
     : "";
+  const bond = relationshipTerms?.bond || "connection";
 
   // Inject ALL responses grouped by category — no arbitrary slice limit
   const fullResponses = (responses, name) => {
@@ -748,7 +759,7 @@ export function buildContextInsightsPrompt({
 
   return `${RELATIONSHIP_COACH_SYSTEM}
 
-You are generating deeply personalized CONTEXT-BASED RELATIONSHIP INSIGHTS for ${primaryPerson} and ${secondaryPerson}.
+You are generating deeply personalized context-based insights for ${primaryPerson} and ${secondaryPerson} within ${relationshipLabel}.
 Use ALL data injected below — questionnaire responses, coach sessions, check-ins, and profiles.
 Be concrete and specific. Reference actual words and patterns from their answers.
 Name things directly. Do NOT hedge unnecessarily.
@@ -795,6 +806,7 @@ ANALYSIS INSTRUCTIONS:
 - Identify the pursuer-distancer dynamic, attachment styles, and processing tempo mismatches
 - Cross-reference both partners' data to find interaction loops
 - Reference named psychological frameworks (Gottman, NVC, Polyvagal, Attachment Theory)
+- Match the wording to a ${bond}, not a romantic relationship, when the relationship type is not romantic
 - Each "What to Try Next" item must include: the specific action, a named framework, and a plain-English "Why" explanation
 - Confidence level should reflect TOTAL data available across all sources — not just questionnaire answers
 
@@ -815,13 +827,21 @@ Generate a JSON object with these exact fields:
 
 // ─── RELATIONSHIP DYNAMIC UPDATE PROMPT ──────────────────────────────────────
 
-export function buildDynamicUpdatePrompt({ tonyProfile, drewProfile, recentSessions = [], recentCheckIns = [] }) {
+export function buildDynamicUpdatePrompt({
+  tonyProfile,
+  drewProfile,
+  recentSessions = [],
+  recentCheckIns = [],
+  relationshipTerms = null,
+  relationshipLabel = "this connection",
+}) {
   const [primaryPerson, secondaryPerson] = inferParticipantNames({
     primaryProfile: tonyProfile,
     secondaryProfile: drewProfile,
   });
   const tonyCtx = serializeProfile(primaryPerson, tonyProfile);
   const drewCtx = serializeProfile(secondaryPerson, drewProfile);
+  const bond = relationshipTerms?.bond || "connection";
 
   const sessionsCtx = recentSessions
     .slice(0, 8)
@@ -835,7 +855,7 @@ export function buildDynamicUpdatePrompt({ tonyProfile, drewProfile, recentSessi
 
   return `${RELATIONSHIP_COACH_SYSTEM}
 
-Analyze all available session and check-in history to update the detected couple-level dynamic patterns for ${primaryPerson} and ${secondaryPerson}.
+Analyze all available session and check-in history to update the detected ${bond}-level dynamic patterns for ${primaryPerson} and ${secondaryPerson} within ${relationshipLabel}.
 
 ${tonyCtx}
 ${drewCtx}
@@ -853,5 +873,5 @@ Return valid JSON with these fields:
 - shared_strengths: array of 4–6 strengths both share or that complement well
 - risk_areas: array of 3–5 specific ongoing risks
 - improvements_over_time: array of any improvements detected from session/check-in history
-- ai_dynamic_summary: 3–4 sentence couple-level portrait based on all available data`;
+- ai_dynamic_summary: 3–4 sentence ${bond}-level portrait based on all available data`;
 }

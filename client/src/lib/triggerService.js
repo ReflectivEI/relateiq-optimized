@@ -34,12 +34,13 @@ export function serializeTriggers(triggers, person) {
 }
 
 /**
- * Serialize both partners' triggers for couple-level AI calls.
+ * Serialize both participants' triggers for connection-level AI calls.
  */
-export function serializeAllTriggers(triggers) {
-  const tony = serializeTriggers(triggers, "Tony");
-  const drew = serializeTriggers(triggers, "Drew");
-  return [tony, drew].filter(Boolean).join("\n\n");
+export function serializeAllTriggers(triggers, participants = ["Person A", "Other Person"]) {
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
+  const primary = serializeTriggers(triggers, primaryPerson);
+  const secondary = serializeTriggers(triggers, secondaryPerson);
+  return [primary, secondary].filter(Boolean).join("\n\n");
 }
 
 // ─── TRIGGER INFERENCE ────────────────────────────────────────────────────────

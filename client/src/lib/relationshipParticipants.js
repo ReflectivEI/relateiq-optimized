@@ -14,7 +14,7 @@ export function getRelationshipParticipants(activeRelationship, userName) {
   }
 
   if (userName) return [userName, "Other Person"];
-  return ["Tony", "Drew"];
+  return ["Person A", "Other Person"];
 }
 
 export function getRelationshipLabel(activeRelationship, participants) {
@@ -38,8 +38,8 @@ export function getDisplayLabel(value) {
     .replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
-export function getPerspectiveLabels(participants = ["Tony", "Drew"]) {
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+export function getPerspectiveLabels(participants = ["Person A", "Other Person"]) {
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   return {
     [primaryPerson]: `${primaryPerson} (Individual)`,
     [secondaryPerson]: `${secondaryPerson} (Individual)`,
@@ -54,8 +54,8 @@ export function getPerspectiveLabels(participants = ["Tony", "Drew"]) {
   };
 }
 
-export function getActivePerspectiveKeys(participants = ["Tony", "Drew"]) {
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+export function getActivePerspectiveKeys(participants = ["Person A", "Other Person"]) {
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   return [
     primaryPerson,
     secondaryPerson,
@@ -65,9 +65,9 @@ export function getActivePerspectiveKeys(participants = ["Tony", "Drew"]) {
   ];
 }
 
-export function isPerspectiveInActivePair(value, participants = ["Tony", "Drew"]) {
+export function isPerspectiveInActivePair(value, participants = ["Person A", "Other Person"]) {
   if (!value) return true;
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   const activePairKeys = new Set(getActivePerspectiveKeys(participants));
   if (activePairKeys.has(value)) return true;
 
@@ -78,7 +78,7 @@ export function isPerspectiveInActivePair(value, participants = ["Tony", "Drew"]
   return baselineKeys.has(value);
 }
 
-export function getDisplayPerspective(value, participants = ["Tony", "Drew"]) {
+export function getDisplayPerspective(value, participants = ["Person A", "Other Person"]) {
   const labels = getPerspectiveLabels(participants);
   return labels[value] || getDisplayLabel(value);
 }
@@ -146,14 +146,32 @@ export function getRelationshipTerms(activeRelationshipOrType) {
 
 export function replaceParticipantNames(text, participants = ["Tony", "Drew"]) {
   if (!text) return text;
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
-  return String(text)
-    .replace(/\bTony & Drew\b/g, `${primaryPerson} & ${secondaryPerson}`)
-    .replace(/\bTony\b/g, primaryPerson)
-    .replace(/\bDrew\b/g, secondaryPerson)
-    .replace(/\bTony→Drew\b/g, `${primaryPerson}→${secondaryPerson}`)
-    .replace(/\bDrew→Tony\b/g, `${secondaryPerson}→${primaryPerson}`)
-    .replace(/\bTony\+Drew\b/g, `${primaryPerson}+${secondaryPerson}`);
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
+  const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const apply = (input, pattern, replacement) =>
+    input.replace(pattern, (match) => matchCase(match, replacement));
+
+  let next = String(text);
+  next = apply(next, /\bTony\s*&\s*Drew\b/gi, `${primaryPerson} & ${secondaryPerson}`);
+  next = apply(next, /\bTony→Drew\b/gi, `${primaryPerson}→${secondaryPerson}`);
+  next = apply(next, /\bDrew→Tony\b/gi, `${secondaryPerson}→${primaryPerson}`);
+  next = apply(next, /\bTony\+Drew\b/gi, `${primaryPerson}+${secondaryPerson}`);
+  next = apply(next, /\bTony\b/gi, primaryPerson);
+  next = apply(next, /\bDrew\b/gi, secondaryPerson);
+
+  const duplicateCommaPattern = new RegExp(
+    `\\b(${escapeRegex(primaryPerson)}|${escapeRegex(secondaryPerson)})\\b\\s*,\\s*\\1\\b`,
+    "gi",
+  );
+  next = next.replace(duplicateCommaPattern, "$1");
+
+  const duplicateArrowPattern = new RegExp(
+    `\\b(${escapeRegex(primaryPerson)}|${escapeRegex(secondaryPerson)})\\b\\s*→\\s*\\1\\b`,
+    "gi",
+  );
+  next = next.replace(duplicateArrowPattern, "$1");
+
+  return next;
 }
 
 function matchCase(source, replacement) {

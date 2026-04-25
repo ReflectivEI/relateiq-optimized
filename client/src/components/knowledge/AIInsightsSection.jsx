@@ -66,7 +66,7 @@ const BASE_TEMPLATES = {
     color: "border-[#14263f]/25 bg-[#eef4fb]",
     examples: [
       "Male couples often navigate unique expectations — talk about yours instead of assuming.",
-      "Vulnerability is not weakness; it's the foundation of intimacy in long-term relationships.",
+      "Vulnerability is not weakness; it is often the clearest path to real trust and honesty.",
       "Check in: Are we honoring both our individual identities AND what we are building together?",
     ],
   },

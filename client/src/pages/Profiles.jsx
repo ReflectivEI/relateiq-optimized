@@ -35,9 +35,10 @@ import FallbackBadge from "@/components/ui/FallbackBadge";
 import PrivacyBanner from "@/components/ui/PrivacyBanner";
 import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 export default function Profiles() {
-  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
+  const { activeRelationshipId, participants, relationshipLabel, activeRelationship } = useRelationshipAuth();
   const [activePerson, setActivePerson] = useState(participants[0]);
   const [generating, setGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
@@ -62,6 +63,7 @@ export default function Profiles() {
   });
 
   const profile = profiles.find((p) => p.person_name === activePerson);
+  const terms = getRelationshipTerms(activeRelationship);
 
   const lastGenerated = profile?.updated_date || profile?.created_date || null;
   // Only show fallback badge if summary is very short (normalizer default text)
@@ -78,7 +80,7 @@ export default function Profiles() {
       .map((r) => `Q (${r.category}): ${r.question_text}\nA: ${r.answer}`)
       .join("\n\n");
 
-    const prompt = buildProfileGenerationPrompt(activePerson, answersText, responses);
+    const prompt = buildProfileGenerationPrompt(activePerson, answersText, responses, terms);
 
     let result;
     try {
@@ -196,7 +198,7 @@ export default function Profiles() {
       content: profile.growth_areas,
     },
     {
-      title: "How Your Partner Sees You",
+      title: `How Your ${terms.counterpart} Sees You`,
       icon: Eye,
       content: profile.partner_perception,
     },
@@ -443,7 +445,9 @@ export default function Profiles() {
                 {profile.partner_perception && (
                   <Card className="enterprise-panel border-2">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">Partner Perception</CardTitle>
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                        {terms.type === "romantic" ? "Partner Perception" : `${terms.typeLabel} Perception`}
+                      </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0">
                       <p className="text-sm text-foreground leading-relaxed">{profile.partner_perception}</p>

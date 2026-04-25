@@ -222,13 +222,21 @@ export default function Coach() {
   const targetResponses = currentSpeakingTo === participants[0] ? tonyResponses : drewResponses;
   const terms = getRelationshipTerms(activeRelationship);
 
-  const runCoachCall = async (situationText) => {
+  const runCoachCall = async (situationText, overrides = {}) => {
     setError(null);
     setPipelineTrace(null);
     const normalizedParticipants = activeParticipants;
-    const normalizedSpeaker = normalizeParticipantSelection(speaker, normalizedParticipants, normalizedParticipants[0]);
+    const requestedSpeaker =
+      overrides.speakerOverride ??
+      currentSpeaker ??
+      speaker;
+    const requestedTarget =
+      overrides.speakingToOverride ??
+      currentSpeakingTo ??
+      speakingTo;
+    const normalizedSpeaker = normalizeParticipantSelection(requestedSpeaker, normalizedParticipants, normalizedParticipants[0]);
     const normalizedTarget = normalizeParticipantSelection(
-      speakingTo,
+      requestedTarget,
       normalizedParticipants,
       getPartnerName(normalizedSpeaker, normalizedParticipants),
     );
@@ -365,7 +373,14 @@ export default function Coach() {
 
     const text = situationMap[pillId];
     setSituation(text);
-    setTimeout(() => runCoachCall(text), 100);
+    setTimeout(
+      () =>
+        runCoachCall(text, {
+          speakerOverride: currentSpeaker,
+          speakingToOverride: currentSpeakingTo,
+        }),
+      100,
+    );
   };
 
   const handleModeSwitch = (mode) => {
@@ -391,8 +406,18 @@ export default function Coach() {
 
   const loadSessionIntoComposer = (session) => {
     const cleanedSituation = cleanSituationText(session.situation);
-    setSpeaker(session.speaker);
-    setSpeakingTo(session.speaking_to);
+    const normalizedSpeaker = normalizeParticipantSelection(
+      session.speaker,
+      activeParticipants,
+      activeParticipants[0],
+    );
+    const normalizedTarget = normalizeParticipantSelection(
+      session.speaking_to,
+      activeParticipants,
+      getPartnerName(normalizedSpeaker, activeParticipants),
+    );
+    setSpeaker(normalizedSpeaker);
+    setSpeakingTo(normalizedTarget === normalizedSpeaker ? getPartnerName(normalizedSpeaker, activeParticipants) : normalizedTarget);
     setSituation(cleanedSituation);
     const structured = enforceCoachStructure(session.ai_response, cleanedSituation);
     const modes = deriveCoachModes(structured);
@@ -455,7 +480,7 @@ export default function Coach() {
                   size="sm"
                   onClick={() => {
                     setSpeaker(person);
-                    if (person === currentSpeakingTo) setSpeakingTo(getPartnerName(person, activeParticipants));
+                    setSpeakingTo(getPartnerName(person, activeParticipants));
                   }}
                   className="text-xs"
                 >
@@ -502,7 +527,12 @@ export default function Coach() {
 
           {/* Submit Button */}
           <Button
-            onClick={() => runCoachCall(situation)}
+            onClick={() =>
+              runCoachCall(situation, {
+                speakerOverride: currentSpeaker,
+                speakingToOverride: currentSpeakingTo,
+              })
+            }
             disabled={loading || !currentSpeaker || !currentSpeakingTo || !situation.trim()}
             className="w-full sm:w-auto gap-2"
             size="lg"

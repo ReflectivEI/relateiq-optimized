@@ -13,8 +13,8 @@ import { format, parseISO } from "date-fns";
 import MetricExplainer from "@/components/ui/MetricExplainer";
 import { getDisplayPerspective, presentRelationshipText } from "@/lib/relationshipParticipants";
 
-function getPerspectiveColor(value, participants = ["Tony", "Drew"]) {
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+function getPerspectiveColor(value, participants = ["Person A", "Other Person"]) {
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   if (value === primaryPerson) return "bg-blue-100 text-blue-700 border-blue-200";
   if (value === secondaryPerson) return "bg-purple-100 text-purple-700 border-purple-200";
   if (value === `${primaryPerson}→${secondaryPerson}`) return "bg-green-100 text-green-700 border-green-200";
@@ -23,7 +23,7 @@ function getPerspectiveColor(value, participants = ["Tony", "Drew"]) {
   return "border-border bg-background text-foreground";
 }
 
-export default function InsightEntryCard({ entry, participants = ["Tony", "Drew"], activeRelationship, onNoteUpdate, onDelete }) {
+export default function InsightEntryCard({ entry, participants = ["Person A", "Other Person"], activeRelationship, onNoteUpdate, onDelete }) {
   const [expanded, setExpanded] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
   const [note, setNote] = useState(entry.note || "");

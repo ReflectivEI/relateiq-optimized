@@ -24,8 +24,10 @@ import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 
-const CATEGORY_LABELS = {
+function getCategoryLabels(relationshipTerms) {
+  return {
   surface: "Surface Pattern",
   behavioral: "Behavioral Pattern",
   communication: "Communication Style",
@@ -34,12 +36,17 @@ const CATEGORY_LABELS = {
   energy_social: "Energy and Social Needs",
   deep_reflection: "Deep Reflection",
   family_upbringing: "Family and Upbringing",
-  partner_perception: "Partner Perception",
+  partner_perception:
+    relationshipTerms?.type === "romantic"
+      ? "Partner Perception"
+      : `${relationshipTerms?.typeLabel || "Connection"} Perception`,
   needs_vulnerability: "Needs and Vulnerability",
   then_vs_now: "Then vs. Now",
-};
+  };
+}
 
-function buildSectionPrompts(primaryPerson, secondaryPerson) {
+function buildSectionPrompts(primaryPerson, secondaryPerson, relationshipTerms, relationshipLabel) {
+  const bond = relationshipTerms?.bond || "connection";
   return [
   {
     title: "Conflict Style",
@@ -92,29 +99,33 @@ function buildSectionPrompts(primaryPerson, secondaryPerson) {
   },
   {
     title: "What To Do Next",
-    description: "Actionable next-step coaching grounded in your actual questionnaire patterns.",
+    description: `Actionable next-step coaching grounded in your actual questionnaire patterns for this ${bond}.`,
     icon: Lightbulb,
-    prompt: `Given everything you know about ${primaryPerson} and ${secondaryPerson}, what are the 5 most useful relationship moves to focus on next?`,
-    summaryPrompt: `Summarize the 5 highest-priority next steps for ${primaryPerson} and ${secondaryPerson}.`,
+    prompt: `Given everything you know about ${primaryPerson} and ${secondaryPerson}, what are the 5 most useful next moves to focus on inside ${relationshipLabel}?`,
+    summaryPrompt: `Summarize the 5 highest-priority next steps for ${primaryPerson} and ${secondaryPerson} inside ${relationshipLabel}.`,
   },
 ];
 }
 
-function formatCategoryName(value) {
-  return CATEGORY_LABELS[value] || value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+function formatCategoryName(value, relationshipTerms) {
+  const labels = getCategoryLabels(relationshipTerms);
+  return labels[value] || value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function buildSystemPrompt(scope, participants, primaryResponses, secondaryResponses) {
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+function buildSystemPrompt(scope, participants, primaryResponses, secondaryResponses, relationshipTerms, relationshipLabel) {
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
+  const labels = getCategoryLabels(relationshipTerms);
+  const bond = relationshipTerms?.bond || "connection";
+  const coachLabel = relationshipTerms?.type === "romantic" ? "Relationship Coach" : "Connection Coach";
   const primaryContext = primaryResponses
-    .map((q) => `Category: ${formatCategoryName(q.category || "")}\nQuestion: ${q.question_text || q.question || ""}\n${primaryPerson}: ${q.answer_text || q.answer || q.response_value || ""}`)
+    .map((q) => `Category: ${labels[q.category] || formatCategoryName(q.category || "", relationshipTerms)}\nQuestion: ${q.question_text || q.question || ""}\n${primaryPerson}: ${q.answer_text || q.answer || q.response_value || ""}`)
     .join("\n\n");
 
   const secondaryContext = secondaryResponses
-    .map((q) => `Category: ${formatCategoryName(q.category || "")}\nQuestion: ${q.question_text || q.question || ""}\n${secondaryPerson}: ${q.answer_text || q.answer || q.response_value || ""}`)
+    .map((q) => `Category: ${labels[q.category] || formatCategoryName(q.category || "", relationshipTerms)}\nQuestion: ${q.question_text || q.question || ""}\n${secondaryPerson}: ${q.answer_text || q.answer || q.response_value || ""}`)
     .join("\n\n");
 
-  return `You are an expert Relationship Coach with deep knowledge of ${primaryPerson} and ${secondaryPerson}'s relationship. You have studied their full questionnaire responses and can give highly personalized, specific advice. You never give generic advice — you always reference what ${primaryPerson} and ${secondaryPerson} have actually said.
+  return `You are an expert ${coachLabel} with deep knowledge of ${primaryPerson} and ${secondaryPerson}'s ${bond}. You have studied their full questionnaire responses and can give highly personalized, specific guidance. You never give generic advice — you always reference what ${primaryPerson} and ${secondaryPerson} have actually said.
 
 IMPORTANT RULES:
 - Always cite specific answers from their questionnaires when relevant.
@@ -123,7 +134,7 @@ IMPORTANT RULES:
 - Use clear section headers, concise paragraphs, and practical guidance.
 - Be warm, direct, and empathetic.
 - Never take sides — hold both perspectives with equal care.
-- Current scope: ${scope === "both" ? `${primaryPerson} & ${secondaryPerson} (couple view)` : scope === primaryPerson ? `${primaryPerson}'s perspective` : `${secondaryPerson}'s perspective`}
+- Current scope: ${scope === "both" ? `${primaryPerson} & ${secondaryPerson} (${bond} view)` : scope === primaryPerson ? `${primaryPerson}'s perspective` : `${secondaryPerson}'s perspective`}
 
 ${primaryPerson.toUpperCase()}'S FULL QUESTIONNAIRE RESPONSES:
 ${primaryContext}
@@ -131,7 +142,7 @@ ${primaryContext}
 ${secondaryPerson.toUpperCase()}'S FULL QUESTIONNAIRE RESPONSES:
 ${secondaryContext}
 
-You are ready to answer questions about ${primaryPerson}, ${secondaryPerson}, and their relationship with full context.`;
+You are ready to answer questions about ${primaryPerson}, ${secondaryPerson}, and ${relationshipLabel} with full context.`;
 }
 
 function prettifyResponseText(text) {
@@ -146,11 +157,12 @@ function prettifyResponseText(text) {
 }
 
 export default function RelationshipChat() {
-  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const { activeRelationshipId, participants, relationshipLabel, activeRelationship } = useRelationshipAuth();
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
+  const relationshipTerms = getRelationshipTerms(activeRelationship);
   const sectionPrompts = React.useMemo(
-    () => buildSectionPrompts(primaryPerson, secondaryPerson),
-    [primaryPerson, secondaryPerson],
+    () => buildSectionPrompts(primaryPerson, secondaryPerson, relationshipTerms, relationshipLabel),
+    [primaryPerson, secondaryPerson, relationshipTerms, relationshipLabel],
   );
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -195,7 +207,7 @@ export default function RelationshipChat() {
       .map((message) => `${message.role === "user" ? "User" : "Coach"}: ${message.content}`)
       .join("\n\n");
 
-    const prompt = `${buildSystemPrompt(scope, participants, primaryResponses, secondaryResponses)}
+    const prompt = `${buildSystemPrompt(scope, participants, primaryResponses, secondaryResponses, relationshipTerms, relationshipLabel)}
 
 CONVERSATION SO FAR:
 ${conversationHistory}
@@ -238,7 +250,9 @@ Respond as the Relationship Coach. Use clean headers and human-readable section 
             <Heart className="h-5 w-5 text-[#0e6f72]" />
           </div>
           <div>
-            <h1 className="font-display text-xl font-bold text-foreground">Relationship Coach</h1>
+            <h1 className="font-display text-xl font-bold text-foreground">
+              {relationshipTerms.type === "romantic" ? "Relationship Coach" : "Connection Coach"}
+            </h1>
               <p className="text-xs text-muted-foreground">Powered by {relationshipLabel}&apos;s questionnaire data</p>
           </div>
         </div>
@@ -358,7 +372,7 @@ Respond as the Relationship Coach. Use clean headers and human-readable section 
         <div className="flex gap-2 items-end">
           <Textarea
             ref={textareaRef}
-            placeholder={`Ask about ${primaryPerson}, ${secondaryPerson}, or this relationship...`}
+            placeholder={`Ask about ${primaryPerson}, ${secondaryPerson}, or this ${relationshipTerms.bond}...`}
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}

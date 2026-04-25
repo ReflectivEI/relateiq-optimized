@@ -31,7 +31,7 @@ import { getPerspectiveLabels } from "@/lib/relationshipParticipants";
 
 export default function AnalysisEngine() {
   const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   const perspectives = useMemo(
     () => [primaryPerson, secondaryPerson, `${primaryPerson}→${secondaryPerson}`, `${secondaryPerson}→${primaryPerson}`],
     [primaryPerson, secondaryPerson],

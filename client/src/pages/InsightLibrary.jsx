@@ -72,13 +72,22 @@ function isEntryVisibleForParticipants(entry, hiddenParticipantNames) {
 function sanitizeEntryText(entry, participants, activeRelationship) {
   return {
     ...entry,
+    perspective: presentRelationshipText(entry.perspective, participants, activeRelationship),
     core_insight: presentRelationshipText(entry.core_insight, participants, activeRelationship),
     scenario: presentRelationshipText(entry.scenario, participants, activeRelationship),
     behavioral_patterns: (entry.behavioral_patterns || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
+    relationship_dynamics: (entry.relationship_dynamics || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
     risk_flags: (entry.risk_flags || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
     strengths: (entry.strengths || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
+    recommended_actions: (entry.recommended_actions || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
+    full_output_json: presentRelationshipText(entry.full_output_json, participants, activeRelationship),
     note: presentRelationshipText(entry.note, participants, activeRelationship),
   };
+}
+
+function isSanitizedEntryVisible(entry, participants, activeRelationship, hiddenParticipantNames) {
+  const sanitized = sanitizeEntryText(entry, participants, activeRelationship);
+  return isEntryVisibleForParticipants(sanitized, hiddenParticipantNames);
 }
 
 export default function InsightLibrary() {
@@ -110,9 +119,10 @@ export default function InsightLibrary() {
       entries.filter(
         (entry) =>
           isPerspectiveInActivePair(entry.perspective, participants) &&
-          isEntryVisibleForParticipants(entry, hiddenParticipantNames),
+          isEntryVisibleForParticipants(entry, hiddenParticipantNames) &&
+          isSanitizedEntryVisible(entry, participants, activeRelationship, hiddenParticipantNames),
       ),
-    [entries, hiddenParticipantNames, participants],
+    [entries, hiddenParticipantNames, participants, activeRelationship],
   );
 
   const filtered = useMemo(() => {

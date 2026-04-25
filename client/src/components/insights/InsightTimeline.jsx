@@ -360,7 +360,7 @@ export default function InsightTimeline({
   repairs = [],
   insights = [],
   maxItems = 8,
-  participants = ["Tony", "Drew"],
+  participants = ["Person A", "Other Person"],
   activeRelationship,
 }) {
   const events = [
@@ -411,7 +411,9 @@ export default function InsightTimeline({
 
   return (
     <div className="space-y-3">
-      <h3 className="font-display text-lg font-semibold text-foreground">Relationship Timeline</h3>
+      <h3 className="font-display text-lg font-semibold text-foreground">
+        {activeRelationship?.type === "romantic" ? "Relationship Timeline" : "Connection Timeline"}
+      </h3>
       <div className="space-y-2">
         {timeline.map((event, idx) => (
           <TimelineEventCard key={event.id} event={event} index={idx} participants={participants} activeRelationship={activeRelationship} />
