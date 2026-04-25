@@ -76,8 +76,9 @@ async function request(path, options = {}) {
     headers["X-Relationship-Id"] = relationshipId;
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), options.timeoutMs || REQUEST_TIMEOUT_MS);
+  const timeoutMs = options.timeoutMs === undefined ? REQUEST_TIMEOUT_MS : options.timeoutMs;
+  const controller = typeof AbortController !== "undefined" && timeoutMs > 0 ? new AbortController() : null;
+  const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
   let response;
   try {
@@ -85,7 +86,7 @@ async function request(path, options = {}) {
       method: options.method || "GET",
       headers,
       body,
-      signal: controller.signal,
+      signal: controller?.signal,
     });
   } catch (error) {
     if (error?.name === "AbortError") {
@@ -93,7 +94,7 @@ async function request(path, options = {}) {
     }
     throw error;
   } finally {
-    clearTimeout(timeout);
+    if (timeout) clearTimeout(timeout);
   }
 
   if (!response.ok) {
@@ -398,20 +399,24 @@ export const api = {
   },
   auth: {
     async login(payload) {
+      clearStoredSession();
       const result = await request("/api/auth/login", {
         method: "POST",
         body: payload,
         headers: { "X-Relationship-Id": "" },
+        timeoutMs: 0,
       });
       if (result?.token) setStoredAuthToken(result.token);
       if (result?.default_relationship_id) setStoredRelationshipId(result.default_relationship_id);
       return result;
     },
     async register(payload) {
+      clearStoredSession();
       const result = await request("/api/auth/register", {
         method: "POST",
         body: payload,
         headers: { "X-Relationship-Id": "" },
+        timeoutMs: 0,
       });
       if (result?.token) setStoredAuthToken(result.token);
       if (result?.default_relationship_id) setStoredRelationshipId(result.default_relationship_id);
@@ -420,6 +425,7 @@ export const api = {
     async bootstrap() {
       const result = await request("/api/auth/me", {
         headers: { "X-Relationship-Id": getStoredRelationshipId() || "" },
+        timeoutMs: 15000,
       });
       if (result?.default_relationship_id && !getStoredRelationshipId()) {
         setStoredRelationshipId(result.default_relationship_id);

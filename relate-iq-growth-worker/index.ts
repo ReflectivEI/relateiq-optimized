@@ -4156,28 +4156,29 @@ async function sendEmailThroughCloudflare(env: Env, payload: Record<string, unkn
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
+    try {
+      const url = new URL(request.url);
 
-    if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: getCorsHeaders(request, env) });
-    }
+      if (request.method === "OPTIONS") {
+        return new Response(null, { status: 204, headers: getCorsHeaders(request, env) });
+      }
 
-    if (url.pathname === "/health" && request.method === "GET") {
-      const state = await buildState(env, DEFAULT_RELATIONSHIP_ID);
-      return json(
-        {
-          ok: true,
-          service: "relateiq-cloudflare-api",
-          default_relationship_id: DEFAULT_RELATIONSHIP_ID,
-          questionnaireImported: state.questionnaireImported,
-          groqConfigured: getGroqApiKeys(env).length > 0,
-          groqKeysAvailable: getGroqApiKeys(env).length,
-          groqModel: getGroqModel(env),
-        },
-        request,
-        env,
-      );
-    }
+      if (url.pathname === "/health" && request.method === "GET") {
+        const state = await buildState(env, DEFAULT_RELATIONSHIP_ID);
+        return json(
+          {
+            ok: true,
+            service: "relateiq-cloudflare-api",
+            default_relationship_id: DEFAULT_RELATIONSHIP_ID,
+            questionnaireImported: state.questionnaireImported,
+            groqConfigured: getGroqApiKeys(env).length > 0,
+            groqKeysAvailable: getGroqApiKeys(env).length,
+            groqModel: getGroqModel(env),
+          },
+          request,
+          env,
+        );
+      }
 
     if (url.pathname === "/api/auth/login" && request.method === "POST") {
       const body = await readJson(request);
@@ -5438,6 +5439,17 @@ export default {
       }
     }
 
-    return json({ error: "not_found" }, request, env, 404);
+      return json({ error: "not_found" }, request, env, 404);
+    } catch (error) {
+      return json(
+        {
+          error: "internal_error",
+          message: error instanceof Error ? error.message : String(error),
+        },
+        request,
+        env,
+        500,
+      );
+    }
   },
 };
