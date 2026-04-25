@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import MetricExplainer from "@/components/ui/MetricExplainer";
-import { getDisplayPerspective, replaceParticipantNames } from "@/lib/relationshipParticipants";
+import { getDisplayPerspective, presentRelationshipText } from "@/lib/relationshipParticipants";
 
 function getPerspectiveColor(value, participants = ["Tony", "Drew"]) {
   const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
@@ -23,7 +23,7 @@ function getPerspectiveColor(value, participants = ["Tony", "Drew"]) {
   return "border-border bg-background text-foreground";
 }
 
-export default function InsightEntryCard({ entry, participants = ["Tony", "Drew"], onNoteUpdate, onDelete }) {
+export default function InsightEntryCard({ entry, participants = ["Tony", "Drew"], activeRelationship, onNoteUpdate, onDelete }) {
   const [expanded, setExpanded] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
   const [note, setNote] = useState(entry.note || "");
@@ -33,11 +33,12 @@ export default function InsightEntryCard({ entry, participants = ["Tony", "Drew"
   const dateLabel = entry.created_date
     ? format(parseISO(entry.created_date), "MMM d, yyyy")
     : entry.week_label || "";
-  const visibleCoreInsight = replaceParticipantNames(entry.core_insight, participants);
-  const visibleScenario = replaceParticipantNames(entry.scenario, participants);
-  const visiblePatterns = (entry.behavioral_patterns || []).map((pattern) => replaceParticipantNames(pattern, participants));
-  const visibleRisks = (entry.risk_flags || []).map((risk) => replaceParticipantNames(risk, participants));
-  const visibleStrengths = (entry.strengths || []).map((strength) => replaceParticipantNames(strength, participants));
+  const visibleCoreInsight = presentRelationshipText(entry.core_insight, participants, activeRelationship);
+  const visibleScenario = presentRelationshipText(entry.scenario, participants, activeRelationship);
+  const visiblePatterns = (entry.behavioral_patterns || []).map((pattern) => presentRelationshipText(pattern, participants, activeRelationship));
+  const visibleRisks = (entry.risk_flags || []).map((risk) => presentRelationshipText(risk, participants, activeRelationship));
+  const visibleStrengths = (entry.strengths || []).map((strength) => presentRelationshipText(strength, participants, activeRelationship));
+  const visibleNote = presentRelationshipText(note, participants, activeRelationship);
 
   const handleSaveNote = async () => {
     setSaving(true);
@@ -181,7 +182,7 @@ export default function InsightEntryCard({ entry, participants = ["Tony", "Drew"
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground italic">
-                  {note || "No note yet — click the pencil to add one."}
+                  {visibleNote || "No note yet — click the pencil to add one."}
                 </p>
               )}
             </div>

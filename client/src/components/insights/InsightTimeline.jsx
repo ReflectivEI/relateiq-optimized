@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { getDisplayPerspective, replaceParticipantNames } from "@/lib/relationshipParticipants";
+import { getDisplayPerspective, presentRelationshipText } from "@/lib/relationshipParticipants";
 
 const ICON_MAP = {
   coach: MessageCircle,
@@ -197,34 +197,42 @@ function SectionCard({ section }) {
   );
 }
 
-function buildEventDetails(event, participants) {
+function buildEventDetails(event, participants, activeRelationship) {
   if (event.type === "coach") {
-    const guidanceSections = parseStructuredText(replaceParticipantNames(cleanText(event.aiResponse), participants), "Guidance");
+    const guidanceSections = parseStructuredText(
+      presentRelationshipText(cleanText(event.aiResponse), participants, activeRelationship),
+      "Guidance",
+    );
     const usableGuidanceSections = guidanceSections.filter(
       (section) => cleanText(section.content || "").length > 0 || section.list?.length > 0
     );
     return {
       title: event.titleLabel,
       summary:
-        previewText(replaceParticipantNames(event.summary, participants), `A short coaching request was opened for ${event.meta}.`),
+        previewText(
+          presentRelationshipText(event.summary, participants, activeRelationship),
+          `A short coaching request was opened for ${event.meta}.`,
+        ),
       sections: [
         {
           title: "Original Situation",
-          content: replaceParticipantNames(cleanText(event.summary), participants) || `A short coaching request was opened for ${event.meta}.`,
+          content:
+            presentRelationshipText(cleanText(event.summary), participants, activeRelationship) ||
+            `A short coaching request was opened for ${event.meta}.`,
         },
         ...(
           usableGuidanceSections.length > 0
             ? usableGuidanceSections.length > 1
               ? usableGuidanceSections.map((section) => ({
                   ...section,
-                  content: replaceParticipantNames(section.content, participants),
-                  list: section.list?.map((item) => replaceParticipantNames(item, participants)),
+                  content: presentRelationshipText(section.content, participants, activeRelationship),
+                  list: section.list?.map((item) => presentRelationshipText(item, participants, activeRelationship)),
                 }))
-              : [{ title: "Guidance Given", content: replaceParticipantNames(cleanText(event.aiResponse), participants) }]
+              : [{ title: "Guidance Given", content: presentRelationshipText(cleanText(event.aiResponse), participants, activeRelationship) }]
             : buildCoachFallbackSections(event.summary, event.meta).map((section) => ({
                 ...section,
-                content: replaceParticipantNames(section.content, participants),
-                list: section.list?.map((item) => replaceParticipantNames(item, participants)),
+                content: presentRelationshipText(section.content, participants, activeRelationship),
+                list: section.list?.map((item) => presentRelationshipText(item, participants, activeRelationship)),
               }))
         ),
       ],
@@ -238,13 +246,13 @@ function buildEventDetails(event, participants) {
       sections: [
         {
           title: "Situation Type",
-          content: replaceParticipantNames(cleanText(event.summary), participants) || "Repair attempted.",
+          content: presentRelationshipText(cleanText(event.summary), participants, activeRelationship) || "Repair attempted.",
         },
         ...(cleanText(event.bestMove)
-          ? [{ title: "Best Repair Move", content: replaceParticipantNames(cleanText(event.bestMove), participants) }]
+          ? [{ title: "Best Repair Move", content: presentRelationshipText(cleanText(event.bestMove), participants, activeRelationship) }]
           : []),
         ...(normalizeItems(event.whatToAvoid).length > 0
-          ? [{ title: "What To Avoid", list: normalizeItems(event.whatToAvoid).map((item) => replaceParticipantNames(item, participants)) }]
+          ? [{ title: "What To Avoid", list: normalizeItems(event.whatToAvoid).map((item) => presentRelationshipText(item, participants, activeRelationship)) }]
           : []),
       ],
     };
@@ -253,20 +261,20 @@ function buildEventDetails(event, participants) {
   if (event.type === "insight") {
     return {
       title: "Generated Insight",
-      summary: previewText(event.summary, "A new insight was added to the relationship timeline."),
+      summary: previewText(presentRelationshipText(event.summary, participants, activeRelationship), "A new insight was added to the relationship timeline."),
       sections: [
         {
           title: "Core Insight",
-          content: replaceParticipantNames(cleanText(event.summary), participants) || "Insight generated.",
+          content: presentRelationshipText(cleanText(event.summary), participants, activeRelationship) || "Insight generated.",
         },
         ...(normalizeItems(event.behavioralPatterns).length > 0
-          ? [{ title: "Behavioral Patterns", list: normalizeItems(event.behavioralPatterns).map((item) => replaceParticipantNames(item, participants)) }]
+          ? [{ title: "Behavioral Patterns", list: normalizeItems(event.behavioralPatterns).map((item) => presentRelationshipText(item, participants, activeRelationship)) }]
           : []),
         ...(normalizeItems(event.riskFlags).length > 0
-          ? [{ title: "Risk Flags", list: normalizeItems(event.riskFlags).map((item) => replaceParticipantNames(item, participants)) }]
+          ? [{ title: "Risk Flags", list: normalizeItems(event.riskFlags).map((item) => presentRelationshipText(item, participants, activeRelationship)) }]
           : []),
         ...(normalizeItems(event.strengths).length > 0
-          ? [{ title: "Strengths", list: normalizeItems(event.strengths).map((item) => replaceParticipantNames(item, participants)) }]
+          ? [{ title: "Strengths", list: normalizeItems(event.strengths).map((item) => presentRelationshipText(item, participants, activeRelationship)) }]
           : []),
       ],
     };
@@ -274,19 +282,19 @@ function buildEventDetails(event, participants) {
 
   return {
     title: event.title,
-    summary: previewText(replaceParticipantNames(event.summary, participants)),
-    sections: [{ title: "Details", content: replaceParticipantNames(cleanText(event.summary), participants) || "No detail available." }],
+    summary: previewText(presentRelationshipText(event.summary, participants, activeRelationship)),
+    sections: [{ title: "Details", content: presentRelationshipText(cleanText(event.summary), participants, activeRelationship) || "No detail available." }],
   };
 }
 
-function TimelineEventCard({ event, index, participants }) {
+function TimelineEventCard({ event, index, participants, activeRelationship }) {
   const [expanded, setExpanded] = useState(false);
   const Icon = ICON_MAP[event.type] || MessageCircle;
   const styles = CARD_STYLES[index % 2];
-  const details = buildEventDetails(event, participants);
+  const details = buildEventDetails(event, participants, activeRelationship);
   const metaLabel = event.type === "insight"
     ? getDisplayPerspective(event.meta, participants)
-    : replaceParticipantNames(event.meta, participants);
+    : presentRelationshipText(event.meta, participants, activeRelationship);
 
   return (
     <motion.div
@@ -353,6 +361,7 @@ export default function InsightTimeline({
   insights = [],
   maxItems = 8,
   participants = ["Tony", "Drew"],
+  activeRelationship,
 }) {
   const events = [
     ...sessions.map((s) => ({
@@ -405,7 +414,7 @@ export default function InsightTimeline({
       <h3 className="font-display text-lg font-semibold text-foreground">Relationship Timeline</h3>
       <div className="space-y-2">
         {timeline.map((event, idx) => (
-          <TimelineEventCard key={event.id} event={event} index={idx} participants={participants} />
+          <TimelineEventCard key={event.id} event={event} index={idx} participants={participants} activeRelationship={activeRelationship} />
         ))}
       </div>
     </div>

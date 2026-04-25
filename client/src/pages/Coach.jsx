@@ -101,6 +101,15 @@ function summarizeCoachSession(session) {
   return { title, description };
 }
 
+function normalizeParticipantSelection(value, participants, fallback) {
+  if (typeof value === "string" && participants.includes(value)) return value;
+  if (typeof value === "string") {
+    const match = participants.find((participant) => participant.toLowerCase() === value.toLowerCase());
+    if (match) return match;
+  }
+  return fallback;
+}
+
 export default function Coach() {
   const { activeRelationshipId, activeRelationship, participants } = useRelationshipAuth();
   const [speaker, setSpeaker] = useState(participants[0]);
@@ -122,11 +131,25 @@ export default function Coach() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!participants.includes(speaker)) setSpeaker(participants[0]);
-    if (!participants.includes(speakingTo) || speakingTo === speaker) {
-      setSpeakingTo(getPartnerName(speaker, participants));
+    const normalizedSpeaker = normalizeParticipantSelection(speaker, participants, participants[0]);
+    if (normalizedSpeaker !== speaker) setSpeaker(normalizedSpeaker);
+
+    const normalizedTarget = normalizeParticipantSelection(
+      speakingTo,
+      participants,
+      getPartnerName(normalizedSpeaker, participants),
+    );
+    if (normalizedTarget !== speakingTo || normalizedTarget === normalizedSpeaker) {
+      setSpeakingTo(getPartnerName(normalizedSpeaker, participants));
     }
   }, [participants, speaker, speakingTo]);
+
+  const currentSpeaker = normalizeParticipantSelection(speaker, participants, participants[0]);
+  const currentSpeakingTo = normalizeParticipantSelection(
+    speakingTo,
+    participants,
+    getPartnerName(currentSpeaker, participants),
+  );
 
   const { data: triggers = [] } = useQuery({
     queryKey: ["triggers-coach", activeRelationshipId],
@@ -178,64 +201,69 @@ export default function Coach() {
     });
   }, [legacySlots, triggers, recentCheckIns, pastSessions]);
 
-  const speakerProfile = profiles.find((p) => p.person_name === speaker);
-  const targetProfile = profiles.find((p) => p.person_name === speakingTo);
-  const speakerResponses = speaker === participants[0] ? tonyResponses : drewResponses;
-  const targetResponses = speakingTo === participants[0] ? tonyResponses : drewResponses;
+  const speakerProfile = profiles.find((p) => p.person_name === currentSpeaker);
+  const targetProfile = profiles.find((p) => p.person_name === currentSpeakingTo);
+  const speakerResponses = currentSpeaker === participants[0] ? tonyResponses : drewResponses;
+  const targetResponses = currentSpeakingTo === participants[0] ? tonyResponses : drewResponses;
   const terms = getRelationshipTerms(activeRelationship);
 
   const runCoachCall = async (situationText) => {
     setError(null);
     setPipelineTrace(null);
-
+    const normalizedSpeaker = currentSpeaker;
+    const normalizedTarget = currentSpeakingTo;
     try {
-      // Validate input
-      validateInput({ speaker, speakingTo, situation: situationText });
-
-      if (!speaker || !speakingTo || !situationText.trim()) return;
-
-      setLoading(true);
-      setResponse(null);
-      setBaseResponse(null);
-      setPredictiveOutput(null);
-      setCreditError(false);
-
-      // Run deterministic pipeline
-      const pipelineResult = await pipelineEngine.executePipeline({
-        speaker,
-        speakingTo,
-        situation: situationText,
-      });
-
-      if (pipelineResult.error) {
-        throw new Error(pipelineResult.error);
-      }
-
-      setPipelineTrace(pipelineResult.trace);
+      if (normalizedSpeaker !== speaker) setSpeaker(normalizedSpeaker);
+      if (normalizedTarget !== speakingTo) setSpeakingTo(normalizedTarget);
+      validateInput({ speaker: normalizedSpeaker, speakingTo: normalizedTarget, situation: situationText });
     } catch (err) {
       const fallback = handleError(err, ERROR_TYPES.INVALID_INPUT);
       setError(fallback);
-      setLoading(false);
       return;
     }
 
+    if (!normalizedSpeaker || !normalizedTarget || !situationText.trim()) return;
+
+    setLoading(true);
+    setResponse(null);
+    setBaseResponse(null);
+    setPredictiveOutput(null);
+    setCreditError(false);
+
+    try {
+      const pipelineResult = await pipelineEngine.executePipeline({
+        speaker: normalizedSpeaker,
+        speakingTo: normalizedTarget,
+        situation: situationText,
+      });
+
+      if (pipelineResult?.trace) {
+        setPipelineTrace(pipelineResult.trace);
+      }
+      if (pipelineResult?.error) {
+        console.warn("[Coach] deterministic pipeline error", pipelineResult.error);
+      }
+    } catch (err) {
+      console.warn("[Coach] continuing without deterministic pipeline", err);
+    }
+
     const triggerCtx = [
-      serializeTriggers(triggers, speaker),
-      serializeTriggers(triggers, speakingTo),
+      serializeTriggers(triggers, normalizedSpeaker),
+      serializeTriggers(triggers, normalizedTarget),
     ]
       .filter(Boolean)
       .join("\n\n");
 
     const prompt = buildCoachPrompt({
-      speaker,
-      speakingTo,
+      speaker: normalizedSpeaker,
+      speakingTo: normalizedTarget,
       situation: situationText,
-      speakerProfile,
-      targetProfile,
-      speakerResponses,
-      targetResponses,
+      speakerProfile: profiles.find((p) => p.person_name === normalizedSpeaker),
+      targetProfile: profiles.find((p) => p.person_name === normalizedTarget),
+      speakerResponses: normalizedSpeaker === participants[0] ? tonyResponses : drewResponses,
+      targetResponses: normalizedTarget === participants[0] ? tonyResponses : drewResponses,
       pastSessions: pastSessions
-        .filter((s) => s.speaker === speaker || s.speaking_to === speaker)
+        .filter((s) => s.speaker === normalizedSpeaker || s.speaking_to === normalizedSpeaker)
         .slice(0, 10),
     }) + (triggerCtx ? `\n\nTRIGGER MEMORY:\n${triggerCtx}` : "");
 
@@ -245,7 +273,7 @@ export default function Coach() {
         {
           prompt,
           model: "claude_sonnet_4_6",
-          partnerLanguage: { personName: speaker, partnerName: speakingTo },
+          partnerLanguage: { personName: normalizedSpeaker, partnerName: normalizedTarget },
         },
         35000,
         null,
@@ -261,7 +289,7 @@ export default function Coach() {
     }
 
     if (!result) {
-      result = buildFallbackCoachResponse(speaker, speakingTo, situationText);
+      result = buildFallbackCoachResponse(normalizedSpeaker, normalizedTarget, situationText);
     }
 
     // ENFORCE STRUCTURE
@@ -270,8 +298,8 @@ export default function Coach() {
 
     // Save session with structured output
     const session = await api.entities.CoachSession.create({
-      speaker,
-      speaking_to: speakingTo,
+      speaker: normalizedSpeaker,
+      speaking_to: normalizedTarget,
       situation: situationText,
       ai_response: modes.full, // Store full mode by default
       tool_type: "coach",
@@ -293,8 +321,8 @@ export default function Coach() {
     const situationMap = {
       handling_conflict: `We're having or heading into a conflict. I need help navigating this conversation and knowing how to approach it.`,
       repair_after_tension: `We had tension/conflict and now I need to repair. Help me know what to say and how to reconnect.`,
-      feel_misunderstood: `I feel like ${speakingTo} isn't really understanding me. I feel misheard or dismissed.`,
-      they_feel_distant: `${speakingTo} seems distant or withdrawn. I'm concerned and don't know how to reconnect.`,
+      feel_misunderstood: `I feel like ${currentSpeakingTo} isn't really understanding me. I feel misheard or dismissed.`,
+      they_feel_distant: `${currentSpeakingTo} seems distant or withdrawn. I'm concerned and don't know how to reconnect.`,
       something_felt_off: `Something felt off in our interaction but I can't quite place what. Help me understand what might have happened.`,
       say_this_better: `I want to say something but I'm worried it will come out wrong. Help me phrase it in a way that won't trigger them.`,
       overwhelmed_triggered: `I'm feeling overwhelmed or triggered right now. Help me understand what's happening and how to navigate this state.`,
@@ -389,26 +417,26 @@ export default function Coach() {
               {participants.map((person) => (
                 <Button
                   key={person}
-                  variant={speaker === person ? "default" : "outline"}
+                  variant={currentSpeaker === person ? "default" : "outline"}
                   size="sm"
                   onClick={() => {
                     setSpeaker(person);
-                    if (person === speakingTo) setSpeakingTo("");
+                    if (person === currentSpeakingTo) setSpeakingTo(getPartnerName(person, participants));
                   }}
                   className="text-xs"
                 >
                   {person}
                 </Button>
               ))}
-              {speaker && (
+              {currentSpeaker && (
                 <>
                   <span className="text-xs text-muted-foreground px-2">→</span>
                   {participants.map((person) => {
-                    if (person === speaker) return null;
+                    if (person === currentSpeaker) return null;
                     return (
                       <Button
                         key={person}
-                        variant={speakingTo === person ? "default" : "outline"}
+                        variant={currentSpeakingTo === person ? "default" : "outline"}
                         size="sm"
                         onClick={() => setSpeakingTo(person)}
                         className="text-xs"
@@ -434,14 +462,14 @@ export default function Coach() {
           </div>
 
           {/* Suggestion Pills */}
-          {speaker && speakingTo && situation.length < 10 && (
+          {currentSpeaker && currentSpeakingTo && situation.length < 10 && (
             <CoachSuggestionPills pills={SUGGESTION_PILLS} onSelect={handleSuggestionPill} loading={loading} />
           )}
 
           {/* Submit Button */}
           <Button
             onClick={() => runCoachCall(situation)}
-            disabled={loading || !speaker || !speakingTo || !situation.trim()}
+            disabled={loading || !currentSpeaker || !currentSpeakingTo || !situation.trim()}
             className="w-full sm:w-auto gap-2"
             size="lg"
           >
@@ -465,7 +493,7 @@ export default function Coach() {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Sparkles className="w-5 h-5 text-primary" />
-                  Guidance for {speaker} → {speakingTo}
+                  Guidance for {currentSpeaker} → {currentSpeakingTo}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -490,8 +518,8 @@ export default function Coach() {
                     <ResponseExportBar
                       contentRef={responseRef}
                       content={response}
-                      filename={`coach-guidance-${speaker}-${speakingTo}.pdf`}
-                      title={`Guidance: ${speaker} → ${speakingTo}`}
+                      filename={`coach-guidance-${currentSpeaker}-${currentSpeakingTo}.pdf`}
+                      title={`Guidance: ${currentSpeaker} → ${currentSpeakingTo}`}
                     />
                   </div>
                 </div>
@@ -502,14 +530,14 @@ export default function Coach() {
             <NotesPanel
               section="coach"
               relatedItemId={sessionId}
-              personName={speaker}
+              personName={currentSpeaker}
             />
 
             {/* Predictive Outcomes */}
             {baseResponse && (
               <PredictiveOutcomeBlock
-                speaker={speaker}
-                speakingTo={speakingTo}
+                speaker={currentSpeaker}
+                speakingTo={currentSpeakingTo}
                 situation={situation}
                 speakerProfile={speakerProfile}
                 targetProfile={targetProfile}
@@ -521,7 +549,7 @@ export default function Coach() {
               <TracePanel
                 trace={pipelineTrace}
                 metadata={{
-                  perspective: `${speaker}→${speakingTo}`,
+                  perspective: `${currentSpeaker}→${currentSpeakingTo}`,
                   patterns: speakerProfile?.trait_weights || {},
                   frameworks: ["EFT", "GOTTMAN", "CBT"],
                 }}

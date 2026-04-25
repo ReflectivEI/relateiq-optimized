@@ -61,6 +61,20 @@ export function getActivePerspectiveKeys(participants = ["Tony", "Drew"]) {
   ];
 }
 
+export function isPerspectiveInActivePair(value, participants = ["Tony", "Drew"]) {
+  if (!value) return true;
+  const valid = new Set([
+    ...getActivePerspectiveKeys(participants),
+    "Tony",
+    "Drew",
+    "Tony→Drew",
+    "Drew→Tony",
+    "Tony+Drew",
+  ]);
+  const display = getDisplayPerspective(value, participants);
+  return valid.has(value) || valid.has(display);
+}
+
 export function getDisplayPerspective(value, participants = ["Tony", "Drew"]) {
   const labels = getPerspectiveLabels(participants);
   return labels[value] || getDisplayLabel(value);
@@ -131,9 +145,79 @@ export function replaceParticipantNames(text, participants = ["Tony", "Drew"]) {
   if (!text) return text;
   const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
   return String(text)
+    .replace(/\bTony & Drew\b/g, `${primaryPerson} & ${secondaryPerson}`)
     .replace(/\bTony\b/g, primaryPerson)
     .replace(/\bDrew\b/g, secondaryPerson)
-    .replace(/\bTony & Drew\b/g, `${primaryPerson} & ${secondaryPerson}`);
+    .replace(/\bTony→Drew\b/g, `${primaryPerson}→${secondaryPerson}`)
+    .replace(/\bDrew→Tony\b/g, `${secondaryPerson}→${primaryPerson}`)
+    .replace(/\bTony\+Drew\b/g, `${primaryPerson}+${secondaryPerson}`);
+}
+
+function matchCase(source, replacement) {
+  if (source === source.toUpperCase()) return replacement.toUpperCase();
+  if (source[0] === source[0]?.toUpperCase()) {
+    return replacement.charAt(0).toUpperCase() + replacement.slice(1);
+  }
+  return replacement;
+}
+
+export function rewriteRelationshipCopy(text, activeRelationshipOrType) {
+  if (!text) return text;
+  const terms = getRelationshipTerms(activeRelationshipOrType);
+  if (terms.type === "romantic") return String(text);
+
+  const replacements = [
+    [/\bpartners\b/gi, terms.counterpartPlural],
+    [/\bpartner\b/gi, terms.counterpart],
+    [/\bcouples\b/gi, terms.bondPlural],
+    [/\bcouple'?s\b/gi, `${terms.bond}`],
+    [/\bcouple\b/gi, terms.bond],
+    [/\bromantic relationship\b/gi, terms.bond],
+    [/\brelationships\b/gi, terms.bondPlural],
+    [/\brelationship\b/gi, terms.bond],
+    [/\bintimacy\b/gi, terms.closeness],
+  ];
+
+  return replacements.reduce(
+    (next, [pattern, replacement]) =>
+      next.replace(pattern, (match) => matchCase(match, replacement)),
+    String(text),
+  );
+}
+
+export function getForeignParticipantNames(relationships = [], activeParticipants = []) {
+  const activeSet = new Set((activeParticipants || []).map((name) => String(name || "").trim()).filter(Boolean));
+  const hidden = new Set();
+
+  relationships.forEach((relationship) => {
+    [
+      ...(Array.isArray(relationship?.participant_names) ? relationship.participant_names : []),
+      ...(Array.isArray(relationship?.participants) ? relationship.participants : []),
+    ]
+      .map((name) => String(name || "").trim())
+      .filter(Boolean)
+      .forEach((name) => {
+        if (!activeSet.has(name)) hidden.add(name);
+      });
+  });
+
+  ["Tony", "Drew", "Desi"].forEach((seededName) => {
+    if (!activeSet.has(seededName)) hidden.add(seededName);
+  });
+
+  return [...hidden];
+}
+
+export function containsForeignParticipantNames(text, foreignNames = []) {
+  if (!text) return false;
+  return foreignNames.some((name) => {
+    const pattern = new RegExp(`\\b${String(name).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+    return pattern.test(String(text));
+  });
+}
+
+export function presentRelationshipText(text, participants = ["Tony", "Drew"], activeRelationshipOrType) {
+  return rewriteRelationshipCopy(replaceParticipantNames(text, participants), activeRelationshipOrType);
 }
 
 export function buildParticipantData(participants, profiles = [], firstResponses = [], secondResponses = []) {

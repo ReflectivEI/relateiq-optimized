@@ -21,9 +21,12 @@ import { isAfter, parseISO, subMonths } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import {
+  containsForeignParticipantNames,
   getActivePerspectiveKeys,
   getDisplayPerspective,
-  replaceParticipantNames,
+  getForeignParticipantNames,
+  isPerspectiveInActivePair,
+  presentRelationshipText,
 } from "@/lib/relationshipParticipants";
 
 const TIME_RANGES = [
@@ -43,10 +46,6 @@ function getPerspectiveBadgeClass(value, participants = ["Tony", "Drew"]) {
   return "border-border bg-background text-foreground";
 }
 
-function escapeRegex(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 function buildEntryText(entry) {
   return [
     entry.perspective,
@@ -61,48 +60,26 @@ function buildEntryText(entry) {
     .join("\n");
 }
 
-function getRelationshipParticipantNames(relationship) {
-  return [
-    ...(Array.isArray(relationship?.participant_names) ? relationship.participant_names : []),
-    ...(Array.isArray(relationship?.participants) ? relationship.participants : []),
-  ]
-    .map((name) => String(name || "").trim())
-    .filter(Boolean);
-}
-
-function getHiddenParticipantNames(relationships = [], activeParticipants = []) {
-  const activeSet = new Set(activeParticipants);
-  const hidden = new Set();
-  relationships.forEach((relationship) => {
-    getRelationshipParticipantNames(relationship).forEach((name) => {
-      if (!activeSet.has(name)) hidden.add(name);
-    });
-  });
-  return [...hidden];
-}
-
 function isEntryVisibleForParticipants(entry, hiddenParticipantNames) {
   const haystack = buildEntryText(entry);
   if (!haystack) return true;
-  return !hiddenParticipantNames.some((name) => {
-    const pattern = new RegExp(`\\b${escapeRegex(name)}\\b`, "i");
-    return pattern.test(haystack);
-  });
+  return !containsForeignParticipantNames(haystack, hiddenParticipantNames);
 }
 
-function sanitizeEntryText(entry, participants) {
+function sanitizeEntryText(entry, participants, activeRelationship) {
   return {
     ...entry,
-    core_insight: replaceParticipantNames(entry.core_insight, participants),
-    scenario: replaceParticipantNames(entry.scenario, participants),
-    behavioral_patterns: (entry.behavioral_patterns || []).map((item) => replaceParticipantNames(item, participants)),
-    risk_flags: (entry.risk_flags || []).map((item) => replaceParticipantNames(item, participants)),
-    strengths: (entry.strengths || []).map((item) => replaceParticipantNames(item, participants)),
+    core_insight: presentRelationshipText(entry.core_insight, participants, activeRelationship),
+    scenario: presentRelationshipText(entry.scenario, participants, activeRelationship),
+    behavioral_patterns: (entry.behavioral_patterns || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
+    risk_flags: (entry.risk_flags || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
+    strengths: (entry.strengths || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
+    note: presentRelationshipText(entry.note, participants, activeRelationship),
   };
 }
 
 export default function InsightLibrary() {
-  const { activeRelationshipId, participants, relationshipLabel, relationships } = useRelationshipAuth();
+  const { activeRelationshipId, activeRelationship, participants, relationshipLabel, relationships } = useRelationshipAuth();
   const [search, setSearch] = useState("");
   const [perspectiveFilter, setPerspectiveFilter] = useState("All");
   const [timeRange, setTimeRange] = useState(null);
@@ -121,13 +98,18 @@ export default function InsightLibrary() {
   });
 
   const hiddenParticipantNames = useMemo(
-    () => getHiddenParticipantNames(relationships, participants),
+    () => getForeignParticipantNames(relationships, participants),
     [relationships, participants],
   );
 
   const safeEntries = useMemo(
-    () => entries.filter((entry) => isEntryVisibleForParticipants(entry, hiddenParticipantNames)),
-    [entries, hiddenParticipantNames],
+    () =>
+      entries.filter(
+        (entry) =>
+          isPerspectiveInActivePair(entry.perspective, participants) &&
+          isEntryVisibleForParticipants(entry, hiddenParticipantNames),
+      ),
+    [entries, hiddenParticipantNames, participants],
   );
 
   const filtered = useMemo(() => {
@@ -148,7 +130,7 @@ export default function InsightLibrary() {
     if (search.trim()) {
       const query = search.toLowerCase();
       result = result.filter((entry) => {
-        const visibleEntry = sanitizeEntryText(entry, participants);
+        const visibleEntry = sanitizeEntryText(entry, participants, activeRelationship);
         return (
           visibleEntry.core_insight?.toLowerCase().includes(query) ||
           visibleEntry.behavioral_patterns?.some((item) => item.toLowerCase().includes(query)) ||
@@ -161,7 +143,7 @@ export default function InsightLibrary() {
     }
 
     return result;
-  }, [safeEntries, timeRange, perspectiveFilter, search, participants]);
+  }, [safeEntries, timeRange, perspectiveFilter, search, participants, activeRelationship]);
 
   const totalByPerspective = useMemo(() => {
     const counts = {};
@@ -256,7 +238,7 @@ export default function InsightLibrary() {
       </div>
 
       {entries.length > safeEntries.length && (
-        <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+            <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
           {entries.length - safeEntries.length} saved {entries.length - safeEntries.length === 1 ? "entry was" : "entries were"} hidden because the content referenced someone outside the active pair. This prevents cross-profile leakage.
         </div>
       )}
@@ -356,6 +338,7 @@ export default function InsightLibrary() {
                 key={entry.id}
                 entry={entry}
                 participants={participants}
+                activeRelationship={activeRelationship}
                 onNoteUpdate={handleNoteUpdate}
                 onDelete={handleDeleteEntry}
               />
@@ -395,6 +378,7 @@ export default function InsightLibrary() {
                       key={entry.id}
                       entry={entry}
                       participants={participants}
+                      activeRelationship={activeRelationship}
                       onNoteUpdate={handleNoteUpdate}
                       onDelete={handleDeleteEntry}
                     />
@@ -415,7 +399,7 @@ export default function InsightLibrary() {
             Patterns and risks that keep appearing across visible saved analyses for this pair.
           </p>
           <PatternEvolutionList
-            entries={safeEntries.map((entry) => sanitizeEntryText(entry, participants))}
+            entries={safeEntries.map((entry) => sanitizeEntryText(entry, participants, activeRelationship))}
           />
         </TabsContent>
       </Tabs>
