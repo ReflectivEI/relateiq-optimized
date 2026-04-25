@@ -18,6 +18,10 @@ const FRIEND_FOCUSES = [
   "honesty between us",
   "trusting each other with real life",
   "keeping this friendship strong over time",
+  "repairing things after a misunderstanding",
+  "being the safe person each other can call",
+  "what loyalty looks like between us",
+  "showing up when one of us is stretched thin",
 ];
 
 const PARTNER_TEMPLATES = {
@@ -51,6 +55,8 @@ const FRIEND_TEMPLATES = {
     (focus) => `If we made ${focus} even more fun, what would you want us to try?`,
     (focus) => `What little thing around ${focus} makes you think, "Yep, this is my person"?`,
     (focus) => `What is one low-stakes way we already do ${focus} well together?`,
+    (focus) => `What is one thing about ${focus} that already makes this friendship feel solid and real?`,
+    (focus) => `What is something easy, funny, or familiar about ${focus} that you never want us to lose?`,
   ],
   reflective: [
     (focus) => `What do you wish I understood better about you when it comes to ${focus}?`,
@@ -58,6 +64,8 @@ const FRIEND_TEMPLATES = {
     (focus) => `What gets overlooked between us around ${focus}, even when our intentions are good?`,
     (focus) => `What would make ${focus} feel more honest, grounded, or real between us?`,
     (focus) => `What are you learning about yourself lately through ${focus}?`,
+    (focus) => `When it comes to ${focus}, what do I read well about you and what do I still miss?`,
+    (focus) => `What would help ${focus} feel more mutual instead of one-sided between us?`,
   ],
   deep: [
     (focus) => `What part of ${focus} feels most vulnerable or meaningful to you right now?`,
@@ -65,6 +73,8 @@ const FRIEND_TEMPLATES = {
     (focus) => `What do you most want me to protect or handle well around ${focus}?`,
     (focus) => `What truth about ${focus} do you hope I never make light of?`,
     (focus) => `What would deepen trust between us around ${focus} in a real, lasting way?`,
+    (focus) => `If ${focus} became a stress point between us, what would you most need me to remember about you?`,
+    (focus) => `What fear or hope around ${focus} do you rarely say out loud, even though it shapes how you show up with me?`,
   ],
 };
 

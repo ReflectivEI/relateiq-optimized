@@ -139,7 +139,9 @@ export default function AppLayout() {
     support: false,
   });
   const isOwner = activeRelationship?.current_user_role === "owner";
-  const showPlayLabII = String(activeRelationship?.type || "romantic").toLowerCase() === "romantic";
+  const showPlayLabII = ["romantic", "friendship"].includes(
+    String(activeRelationship?.type || "romantic").toLowerCase(),
+  );
   const selectedManagedRelationshipId = useMemo(
     () => selectedManagedRow?.relationship_id || editingRelationshipId || "",
     [selectedManagedRow, editingRelationshipId],
