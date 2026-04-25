@@ -925,10 +925,24 @@ async function buildRelationshipSummaryPersistent(
       ? mergeParticipantNames(relationship.participants)
       : mergeParticipantNames(relationship.participants, memberNames);
   const currentUser = users.find((user) => user.id === userId) || null;
+  const currentUserRole = await inferRelationshipRolePersistent(
+    env,
+    relationship,
+    userId,
+    relationshipMemberships,
+    currentUser,
+  );
+  const ownerName = normalizeText(relationship.participants?.[0] || participantNames[0] || "");
   const currentPersonName =
     participantNames.find(
       (participant) => participant.trim().toLowerCase() === (currentUser?.name || "").trim().toLowerCase(),
-    ) || participantNames[0] || currentUser?.name || "Tony";
+    ) ||
+    (currentUserRole === "participant" && participantNames.length === 2
+      ? participantNames.find((participant) => participant.trim().toLowerCase() !== ownerName.trim().toLowerCase())
+      : null) ||
+    participantNames[0] ||
+    currentUser?.name ||
+    "Tony";
   const memberCount =
     relationshipMemberships.length ||
     (currentUser && participantNames.some((participant) => participant.trim().toLowerCase() === currentUser.name.trim().toLowerCase())
@@ -944,13 +958,7 @@ async function buildRelationshipSummaryPersistent(
       ? false
       : (await countQuestionnaireResponsesForPersonPersistent(env, relationship.id, currentPersonName)) < 94,
     current_person_name: currentPersonName,
-    current_user_role: await inferRelationshipRolePersistent(
-      env,
-      relationship,
-      userId,
-      relationshipMemberships,
-      currentUser,
-    ),
+    current_user_role: currentUserRole,
   };
 }
 

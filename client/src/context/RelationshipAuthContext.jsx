@@ -4,6 +4,11 @@ import { queryClientInstance } from "@/lib/query-client";
 import { getRelationshipLabel, getRelationshipParticipants } from "@/lib/relationshipParticipants";
 
 const RelationshipAuthContext = createContext(null);
+const HIDDEN_RELATIONSHIP_IDS = new Set(["relationship_tony_drew_friendship"]);
+
+function sanitizeRelationships(list = []) {
+  return list.filter((relationship) => !HIDDEN_RELATIONSHIP_IDS.has(relationship?.id));
+}
 
 export function RelationshipAuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
@@ -13,13 +18,16 @@ export function RelationshipAuthProvider({ children }) {
   const [error, setError] = useState("");
 
   const syncBootstrap = (payload) => {
+    const nextRelationships = sanitizeRelationships(payload?.relationships || []);
     setUser(payload?.user || null);
-    setRelationships(payload?.relationships || []);
+    setRelationships(nextRelationships);
     const storedId = api.session.getStoredRelationshipId();
     const nextId =
-      payload?.relationships?.some((relationship) => relationship.id === storedId)
+      nextRelationships.some((relationship) => relationship.id === storedId)
         ? storedId
-        : payload?.default_relationship_id || payload?.relationships?.[0]?.id || "";
+        : nextRelationships.find((relationship) => relationship.id === payload?.default_relationship_id)?.id ||
+          nextRelationships[0]?.id ||
+          "";
     api.session.setStoredRelationshipId(nextId);
     setActiveRelationshipId(nextId);
     setError("");
@@ -131,13 +139,14 @@ export function RelationshipAuthProvider({ children }) {
   };
 
   const updateRelationships = (nextRelationships, defaultRelationshipId) => {
-    setRelationships(nextRelationships);
+    const sanitizedRelationships = sanitizeRelationships(nextRelationships);
+    setRelationships(sanitizedRelationships);
     const nextId =
-      defaultRelationshipId && nextRelationships.some((relationship) => relationship.id === defaultRelationshipId)
+      defaultRelationshipId && sanitizedRelationships.some((relationship) => relationship.id === defaultRelationshipId)
         ? defaultRelationshipId
-        : nextRelationships.some((relationship) => relationship.id === activeRelationshipId)
+        : sanitizedRelationships.some((relationship) => relationship.id === activeRelationshipId)
           ? activeRelationshipId
-          : nextRelationships[0]?.id || "";
+          : sanitizedRelationships[0]?.id || "";
     api.session.setStoredRelationshipId(nextId);
     setActiveRelationshipId(nextId);
     queryClientInstance.clear();
