@@ -87,7 +87,15 @@ function buildTemplates(relationshipTerms, relationshipLabel) {
   const bond = relationshipTerms?.bond || "connection";
   const type = relationshipTerms?.type || "romantic";
 
-  const templates = structuredClone(BASE_TEMPLATES);
+  const templates = Object.fromEntries(
+    Object.entries(BASE_TEMPLATES).map(([key, template]) => [
+      key,
+      {
+        ...template,
+        examples: [...template.examples],
+      },
+    ]),
+  );
   templates.communication.examples = [
     `Ask your ${counterpart}: "What's one thing I did this week that made you feel valued?"`,
     `Try: "I noticed something felt off yesterday. I want to understand what you're feeling."`,
