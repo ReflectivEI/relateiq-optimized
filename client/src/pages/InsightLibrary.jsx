@@ -119,8 +119,13 @@ export default function InsightLibrary() {
     [entries, hiddenParticipantNames, participants, activeRelationship],
   );
 
+  const sanitizedSafeEntries = useMemo(
+    () => safeEntries.map((entry) => sanitizeEntryText(entry, participants, activeRelationship)),
+    [safeEntries, participants, activeRelationship],
+  );
+
   const filtered = useMemo(() => {
-    let result = [...safeEntries];
+    let result = [...sanitizedSafeEntries];
 
     if (timeRange) {
       const cutoff = subMonths(new Date(), timeRange);
@@ -137,28 +142,27 @@ export default function InsightLibrary() {
     if (search.trim()) {
       const query = search.toLowerCase();
       result = result.filter((entry) => {
-        const visibleEntry = sanitizeEntryText(entry, participants, activeRelationship);
         return (
-          visibleEntry.core_insight?.toLowerCase().includes(query) ||
-          visibleEntry.behavioral_patterns?.some((item) => item.toLowerCase().includes(query)) ||
-          visibleEntry.risk_flags?.some((item) => item.toLowerCase().includes(query)) ||
-          visibleEntry.strengths?.some((item) => item.toLowerCase().includes(query)) ||
-          visibleEntry.note?.toLowerCase().includes(query) ||
-          visibleEntry.scenario?.toLowerCase().includes(query)
+          entry.core_insight?.toLowerCase().includes(query) ||
+          entry.behavioral_patterns?.some((item) => item.toLowerCase().includes(query)) ||
+          entry.risk_flags?.some((item) => item.toLowerCase().includes(query)) ||
+          entry.strengths?.some((item) => item.toLowerCase().includes(query)) ||
+          entry.note?.toLowerCase().includes(query) ||
+          entry.scenario?.toLowerCase().includes(query)
         );
       });
     }
 
     return result;
-  }, [safeEntries, timeRange, perspectiveFilter, search, participants, activeRelationship]);
+  }, [sanitizedSafeEntries, timeRange, perspectiveFilter, search]);
 
   const totalByPerspective = useMemo(() => {
     const counts = {};
-    safeEntries.forEach((entry) => {
+    sanitizedSafeEntries.forEach((entry) => {
       counts[entry.perspective] = (counts[entry.perspective] || 0) + 1;
     });
     return counts;
-  }, [safeEntries]);
+  }, [sanitizedSafeEntries]);
 
   const avgConfidence = useMemo(() => {
     if (!filtered.length) return 0;
@@ -204,7 +208,7 @@ export default function InsightLibrary() {
       <div className="flex justify-end">
         <ExportReportButton
           entries={filtered}
-          allEntries={safeEntries}
+          allEntries={sanitizedSafeEntries}
           filterLabel={`Perspective: ${perspectiveFilter}${timeRange ? ` · Last ${timeRange} month${timeRange > 1 ? "s" : ""}` : " · All time"}${search ? ` · Search: "${search}"` : ""}`}
           chartRef={chartRef}
         />
@@ -364,12 +368,12 @@ export default function InsightLibrary() {
             </div>
           ) : (
             <div ref={chartRef}>
-              <EvolutionChart entries={safeEntries} participants={participants} />
+          <EvolutionChart entries={safeEntries} participants={participants} />
             </div>
           )}
 
           {perspectiveOptions.filter((value) => value !== "All").map((perspective) => {
-            const perspectiveEntries = safeEntries.filter((entry) => entry.perspective === perspective);
+            const perspectiveEntries = sanitizedSafeEntries.filter((entry) => entry.perspective === perspective);
             if (perspectiveEntries.length === 0) return null;
             return (
               <div key={perspective} className="space-y-2">
@@ -406,7 +410,7 @@ export default function InsightLibrary() {
             Patterns and risks that keep appearing across visible saved analyses for this pair.
           </p>
           <PatternEvolutionList
-            entries={safeEntries.map((entry) => sanitizeEntryText(entry, participants, activeRelationship))}
+            entries={sanitizedSafeEntries}
           />
         </TabsContent>
       </Tabs>

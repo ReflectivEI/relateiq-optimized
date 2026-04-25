@@ -116,6 +116,8 @@ export default function Coach() {
     () => [...new Set((participants || []).map((person) => String(person || "").trim()).filter(Boolean))].slice(0, 2),
     [participants],
   );
+  const participantA = activeParticipants[0] || "";
+  const participantB = activeParticipants[1] || "";
   const [speaker, setSpeaker] = useState(activeParticipants[0] || "");
   const [speakingTo, setSpeakingTo] = useState(activeParticipants[1] || "");
   const [situation, setSituation] = useState("");
@@ -187,13 +189,15 @@ export default function Coach() {
   });
 
   const { data: tonyResponses = [] } = useQuery({
-    queryKey: ["responses-coach-person-a", activeRelationshipId, participants[0]],
-    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: participants[0] }),
+    queryKey: ["responses-coach-person-a", activeRelationshipId, participantA],
+    queryFn: () => (participantA ? api.entities.QuestionnaireResponse.filter({ person_name: participantA }) : Promise.resolve([])),
+    enabled: Boolean(participantA),
   });
 
   const { data: drewResponses = [] } = useQuery({
-    queryKey: ["responses-coach-person-b", activeRelationshipId, participants[1]],
-    queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: participants[1] }),
+    queryKey: ["responses-coach-person-b", activeRelationshipId, participantB],
+    queryFn: () => (participantB ? api.entities.QuestionnaireResponse.filter({ person_name: participantB }) : Promise.resolve([])),
+    enabled: Boolean(participantB),
   });
 
   const { legacySlots } = buildParticipantData(
@@ -218,8 +222,8 @@ export default function Coach() {
 
   const speakerProfile = profiles.find((p) => p.person_name === currentSpeaker);
   const targetProfile = profiles.find((p) => p.person_name === currentSpeakingTo);
-  const speakerResponses = currentSpeaker === participants[0] ? tonyResponses : drewResponses;
-  const targetResponses = currentSpeakingTo === participants[0] ? tonyResponses : drewResponses;
+  const speakerResponses = currentSpeaker === participantA ? tonyResponses : drewResponses;
+  const targetResponses = currentSpeakingTo === participantA ? tonyResponses : drewResponses;
   const terms = getRelationshipTerms(activeRelationship);
 
   const runCoachCall = async (situationText, overrides = {}) => {
@@ -240,21 +244,25 @@ export default function Coach() {
       normalizedParticipants,
       getPartnerName(normalizedSpeaker, normalizedParticipants),
     );
+    const resolvedTarget =
+      normalizedParticipants.length === 2 && normalizedTarget === normalizedSpeaker
+        ? getPartnerName(normalizedSpeaker, normalizedParticipants)
+        : normalizedTarget;
 
     if (normalizedSpeaker !== speaker) setSpeaker(normalizedSpeaker);
-    if (normalizedTarget !== speakingTo) setSpeakingTo(normalizedTarget);
+    if (resolvedTarget !== speakingTo) setSpeakingTo(resolvedTarget);
 
     try {
       if (normalizedParticipants.length < 2) {
         throw new Error(`We need both people in this ${terms.bond} before AI Coach can generate guidance.`);
       }
-      if (!normalizedSpeaker || !normalizedTarget) {
+      if (typeof normalizedSpeaker !== "string" || typeof resolvedTarget !== "string" || !normalizedSpeaker || !resolvedTarget) {
         throw new Error("Please choose both people in this connection before asking AI Coach for guidance.");
       }
-      if (normalizedSpeaker === normalizedTarget) {
+      if (normalizedSpeaker === resolvedTarget) {
         throw new Error(`The speaker and ${terms.counterpart} cannot be the same person.`);
       }
-      validateInput({ speaker: String(normalizedSpeaker), speakingTo: String(normalizedTarget), situation: situationText });
+      validateInput({ speaker: normalizedSpeaker, speakingTo: resolvedTarget, situation: situationText });
     } catch (err) {
       const fallback = handleError(err, ERROR_TYPES.INVALID_INPUT);
       if (err instanceof Error && err.message) {
@@ -264,7 +272,7 @@ export default function Coach() {
       return;
     }
 
-    if (!normalizedSpeaker || !normalizedTarget || !situationText.trim()) return;
+    if (!normalizedSpeaker || !resolvedTarget || !situationText.trim()) return;
 
     setLoading(true);
     setResponse(null);
@@ -275,7 +283,7 @@ export default function Coach() {
     try {
       const pipelineResult = await pipelineEngine.executePipeline({
         speaker: normalizedSpeaker,
-        speakingTo: normalizedTarget,
+        speakingTo: resolvedTarget,
         situation: situationText,
       });
 
@@ -291,19 +299,19 @@ export default function Coach() {
 
     const triggerCtx = [
       serializeTriggers(triggers, normalizedSpeaker),
-      serializeTriggers(triggers, normalizedTarget),
+      serializeTriggers(triggers, resolvedTarget),
     ]
       .filter(Boolean)
       .join("\n\n");
 
     const prompt = buildCoachPrompt({
       speaker: normalizedSpeaker,
-      speakingTo: normalizedTarget,
+      speakingTo: resolvedTarget,
       situation: situationText,
       speakerProfile: profiles.find((p) => p.person_name === normalizedSpeaker),
-      targetProfile: profiles.find((p) => p.person_name === normalizedTarget),
+      targetProfile: profiles.find((p) => p.person_name === resolvedTarget),
       speakerResponses: normalizedSpeaker === activeParticipants[0] ? tonyResponses : drewResponses,
-      targetResponses: normalizedTarget === activeParticipants[0] ? tonyResponses : drewResponses,
+      targetResponses: resolvedTarget === activeParticipants[0] ? tonyResponses : drewResponses,
       pastSessions: pastSessions
         .filter((s) => s.speaker === normalizedSpeaker || s.speaking_to === normalizedSpeaker)
         .slice(0, 10),
@@ -315,7 +323,7 @@ export default function Coach() {
         {
           prompt,
           model: "claude_sonnet_4_6",
-          partnerLanguage: { personName: normalizedSpeaker, partnerName: normalizedTarget },
+          partnerLanguage: { personName: normalizedSpeaker, partnerName: resolvedTarget },
         },
         35000,
         null,
@@ -331,7 +339,7 @@ export default function Coach() {
     }
 
     if (!result) {
-      result = buildFallbackCoachResponse(normalizedSpeaker, normalizedTarget, situationText);
+      result = buildFallbackCoachResponse(normalizedSpeaker, resolvedTarget, situationText);
     }
 
     // ENFORCE STRUCTURE
@@ -341,7 +349,7 @@ export default function Coach() {
     // Save session with structured output
     const session = await api.entities.CoachSession.create({
       speaker: normalizedSpeaker,
-      speaking_to: normalizedTarget,
+      speaking_to: resolvedTarget,
       situation: situationText,
       ai_response: modes.full, // Store full mode by default
       tool_type: "coach",
