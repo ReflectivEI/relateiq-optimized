@@ -13,17 +13,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
-import { getPartnerName } from "@/lib/relationshipParticipants";
+import { getPartnerName, getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 export default function NotesPanel({
   section = "general",
   relatedItemId = null,
   personName = "Tony",
 }) {
-  const { activeRelationshipId, participants } = useRelationshipAuth();
+  const { activeRelationshipId, participants, activeRelationship } = useRelationshipAuth();
   const [expanded, setExpanded] = useState(false);
   const [newNote, setNewNote] = useState("");
   const queryClient = useQueryClient();
+  const terms = getRelationshipTerms(activeRelationship);
 
   // Fetch notes for this section
   const { data: notes = [] } = useQuery({
@@ -70,7 +71,7 @@ export default function NotesPanel({
       api.entities.Note.update(noteId, { shared_with_partner: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notes", activeRelationshipId, section, relatedItemId] });
-      toast.success("Note shared with your partner");
+      toast.success(`Note shared with your ${terms.counterpart}`);
     },
   });
 

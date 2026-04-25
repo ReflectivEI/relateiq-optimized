@@ -164,7 +164,9 @@ export default function AIInsightsSection({ onRefresh, relationshipTerms, relati
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-display text-2xl font-bold text-foreground">AI Daily Insights</h2>
+          <h2 className="font-display text-2xl font-bold text-foreground">
+            AI {relationshipTerms?.type === "romantic" ? "Relationship" : relationshipTerms?.typeLabel || "Connection"} Insights
+          </h2>
           <p className="text-base text-muted-foreground mt-1">
             Personalized guidance for {relationshipLabel}, shaped by this {relationshipTerms?.bond || "connection"}
           </p>

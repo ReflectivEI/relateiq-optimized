@@ -10,6 +10,8 @@ import { api } from "@/api/client";
 import { RELATIONSHIP_COACH_SYSTEM } from "@/lib/prompts";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 const EXPANSIONS = [
   { id: "explain", label: "Explain this", icon: HelpCircle },
@@ -19,10 +21,14 @@ const EXPANSIONS = [
 ];
 
 export default function ProfileSection({ title, icon: Icon, content, personName, profileContext }) {
+  const { activeRelationship } = useRelationshipAuth();
   const [expanded, setExpanded] = useState(false);
   const [activeExpansion, setActiveExpansion] = useState(null);
   const [expansionResult, setExpansionResult] = useState({});
   const [loading, setLoading] = useState(null);
+  const terms = getRelationshipTerms(activeRelationship);
+  const counterpartLabel = terms.counterpart;
+  const bondLabel = terms.bond;
 
   const handleExpansion = async (expansionId) => {
     if (activeExpansion === expansionId && expansionResult[expansionId]) {
@@ -36,9 +42,9 @@ export default function ProfileSection({ title, icon: Icon, content, personName,
 
     const prompts = {
       explain: `${RELATIONSHIP_COACH_SYSTEM}\n\nFor ${personName}, explain in simple, warm language what this means about them:\n\n"${title}: ${Array.isArray(content) ? content.join(", ") : content}"\n\nProfile context: ${profileContext}\n\nKeep it to 2-3 sentences. Specific to ${personName}, not generic.`,
-      why: `${RELATIONSHIP_COACH_SYSTEM}\n\nFor ${personName}, explain why this pattern matters in their relationship:\n\n"${title}: ${Array.isArray(content) ? content.join(", ") : content}"\n\nProfile context: ${profileContext}\n\nFocus on real relationship impact. 2-3 sentences. Specific to ${personName}.`,
+      why: `${RELATIONSHIP_COACH_SYSTEM}\n\nFor ${personName}, explain why this pattern matters in their ${bondLabel} with their ${counterpartLabel}:\n\n"${title}: ${Array.isArray(content) ? content.join(", ") : content}"\n\nProfile context: ${profileContext}\n\nFocus on real ${bondLabel} impact. 2-3 sentences. Specific to ${personName}.`,
       different: `${RELATIONSHIP_COACH_SYSTEM}\n\nFor ${personName}, give 2-3 specific, actionable things they could try differently given:\n\n"${title}: ${Array.isArray(content) ? content.join(", ") : content}"\n\nProfile context: ${profileContext}\n\nBehavioral, practical, achievable. Name them as experiments, not fixes.`,
-      example: `${RELATIONSHIP_COACH_SYSTEM}\n\nGive ${personName} a realistic, specific example of this pattern playing out in daily relationship life:\n\n"${title}: ${Array.isArray(content) ? content.join(", ") : content}"\n\nProfile context: ${profileContext}\n\nMake it feel real and recognizable — not hypothetical. 3-4 sentences.`,
+      example: `${RELATIONSHIP_COACH_SYSTEM}\n\nGive ${personName} a realistic, specific example of this pattern playing out in daily ${bondLabel} life with their ${counterpartLabel}:\n\n"${title}: ${Array.isArray(content) ? content.join(", ") : content}"\n\nProfile context: ${profileContext}\n\nMake it feel real and recognizable — not hypothetical. 3-4 sentences.`,
     };
 
     const result = await api.integrations.Core.InvokeLLM({ prompt: prompts[expansionId] });

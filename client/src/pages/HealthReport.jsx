@@ -146,6 +146,7 @@ export default function HealthReport() {
           viewMode={viewMode}
           participants={participants}
           relationshipLabel={relationshipLabel}
+          relationshipTerms={terms}
         />
       </motion.div>
 

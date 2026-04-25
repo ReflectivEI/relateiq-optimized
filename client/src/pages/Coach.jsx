@@ -112,6 +112,10 @@ function normalizeParticipantSelection(value, participants, fallback) {
 
 export default function Coach() {
   const { activeRelationshipId, activeRelationship, participants } = useRelationshipAuth();
+  const activeParticipants = useMemo(
+    () => [...new Set((participants || []).map((person) => String(person || "").trim()).filter(Boolean))].slice(0, 2),
+    [participants],
+  );
   const [speaker, setSpeaker] = useState(participants[0]);
   const [speakingTo, setSpeakingTo] = useState(participants[1]);
   const [situation, setSituation] = useState("");
@@ -131,24 +135,24 @@ export default function Coach() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const normalizedSpeaker = normalizeParticipantSelection(speaker, participants, participants[0]);
+    const normalizedSpeaker = normalizeParticipantSelection(speaker, activeParticipants, activeParticipants[0]);
     if (normalizedSpeaker !== speaker) setSpeaker(normalizedSpeaker);
 
     const normalizedTarget = normalizeParticipantSelection(
       speakingTo,
-      participants,
-      getPartnerName(normalizedSpeaker, participants),
+      activeParticipants,
+      getPartnerName(normalizedSpeaker, activeParticipants),
     );
     if (normalizedTarget !== speakingTo || normalizedTarget === normalizedSpeaker) {
-      setSpeakingTo(getPartnerName(normalizedSpeaker, participants));
+      setSpeakingTo(getPartnerName(normalizedSpeaker, activeParticipants));
     }
-  }, [participants, speaker, speakingTo]);
+  }, [activeParticipants, speaker, speakingTo]);
 
-  const currentSpeaker = normalizeParticipantSelection(speaker, participants, participants[0]);
+  const currentSpeaker = normalizeParticipantSelection(speaker, activeParticipants, activeParticipants[0]);
   const currentSpeakingTo = normalizeParticipantSelection(
     speakingTo,
-    participants,
-    getPartnerName(currentSpeaker, participants),
+    activeParticipants,
+    getPartnerName(currentSpeaker, activeParticipants),
   );
 
   const { data: triggers = [] } = useQuery({
@@ -210,14 +214,33 @@ export default function Coach() {
   const runCoachCall = async (situationText) => {
     setError(null);
     setPipelineTrace(null);
-    const normalizedSpeaker = currentSpeaker;
-    const normalizedTarget = currentSpeakingTo;
+    const normalizedParticipants = activeParticipants;
+    const normalizedSpeaker = normalizeParticipantSelection(speaker, normalizedParticipants, normalizedParticipants[0]);
+    const normalizedTarget = normalizeParticipantSelection(
+      speakingTo,
+      normalizedParticipants,
+      getPartnerName(normalizedSpeaker, normalizedParticipants),
+    );
+
+    if (normalizedSpeaker !== speaker) setSpeaker(normalizedSpeaker);
+    if (normalizedTarget !== speakingTo) setSpeakingTo(normalizedTarget);
+
     try {
-      if (normalizedSpeaker !== speaker) setSpeaker(normalizedSpeaker);
-      if (normalizedTarget !== speakingTo) setSpeakingTo(normalizedTarget);
-      validateInput({ speaker: normalizedSpeaker, speakingTo: normalizedTarget, situation: situationText });
+      if (normalizedParticipants.length < 2) {
+        throw new Error(`We need both people in this ${terms.bond} before AI Coach can generate guidance.`);
+      }
+      if (!normalizedSpeaker || !normalizedTarget) {
+        throw new Error("Please choose both people in this connection before asking AI Coach for guidance.");
+      }
+      if (normalizedSpeaker === normalizedTarget) {
+        throw new Error(`The speaker and ${terms.counterpart} cannot be the same person.`);
+      }
+      validateInput({ speaker: String(normalizedSpeaker), speakingTo: String(normalizedTarget), situation: situationText });
     } catch (err) {
       const fallback = handleError(err, ERROR_TYPES.INVALID_INPUT);
+      if (err instanceof Error && err.message) {
+        fallback.message = err.message;
+      }
       setError(fallback);
       return;
     }
@@ -260,8 +283,8 @@ export default function Coach() {
       situation: situationText,
       speakerProfile: profiles.find((p) => p.person_name === normalizedSpeaker),
       targetProfile: profiles.find((p) => p.person_name === normalizedTarget),
-      speakerResponses: normalizedSpeaker === participants[0] ? tonyResponses : drewResponses,
-      targetResponses: normalizedTarget === participants[0] ? tonyResponses : drewResponses,
+      speakerResponses: normalizedSpeaker === activeParticipants[0] ? tonyResponses : drewResponses,
+      targetResponses: normalizedTarget === activeParticipants[0] ? tonyResponses : drewResponses,
       pastSessions: pastSessions
         .filter((s) => s.speaker === normalizedSpeaker || s.speaking_to === normalizedSpeaker)
         .slice(0, 10),
@@ -414,14 +437,14 @@ export default function Coach() {
               This is me → I'm speaking to
             </p>
             <div className="flex gap-2 flex-wrap">
-              {participants.map((person) => (
+              {activeParticipants.map((person) => (
                 <Button
                   key={person}
                   variant={currentSpeaker === person ? "default" : "outline"}
                   size="sm"
                   onClick={() => {
                     setSpeaker(person);
-                    if (person === currentSpeakingTo) setSpeakingTo(getPartnerName(person, participants));
+                    if (person === currentSpeakingTo) setSpeakingTo(getPartnerName(person, activeParticipants));
                   }}
                   className="text-xs"
                 >
@@ -431,7 +454,7 @@ export default function Coach() {
               {currentSpeaker && (
                 <>
                   <span className="text-xs text-muted-foreground px-2">→</span>
-                  {participants.map((person) => {
+                  {activeParticipants.map((person) => {
                     if (person === currentSpeaker) return null;
                     return (
                       <Button

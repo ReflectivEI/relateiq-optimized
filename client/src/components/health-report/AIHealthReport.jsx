@@ -11,9 +11,11 @@ import { safeInvokeLLM, CreditLimitError } from "@/lib/aiSafe";
 import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
 import { format, subDays } from "date-fns";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
+import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 
-function buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel, viewMode, participants, relationshipLabel }) {
+function buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel, viewMode, participants, relationshipLabel, relationshipTerms }) {
   const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants || [];
+  const terms = relationshipTerms || getRelationshipTerms("romantic");
   const subject =
     viewMode === primaryPerson
       ? `${primaryPerson} within ${relationshipLabel}`
@@ -36,7 +38,7 @@ function buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel, vi
     .map((s) => `[${s.speaker}→${s.speaking_to}] ${s.situation}`)
     .join("\n");
 
-  return `You are a relationship intelligence system generating a weekly Relationship Health Report focused on ${subject}.
+  return `You are a ${terms.type === "romantic" ? "relationship" : "connection"} intelligence system generating a weekly ${terms.type === "romantic" ? "Relationship Health Report" : "Connection Health Report"} focused on ${subject}.
 
 WEEK: ${weekLabel}
 
@@ -49,7 +51,7 @@ ${reflectionSummary || "None yet."}
 AI COACH SESSIONS:
 ${sessionSummary || "None yet."}
 
-Generate a structured Relationship Health Report with these sections:
+Generate a structured ${terms.type === "romantic" ? "Relationship Health Report" : "Connection Health Report"} with these sections:
 1. **Overall Health Pulse** — 2-3 sentences on the relevant relational health this period.
 2. **Sentiment Trends** — What emotional tones are showing up? Are things improving, plateauing, or under strain?
 3. **Communication Patterns** — What communication strengths and friction patterns are visible across check-ins and sessions?
@@ -58,10 +60,18 @@ Generate a structured Relationship Health Report with these sections:
 6. **Areas to Watch** — 2-3 growth areas or subtle risks visible in the data.
 7. **One Focused Intention** — A single, actionable focus for the coming week grounded in the data.
 
-Be warm, insightful, and evidence-based. Reference specific things from their data where possible. Keep each section concise (2-4 sentences max). Do NOT make assumptions not supported by the data.`;
+Be warm, insightful, and evidence-based. Reference specific things from their data where possible. Keep each section concise (2-4 sentences max). Match the language to a ${terms.bond}, not a romantic relationship, when the relationship type is not romantic. Do NOT make assumptions not supported by the data.`;
 }
 
-export default function AIHealthReport({ checkIns, reflections, coachSessions, viewMode = "compare", participants = ["Tony", "Drew"], relationshipLabel = "this relationship" }) {
+export default function AIHealthReport({
+  checkIns,
+  reflections,
+  coachSessions,
+  viewMode = "compare",
+  participants = ["Tony", "Drew"],
+  relationshipLabel = "this relationship",
+  relationshipTerms,
+}) {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [creditError, setCreditError] = useState(false);
@@ -75,7 +85,7 @@ export default function AIHealthReport({ checkIns, reflections, coachSessions, v
     try {
       const result = await safeInvokeLLM(
         {
-          prompt: buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel, viewMode, participants, relationshipLabel }),
+          prompt: buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel, viewMode, participants, relationshipLabel, relationshipTerms }),
           model: "claude_sonnet_4_6",
           partnerLanguage:
             viewMode === participants[0]
@@ -137,7 +147,7 @@ export default function AIHealthReport({ checkIns, reflections, coachSessions, v
               <CardTitle className="flex items-center gap-2 text-base">
                 <FileText className="w-4 h-4 text-primary" />
                 {viewMode === "compare"
-                  ? `AI Relationship Health Report — ${weekLabel}`
+                  ? `AI ${relationshipTerms?.type === "romantic" ? "Relationship" : "Connection"} Health Report — ${weekLabel}`
                   : `AI ${viewMode} Health Report — ${weekLabel}`}
               </CardTitle>
               <Button variant="ghost" size="sm" onClick={generate} disabled={loading} className="gap-1.5 text-xs">

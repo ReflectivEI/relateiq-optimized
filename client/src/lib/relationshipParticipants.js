@@ -26,6 +26,10 @@ export function getPartnerName(person, participants) {
   return participants.find((participant) => participant !== person) || participants[1] || "Other Person";
 }
 
+export function getCounterpartLabel(activeRelationshipOrType) {
+  return getRelationshipTerms(activeRelationshipOrType).counterpart;
+}
+
 export function getDisplayLabel(value) {
   return String(value || "")
     .replace(/_/g, " ")
@@ -63,16 +67,15 @@ export function getActivePerspectiveKeys(participants = ["Tony", "Drew"]) {
 
 export function isPerspectiveInActivePair(value, participants = ["Tony", "Drew"]) {
   if (!value) return true;
-  const valid = new Set([
-    ...getActivePerspectiveKeys(participants),
-    "Tony",
-    "Drew",
-    "Tony→Drew",
-    "Drew→Tony",
-    "Tony+Drew",
-  ]);
-  const display = getDisplayPerspective(value, participants);
-  return valid.has(value) || valid.has(display);
+  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const activePairKeys = new Set(getActivePerspectiveKeys(participants));
+  if (activePairKeys.has(value)) return true;
+
+  const isBaselinePair = primaryPerson === "Tony" && secondaryPerson === "Drew";
+  if (!isBaselinePair) return false;
+
+  const baselineKeys = new Set(["Tony", "Drew", "Tony→Drew", "Drew→Tony", "Tony+Drew"]);
+  return baselineKeys.has(value);
 }
 
 export function getDisplayPerspective(value, participants = ["Tony", "Drew"]) {
