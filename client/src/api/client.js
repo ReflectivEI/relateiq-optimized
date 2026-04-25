@@ -4,6 +4,7 @@ const API_BASE =
 
 const AUTH_TOKEN_KEY = "relateiq.auth.token";
 const RELATIONSHIP_ID_KEY = "relateiq.active.relationship";
+const REQUEST_TIMEOUT_MS = 12000;
 
 const LOCAL_QUESTIONNAIRE_FILES = {
   Tony: "/data/relateiq/tony.questionnaire.json",
@@ -75,11 +76,25 @@ async function request(path, options = {}) {
     headers["X-Relationship-Id"] = relationshipId;
   }
 
-  const response = await fetch(buildUrl(path, options.params), {
-    method: options.method || "GET",
-    headers,
-    body,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), options.timeoutMs || REQUEST_TIMEOUT_MS);
+
+  let response;
+  try {
+    response = await fetch(buildUrl(path, options.params), {
+      method: options.method || "GET",
+      headers,
+      body,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("Request timed out. Please refresh and try again.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     const text = await response.text();
