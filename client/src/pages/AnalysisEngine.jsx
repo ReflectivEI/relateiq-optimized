@@ -3,7 +3,7 @@
  * Perspective switching ALWAYS recomputes with distinct inputs.
  * Delta detection shows exact differences between perspective runs.
  */
-import React, { useState, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/api/client";
 import { useQuery } from "@tanstack/react-query";
 import { generateAnalysis, computeAnalysisDelta } from "@/lib/analysisEngine";
@@ -29,11 +29,14 @@ import ResponseExportBar from "@/components/export/ResponseExportBar";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import { getPerspectiveLabels } from "@/lib/relationshipParticipants";
 
-const PERSPECTIVES = ["Tony", "Drew", "Tony→Drew", "Drew→Tony"];
-
 export default function AnalysisEngine() {
   const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
-  const [perspective, setPerspective] = useState("Tony→Drew");
+  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const perspectives = useMemo(
+    () => [primaryPerson, secondaryPerson, `${primaryPerson}→${secondaryPerson}`, `${secondaryPerson}→${primaryPerson}`],
+    [primaryPerson, secondaryPerson],
+  );
+  const [perspective, setPerspective] = useState(`${primaryPerson}→${secondaryPerson}`);
   const [mode, setMode] = useState("deep");
   const [baseAnalysis, setBaseAnalysis] = useState(null);
   const [displayAnalysis, setDisplayAnalysis] = useState(null);
@@ -48,6 +51,13 @@ export default function AnalysisEngine() {
   const prevPerspectiveRef = useRef(null);
   const analysisRef = useRef(null);
   const perspectiveLabels = getPerspectiveLabels(participants);
+
+  useEffect(() => {
+    const defaultPerspective = `${primaryPerson}→${secondaryPerson}`;
+    if (!perspectives.includes(perspective)) {
+      setPerspective(defaultPerspective);
+    }
+  }, [perspective, perspectives, primaryPerson, secondaryPerson]);
 
   const { data: tonyResponses = [] } = useQuery({
     queryKey: ["tony-responses-engine", activeRelationshipId, participants[0]],
@@ -70,17 +80,18 @@ export default function AnalysisEngine() {
     queryFn: () => api.entities.TriggerEntry.list(),
   });
 
-  const tonyProfile = profiles.find((p) => p.person_name === participants[0]);
-  const drewProfile = profiles.find((p) => p.person_name === participants[1]);
-  const tonyPatterns = computePatternProfile("Tony", tonyResponses);
-  const drewPatterns = computePatternProfile("Drew", drewResponses);
-  const misalignments = detectMisalignments(tonyPatterns, "Tony", drewPatterns, "Drew");
+  const tonyProfile = profiles.find((p) => p.person_name === primaryPerson);
+  const drewProfile = profiles.find((p) => p.person_name === secondaryPerson);
+  const tonyPatterns = computePatternProfile(primaryPerson, tonyResponses);
+  const drewPatterns = computePatternProfile(secondaryPerson, drewResponses);
+  const misalignments = detectMisalignments(tonyPatterns, primaryPerson, drewPatterns, secondaryPerson);
 
   const runGenerate = async (activePerspective, previousPerspective) => {
     setCreditError(false);
     try {
       const result = await generateAnalysis({
         perspective: activePerspective,
+        participants,
         analysis_type: "deep", // Always deep — modes are display transforms only, not AI variants
         tonyResponses,
         drewResponses,
@@ -163,13 +174,13 @@ export default function AnalysisEngine() {
     const isDir = perspective.includes("→");
     const [actor, tgt] = isDir
       ? perspective.split("→").map((s) => s.trim())
-      : [perspective, perspective === "Tony" ? "Drew" : "Tony"];
-    const actorTraits = actor === "Tony" ? tonyPatterns.traits : drewPatterns.traits;
-    const targetTraits = tgt === "Tony" ? tonyPatterns.traits : drewPatterns.traits;
+      : [perspective, perspective === primaryPerson ? secondaryPerson : primaryPerson];
+    const actorTraits = actor === primaryPerson ? tonyPatterns.traits : drewPatterns.traits;
+    const targetTraits = tgt === primaryPerson ? tonyPatterns.traits : drewPatterns.traits;
     setPrediction(predictOutcome({ actor, target: tgt, scenarioText: scenario, actorTraits, targetTraits }));
   };
 
-  const isDirectional = perspective === "Tony→Drew" || perspective === "Drew→Tony";
+  const isDirectional = perspective.includes("→");
 
   const askAIContext = buildContext({
     section: "Analysis Engine",
@@ -209,7 +220,7 @@ export default function AnalysisEngine() {
           <div className="grid gap-4 xl:grid-cols-2">
             <div className="enterprise-control-surface p-5 space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Perspective</p>
-              <PerspectiveToggle value={perspective} onChange={handlePerspectiveSwitch} options={PERSPECTIVES} labels={perspectiveLabels} />
+              <PerspectiveToggle value={perspective} onChange={handlePerspectiveSwitch} options={perspectives} labels={perspectiveLabels} />
               {/* Active perspective label */}
               <div className="flex items-center gap-2 mt-1">
                 {perspectiveSwitching ? (
@@ -240,7 +251,7 @@ export default function AnalysisEngine() {
               Scenario (optional)
             </p>
             <Textarea
-              placeholder="e.g. Drew brings up a sensitive topic unexpectedly after a long day at work..."
+              placeholder={`e.g. "${secondaryPerson} brings up something sensitive unexpectedly after a long day"`}
               value={scenario}
               onChange={(e) => setScenario(e.target.value)}
               className="min-h-[92px] resize-none bg-background/50 text-base"
@@ -355,7 +366,7 @@ export default function AnalysisEngine() {
             <div className="space-y-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Describe the Situation</p>
               <Textarea
-                placeholder="e.g. 'Drew brings up something sensitive out of nowhere while Tony is already stressed from work'"
+                placeholder={`e.g. "${secondaryPerson} brings up something sensitive while ${primaryPerson} is already stressed from work"`}
                 value={scenario}
                 onChange={(e) => setScenario(e.target.value)}
                 className="min-h-[90px] resize-none bg-background/50 text-sm"
@@ -363,7 +374,7 @@ export default function AnalysisEngine() {
             </div>
             <div className="space-y-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actor → Target</p>
-              <PerspectiveToggle value={perspective} onChange={setPerspective} options={PERSPECTIVES} labels={perspectiveLabels} />
+              <PerspectiveToggle value={perspective} onChange={setPerspective} options={perspectives} labels={perspectiveLabels} />
               <p className="text-[11px] text-muted-foreground">Actor drives behavior prediction. Target influences misinterpretation and emotional state.</p>
             </div>
             <Button onClick={handlePredict} disabled={!scenario.trim()} className="gap-2">

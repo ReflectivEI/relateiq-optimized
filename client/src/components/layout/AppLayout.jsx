@@ -139,9 +139,18 @@ export default function AppLayout() {
     support: false,
   });
   const isOwner = activeRelationship?.current_user_role === "owner";
+  const showPlayLabII = String(activeRelationship?.type || "romantic").toLowerCase() === "romantic";
   const selectedManagedRelationshipId = useMemo(
     () => selectedManagedRow?.relationship_id || editingRelationshipId || "",
     [selectedManagedRow, editingRelationshipId],
+  );
+  const visibleNavGroups = useMemo(
+    () =>
+      navGroups.map((group) => ({
+        ...group,
+        items: group.items.filter((item) => item.path !== "/play-lab-ii" || showPlayLabII),
+      })),
+    [showPlayLabII],
   );
 
   const toggleGroup = (groupId) => {
@@ -478,7 +487,7 @@ export default function AppLayout() {
           )}
         </div>
         <nav className={cn("flex-1 overflow-y-auto", sidebarCollapsed ? "p-3 space-y-2" : "p-4 space-y-4")}>
-          {navGroups.map((group) => {
+          {visibleNavGroups.map((group) => {
             const groupHasActiveItem = group.items.some((item) => location.pathname === item.path);
             return (
               <div key={group.id} className="space-y-2">
@@ -600,7 +609,7 @@ export default function AppLayout() {
                   Manage Connections
                 </Button>
             </div>
-            {navGroups.map((group) => {
+            {visibleNavGroups.map((group) => {
               const groupHasActiveItem = group.items.some((item) => location.pathname === item.path);
               return (
                 <div key={group.id} className="rounded-2xl border border-border/60 bg-muted/20">

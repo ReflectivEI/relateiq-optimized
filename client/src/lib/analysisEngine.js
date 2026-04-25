@@ -3,7 +3,7 @@
  * ─────────────────────────────────────────────────────────────────────────
  * ALL AI outputs flow through generateAnalysis().
  * Strict schema output. No free-form text outside schema.
- * Multi-perspective: Tony | Drew | Tony→Drew | Drew→Tony
+ * Multi-perspective: person A | person B | person A→person B | person B→person A
  * 5 output modes: deep | explain | recap | summary | action
  *
  * PERSPECTIVE DIFFERENTIATION (v2):
@@ -51,7 +51,7 @@ export const ANALYSIS_SCHEMA = {
   inputs_used: {},   // logged — proves what data was fed in
 };
 
-const IS_DIRECTIONAL = (p) => p === "Tony→Drew" || p === "Drew→Tony";
+const IS_DIRECTIONAL = (p) => typeof p === "string" && p.includes("→");
 
 // ─── ANALYSIS CONFIG ─────────────────────────────────────────────────────────
 // generateAnalysis() ALWAYS uses this single config.
@@ -73,6 +73,7 @@ const ANALYSIS_CONFIG = {
  */
 function buildPerspectiveInputs({
   perspective,
+  participants = ["Tony", "Drew"],
   tonyResponses,
   drewResponses,
   tonyProfile,
@@ -80,32 +81,32 @@ function buildPerspectiveInputs({
   triggers,
   sessions,
 }) {
-  const tonyPatterns = computePatternProfile("Tony", tonyResponses);
-  const drewPatterns = computePatternProfile("Drew", drewResponses);
+  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const primaryPatterns = computePatternProfile(primaryPerson, tonyResponses);
+  const secondaryPatterns = computePatternProfile(secondaryPerson, drewResponses);
 
   // Filter sessions by relevance to each perspective
-  const tonySessions = sessions.filter((s) => s.speaker === "Tony");
-  const drewSessions = sessions.filter((s) => s.speaker === "Drew");
+  const primarySessions = sessions.filter((s) => s.speaker === primaryPerson);
+  const secondarySessions = sessions.filter((s) => s.speaker === secondaryPerson);
 
   // Filter triggers by owner
-  const tonyTriggers = triggers.filter((t) => t.owner === "Tony");
-  const drewTriggers = triggers.filter((t) => t.owner === "Drew");
+  const primaryTriggers = triggers.filter((t) => t.owner === primaryPerson);
+  const secondaryTriggers = triggers.filter((t) => t.owner === secondaryPerson);
 
   switch (perspective) {
-    // ── TONY INDIVIDUAL: only Tony's data ──────────────────────────────────
-    case "Tony": {
+    case primaryPerson: {
       const inputs = {
-        subject: "Tony",
+        subject: primaryPerson,
         target: null,
-        actor_profile: serializeProfile("Tony", tonyProfile),
+        actor_profile: serializeProfile(primaryPerson, tonyProfile),
         actor_tags: aggregateTags(tonyResponses),
-        actor_patterns: tonyPatterns.traits,
-        actor_responses: buildFullResponseContext("Tony", tonyResponses),
-        actor_sessions: tonySessions
+        actor_patterns: primaryPatterns.traits,
+        actor_responses: buildFullResponseContext(primaryPerson, tonyResponses),
+        actor_sessions: primarySessions
           .slice(0, 8)
           .map((s) => `[${s.tool_type}] "${s.situation?.slice(0, 100)}"`)
           .join("\n"),
-        actor_triggers: tonyTriggers.map((t) => `${t.title}: ${t.description?.slice(0, 60)}`).join("\n"),
+        actor_triggers: primaryTriggers.map((t) => `${t.title}: ${t.description?.slice(0, 60)}`).join("\n"),
         target_profile: null,
         target_tags: null,
         target_triggers: null,
@@ -114,29 +115,28 @@ function buildPerspectiveInputs({
       };
       return {
         inputs,
-        label: "Tony (Individual)",
-        context: buildIndividualContext("Tony", inputs),
+        label: `${primaryPerson} (Individual)`,
+        context: buildIndividualContext(primaryPerson, inputs),
         instruction:
-          "Analyze ONLY Tony as an individual — his internal world, behavioral patterns, emotional triggers, needs, and growth edges. Do NOT reference the relationship dynamic or Drew. This is Tony's individual portrait.",
+          `Analyze ONLY ${primaryPerson} as an individual — their internal world, behavioral patterns, emotional triggers, needs, and growth edges. Do NOT reference the relationship dynamic or ${secondaryPerson}. This is ${primaryPerson}'s individual portrait.`,
         schema_note:
           'directional_impact, misalignment_areas, perception_gap, communication_risk_points MUST be null strings ("null") — they do not apply to individual analysis.',
       };
     }
 
-    // ── DREW INDIVIDUAL: only Drew's data ──────────────────────────────────
-    case "Drew": {
+    case secondaryPerson: {
       const inputs = {
-        subject: "Drew",
+        subject: secondaryPerson,
         target: null,
-        actor_profile: serializeProfile("Drew", drewProfile),
+        actor_profile: serializeProfile(secondaryPerson, drewProfile),
         actor_tags: aggregateTags(drewResponses),
-        actor_patterns: drewPatterns.traits,
-        actor_responses: buildFullResponseContext("Drew", drewResponses),
-        actor_sessions: drewSessions
+        actor_patterns: secondaryPatterns.traits,
+        actor_responses: buildFullResponseContext(secondaryPerson, drewResponses),
+        actor_sessions: secondarySessions
           .slice(0, 8)
           .map((s) => `[${s.tool_type}] "${s.situation?.slice(0, 100)}"`)
           .join("\n"),
-        actor_triggers: drewTriggers.map((t) => `${t.title}: ${t.description?.slice(0, 60)}`).join("\n"),
+        actor_triggers: secondaryTriggers.map((t) => `${t.title}: ${t.description?.slice(0, 60)}`).join("\n"),
         target_profile: null,
         target_tags: null,
         target_triggers: null,
@@ -145,34 +145,31 @@ function buildPerspectiveInputs({
       };
       return {
         inputs,
-        label: "Drew (Individual)",
-        context: buildIndividualContext("Drew", inputs),
+        label: `${secondaryPerson} (Individual)`,
+        context: buildIndividualContext(secondaryPerson, inputs),
         instruction:
-          "Analyze ONLY Drew as an individual — his internal world, behavioral patterns, emotional triggers, needs, and growth edges. Do NOT reference the relationship dynamic or Tony. This is Drew's individual portrait.",
+          `Analyze ONLY ${secondaryPerson} as an individual — their internal world, behavioral patterns, emotional triggers, needs, and growth edges. Do NOT reference the relationship dynamic or ${primaryPerson}. This is ${secondaryPerson}'s individual portrait.`,
         schema_note:
           'directional_impact, misalignment_areas, perception_gap, communication_risk_points MUST be null strings ("null") — they do not apply to individual analysis.',
       };
     }
 
-    // ── TONY→DREW: Tony's BEHAVIOR → Drew's EXPERIENCE ─────────────────────
-    case "Tony→Drew": {
-      const mismatch = detectMisalignments(tonyPatterns, "Tony", drewPatterns, "Drew");
+    case `${primaryPerson}→${secondaryPerson}`: {
+      const mismatch = detectMisalignments(primaryPatterns, primaryPerson, secondaryPatterns, secondaryPerson);
       const inputs = {
-        subject: "Tony",
-        target: "Drew",
-        // Actor: Tony's BEHAVIOR patterns — what he does
-        actor_profile: serializeProfile("Tony", tonyProfile),
+        subject: primaryPerson,
+        target: secondaryPerson,
+        actor_profile: serializeProfile(primaryPerson, tonyProfile),
         actor_tags: aggregateTags(tonyResponses),
-        actor_patterns: tonyPatterns.traits,
+        actor_patterns: primaryPatterns.traits,
         actor_behavior_responses: buildCategoryContext(tonyResponses, [
           "behavioral",
           "communication",
           "conflict_style",
           "energy_social",
         ]),
-        // Target: Drew's NEEDS + TRIGGERS — what he experiences
-        target_profile: serializeProfile("Drew", drewProfile),
-        target_triggers: drewTriggers.map((t) => `${t.title}: ${t.description?.slice(0, 80)}`).join("\n"),
+        target_profile: serializeProfile(secondaryPerson, drewProfile),
+        target_triggers: secondaryTriggers.map((t) => `${t.title}: ${t.description?.slice(0, 80)}`).join("\n"),
         target_needs_responses: buildCategoryContext(drewResponses, [
           "emotional_triggers",
           "needs_vulnerability",
@@ -180,43 +177,39 @@ function buildPerspectiveInputs({
           "deep_reflection",
         ]),
         target_tags: aggregateTags(drewResponses),
-        // Cross-analysis: computed misalignment data
         misalignment_data: mismatch.misalignments
-          .map((m) => `${m.label}: Tony=${m["Tony"]}/10, Drew=${m["Drew"]}/10, gap=${m.gap} (${m.severity})`)
+          .map((m) => `${m.label}: ${primaryPerson}=${m[primaryPerson]}/10, ${secondaryPerson}=${m[secondaryPerson]}/10, gap=${m.gap} (${m.severity})`)
           .join("\n"),
         is_directional: true,
         response_count: tonyResponses.length + drewResponses.length,
       };
       return {
         inputs,
-        label: "Tony → Drew (Interaction Impact)",
-        context: buildDirectionalContext("Tony", "Drew", inputs),
+        label: `${primaryPerson} → ${secondaryPerson} (Interaction Impact)`,
+        context: buildDirectionalContext(primaryPerson, secondaryPerson, inputs),
         instruction:
-          "Analyze HOW Tony's specific behavioral patterns, communication style, and emotional tendencies are EXPERIENCED by Drew. The unit of analysis is impact: how does Tony's behavior land for Drew? Compute misalignment zones and perception gaps. behavioral_patterns = Tony's patterns. relationship_dynamics = how those patterns affect Drew. risk_flags = moments where Tony's behavior most likely triggers Drew's vulnerabilities. strengths = places where Tony's tendencies align with Drew's needs.",
+          `Analyze HOW ${primaryPerson}'s specific behavioral patterns, communication style, and emotional tendencies are EXPERIENCED by ${secondaryPerson}. The unit of analysis is impact: how does ${primaryPerson}'s behavior land for ${secondaryPerson}? Compute misalignment zones and perception gaps. behavioral_patterns = ${primaryPerson}'s patterns. relationship_dynamics = how those patterns affect ${secondaryPerson}. risk_flags = moments where ${primaryPerson}'s behavior most likely triggers ${secondaryPerson}'s vulnerabilities. strengths = places where ${primaryPerson}'s tendencies align with ${secondaryPerson}'s needs.`,
         schema_note:
-          "directional_impact MUST describe what Drew actually experiences when Tony behaves this way. misalignment_areas MUST list specific trait-pairs where they diverge. perception_gap MUST describe the gap between Tony's intent and Drew's interpretation. communication_risk_points MUST list specific interaction types most likely to break down.",
+          `directional_impact MUST describe what ${secondaryPerson} actually experiences when ${primaryPerson} behaves this way. misalignment_areas MUST list specific trait-pairs where they diverge. perception_gap MUST describe the gap between ${primaryPerson}'s intent and ${secondaryPerson}'s interpretation. communication_risk_points MUST list specific interaction types most likely to break down.`,
       };
     }
 
-    // ── DREW→TONY: Drew's BEHAVIOR → Tony's EXPERIENCE ─────────────────────
-    case "Drew→Tony": {
-      const mismatch = detectMisalignments(drewPatterns, "Drew", tonyPatterns, "Tony");
+    case `${secondaryPerson}→${primaryPerson}`: {
+      const mismatch = detectMisalignments(secondaryPatterns, secondaryPerson, primaryPatterns, primaryPerson);
       const inputs = {
-        subject: "Drew",
-        target: "Tony",
-        // Actor: Drew's BEHAVIOR patterns
-        actor_profile: serializeProfile("Drew", drewProfile),
+        subject: secondaryPerson,
+        target: primaryPerson,
+        actor_profile: serializeProfile(secondaryPerson, drewProfile),
         actor_tags: aggregateTags(drewResponses),
-        actor_patterns: drewPatterns.traits,
+        actor_patterns: secondaryPatterns.traits,
         actor_behavior_responses: buildCategoryContext(drewResponses, [
           "behavioral",
           "communication",
           "conflict_style",
           "energy_social",
         ]),
-        // Target: Tony's NEEDS + TRIGGERS
-        target_profile: serializeProfile("Tony", tonyProfile),
-        target_triggers: tonyTriggers.map((t) => `${t.title}: ${t.description?.slice(0, 80)}`).join("\n"),
+        target_profile: serializeProfile(primaryPerson, tonyProfile),
+        target_triggers: primaryTriggers.map((t) => `${t.title}: ${t.description?.slice(0, 80)}`).join("\n"),
         target_needs_responses: buildCategoryContext(tonyResponses, [
           "emotional_triggers",
           "needs_vulnerability",
@@ -225,25 +218,26 @@ function buildPerspectiveInputs({
         ]),
         target_tags: aggregateTags(tonyResponses),
         misalignment_data: mismatch.misalignments
-          .map((m) => `${m.label}: Drew=${m["Drew"]}/10, Tony=${m["Tony"]}/10, gap=${m.gap} (${m.severity})`)
+          .map((m) => `${m.label}: ${secondaryPerson}=${m[secondaryPerson]}/10, ${primaryPerson}=${m[primaryPerson]}/10, gap=${m.gap} (${m.severity})`)
           .join("\n"),
         is_directional: true,
         response_count: tonyResponses.length + drewResponses.length,
       };
       return {
         inputs,
-        label: "Drew → Tony (Interaction Impact)",
-        context: buildDirectionalContext("Drew", "Tony", inputs),
+        label: `${secondaryPerson} → ${primaryPerson} (Interaction Impact)`,
+        context: buildDirectionalContext(secondaryPerson, primaryPerson, inputs),
         instruction:
-          "Analyze HOW Drew's specific behavioral patterns, communication style, and emotional tendencies are EXPERIENCED by Tony. The unit of analysis is impact: how does Drew's behavior land for Tony? Compute misalignment zones and perception gaps. behavioral_patterns = Drew's patterns. relationship_dynamics = how those patterns affect Tony. risk_flags = moments where Drew's behavior most likely triggers Tony's vulnerabilities. strengths = places where Drew's tendencies align with Tony's needs.",
+          `Analyze HOW ${secondaryPerson}'s specific behavioral patterns, communication style, and emotional tendencies are EXPERIENCED by ${primaryPerson}. The unit of analysis is impact: how does ${secondaryPerson}'s behavior land for ${primaryPerson}? Compute misalignment zones and perception gaps. behavioral_patterns = ${secondaryPerson}'s patterns. relationship_dynamics = how those patterns affect ${primaryPerson}. risk_flags = moments where ${secondaryPerson}'s behavior most likely triggers ${primaryPerson}'s vulnerabilities. strengths = places where ${secondaryPerson}'s tendencies align with ${primaryPerson}'s needs.`,
         schema_note:
-          "directional_impact MUST describe what Tony actually experiences when Drew behaves this way. misalignment_areas MUST list specific trait-pairs where they diverge. perception_gap MUST describe the gap between Drew's intent and Tony's interpretation. communication_risk_points MUST list specific interaction types most likely to break down.",
+          `directional_impact MUST describe what ${primaryPerson} actually experiences when ${secondaryPerson} behaves this way. misalignment_areas MUST list specific trait-pairs where they diverge. perception_gap MUST describe the gap between ${secondaryPerson}'s intent and ${primaryPerson}'s interpretation. communication_risk_points MUST list specific interaction types most likely to break down.`,
       };
     }
 
     default:
       return buildPerspectiveInputs({
-        perspective: "Tony→Drew",
+        perspective: `${primaryPerson}→${secondaryPerson}`,
+        participants,
         tonyResponses, drewResponses, tonyProfile, drewProfile, triggers, sessions,
       });
   }
@@ -422,6 +416,7 @@ export function computeAnalysisDelta(prevAnalysis, nextAnalysis) {
  */
 export async function generateAnalysis({
   perspective = "Tony→Drew",
+  participants = ["Tony", "Drew"],
   analysis_type = "deep",
   tonyResponses = [],
   drewResponses = [],
@@ -433,14 +428,17 @@ export async function generateAnalysis({
   scenario = null,
   previousPerspective = null,
 }) {
+  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const resolvedPerspective = perspective || `${primaryPerson}→${secondaryPerson}`;
   // ── REUSE GATE ────────────────────────────────────────────────────────────
-  const reuse_allowed = previousPerspective !== null && previousPerspective === perspective;
+  const reuse_allowed = previousPerspective !== null && previousPerspective === resolvedPerspective;
 
   // SINGLE CONFIG: generateAnalysis() always produces the full deep base object.
   // analysis_type is stored as metadata only — it does NOT change the prompt.
   const config = ANALYSIS_CONFIG;
   const perspDef = buildPerspectiveInputs({
-    perspective,
+    perspective: resolvedPerspective,
+    participants,
     tonyResponses,
     drewResponses,
     tonyProfile,
@@ -451,14 +449,14 @@ export async function generateAnalysis({
 
   // inputs_used: summary of EXACTLY what data was fed into this call
   const inputs_used = {
-    perspective,
+    perspective: resolvedPerspective,
     reuse_allowed,
     subject: perspDef.inputs.subject,
     target: perspDef.inputs.target,
     is_directional: perspDef.inputs.is_directional,
-    actor_response_count: perspective === "Drew" ? drewResponses.length : tonyResponses.length,
-    target_response_count: IS_DIRECTIONAL(perspective)
-      ? (perspective === "Tony→Drew" ? drewResponses.length : tonyResponses.length)
+    actor_response_count: resolvedPerspective === secondaryPerson ? drewResponses.length : tonyResponses.length,
+    target_response_count: IS_DIRECTIONAL(resolvedPerspective)
+      ? (resolvedPerspective === `${primaryPerson}→${secondaryPerson}` ? drewResponses.length : tonyResponses.length)
       : null,
     trigger_count: triggers.filter((t) => t.owner === perspDef.inputs.subject).length,
     session_count: sessions.filter((s) => s.speaker === perspDef.inputs.subject).length,
@@ -469,6 +467,7 @@ export async function generateAnalysis({
   // ── VALIDATION LOG ───────────────────────────────────────────────────────
   console.log("[AnalysisEngine] generateAnalysis() called", {
     perspective,
+    resolvedPerspective,
     inputs_used,
     recomputed: !reuse_allowed,
     timestamp: inputs_used.timestamp,
@@ -479,7 +478,7 @@ export async function generateAnalysis({
     .map((c) => `${c.person_name} (${c.week_label || "recent"}): mood=${c.mood}, worked="${c.what_worked?.slice(0, 80)}"`)
     .join("\n");
 
-  const isDir = IS_DIRECTIONAL(perspective);
+  const isDir = IS_DIRECTIONAL(resolvedPerspective);
 
   const prompt = `${RELATIONSHIP_COACH_SYSTEM}
 
@@ -510,6 +509,7 @@ ${isDir ? `
 This is a DIRECTIONAL analysis. You MUST populate all 4 directional fields with substantive content specific to this direction (${perspDef.inputs.subject} → ${perspDef.inputs.target}):
 - directional_impact: string — what ${perspDef.inputs.target} actually experiences when ${perspDef.inputs.subject} behaves according to their patterns
 - misalignment_areas: string[] — specific trait-pairs where the two diverge (e.g., "Tony's conflict_avoidance=8 vs Drew's need_for_validation=9 — avoidance reads as dismissal")
+- misalignment_areas: string[] — specific trait-pairs where the two diverge using the active participants' names
 - perception_gap: string — the gap between ${perspDef.inputs.subject}'s likely INTENT and ${perspDef.inputs.target}'s likely INTERPRETATION
 - communication_risk_points: string[] — specific interaction scenarios most likely to break down given this directional dynamic
 ` : `
@@ -545,8 +545,8 @@ FIELD REQUIREMENTS:
 
   let result;
   const [personName, partnerName] = isDir
-    ? perspective.split("→").map((value) => value.trim())
-    : [perspective, perspective === "Tony" ? "Drew" : "Tony"];
+    ? resolvedPerspective.split("→").map((value) => value.trim())
+    : [resolvedPerspective, resolvedPerspective === primaryPerson ? secondaryPerson : primaryPerson];
   try {
     result = await safeInvokeLLM(
       {
@@ -582,13 +582,13 @@ FIELD REQUIREMENTS:
   }
 
   const normalized = personalizePartnerLanguage(
-    normalizeAnalysisOutput(result, perspective, analysis_type, inputs_used),
+    normalizeAnalysisOutput(result, resolvedPerspective, analysis_type, inputs_used),
     { personName, partnerName }
   );
 
   // ── POST-GENERATION LOG ───────────────────────────────────────────────────
   console.log("[AnalysisEngine] Output generated", {
-    perspective,
+    perspective: resolvedPerspective,
     core_insight_preview: normalized.core_insight?.slice(0, 80),
     risk_flags_count: normalized.risk_flags?.length,
     is_directional: isDir,

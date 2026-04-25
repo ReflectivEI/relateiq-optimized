@@ -363,6 +363,25 @@ export default function PlayLabII() {
     });
   }, [participantOptions]);
 
+  if (normalizedRelationshipType !== "romantic") {
+    return (
+      <div className="space-y-6">
+        <section className="rounded-[1.75rem] border border-[#0e6f72]/18 bg-white p-8 shadow-[0_18px_38px_rgba(15,23,42,0.06)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#0e6f72]/80">{relationshipLabel}</p>
+          <h1 className="mt-4 font-display text-4xl font-bold tracking-tight text-[#14263f]">Play Lab II</h1>
+          <p className="mt-4 max-w-3xl text-[16px] leading-7 text-[#4e6077]">
+            This session deck is reserved for partner-specific connection and intimacy prompts. It is hidden for friendship,
+            family, and other relationship types so the app does not surface the wrong kind of experience.
+          </p>
+          <div className="mt-6 rounded-[1.25rem] border border-[#0e6f72]/14 bg-[#f8fbfb] p-5 text-[15px] leading-7 text-[#4e6077]">
+            Use Questionnaire, Analysis Engine, AI Coach, Check-In, and the friendship/family-aware surfaces for this
+            relationship context while I continue the type-specific deck split.
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   const resetComposer = () => {
     setPredictionAnswer("");
     setActualAnswer("");
