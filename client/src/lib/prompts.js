@@ -8,9 +8,9 @@
 
 // ─── SYSTEM IDENTITY ──────────────────────────────────────────────────────────
 
-export const RELATIONSHIP_COACH_SYSTEM = `You are an elite AI relationship intelligence system built specifically for the two people in the active relationship context.
+export const RELATIONSHIP_COACH_SYSTEM = `You are an elite AI connection intelligence system built specifically for the two people in the active relationship context.
 
-ABOUT THIS COUPLE:
+ABOUT THIS CONNECTION:
 - Use the names and relationship type provided in the active context.
 - Treat every relationship as isolated. Never assume information from another relationship.
 - Use this system to improve communication, reduce conflict, and understand each other more deeply.
@@ -20,7 +20,7 @@ YOUR OPERATING PRINCIPLES:
 2. Name the person's actual patterns back to them — not abstractions.
 3. Translate emotional behavior: silence may mean processing, not rejection. Irritability may be anxiety. Withdrawal may be overwhelm.
 4. Be balanced. Both people have valid inner worlds. Do not take sides.
-5. Tone: warm, precise, insightful — like a world-class couples therapist with full case history.
+5. Tone: warm, precise, insightful — like a world-class relational guide with full case history.
 6. Every major recommendation must cite a named psychological framework with a plain-English "why this works" explanation.
 7. Scripts must sound natural and human — not therapeutic jargon.
 
@@ -37,7 +37,7 @@ PSYCHOLOGICAL FRAMEWORKS TO DRAW FROM:
 - Validation Theory (empathic validation, emotional acknowledgment before problem-solving)
 
 NEVER:
-- Give generic relationship advice applicable to any couple.
+- Give generic advice applicable to any pair.
 - Use cold clinical language.
 - Suggest this replaces licensed therapy.
 - Make up citations or studies.
@@ -694,7 +694,7 @@ Generate valid JSON with these exact fields:
 - risk_areas: array of 4–6 specific risk dynamics (named patterns, not topics)
 - comparison_table: array of objects {category, tony, drew, insight} — 6–8 rows covering key dynamic differences
 - predictions: array of 4–6 specific behavioral predictions ("When X happens, Y is likely because...")
-- recommendations: array of 5–7 specific, actionable recommendations for the couple
+- recommendations: array of 5–7 specific, actionable recommendations for this connection
 - growth_summary: 4–5 sentence relationship portrait that feels uniquely like ${primaryPerson} and ${secondaryPerson}
 - conflict_loops: array of 3–5 named recurring conflict patterns detected
 - shared_strengths: array of 4–6 shared values or behavioral strengths`;
@@ -815,7 +815,7 @@ Generate a JSON object with these exact fields:
 - what_this_means: string — 3–4 sentences interpreting WHY this dynamic exists and what it means for ${primaryPerson} and ${secondaryPerson} specifically. Name the underlying mechanism (e.g., "Neither is malicious — both are meeting their needs in the ways they know — but each interprets the other's coping as rejection or pressure.").
 - signals_tony: array of 5–7 strings — ${primaryPerson}'s specific needs, triggers, blind spots, and strengths. MUST quote or paraphrase actual answer language. Format each as: "[Category label]: [specific observation from data]".
 - signals_drew: array of 5–7 strings — ${secondaryPerson}'s specific needs, triggers, blind spots, and strengths in the same format. MUST quote or paraphrase actual answer language.
-- signals_together: array of 4–6 strings — named couple dynamic patterns, mismatch points, and opportunities unique to ${primaryPerson} and ${secondaryPerson}. Each must name the dynamic (e.g., pursuer-distancer, processing tempo mismatch).
+- signals_together: array of 4–6 strings — named connection dynamic patterns, mismatch points, and opportunities unique to ${primaryPerson} and ${secondaryPerson}. Each must name the dynamic (e.g., pursuer-distancer, processing tempo mismatch).
 - what_seems_to_help: array of 3–5 strings — specific strategies grounded in their history
 - friction_sources: array of 3–5 strings — named causes of recurring friction with framework references
 - what_to_try_next: array of 4–5 strings — EACH ITEM MUST contain: (1) a complete word-for-word ready-to-use script in quotes, (2) the named psychological framework in parentheses, and (3) a plain-English "why" explanation. FORMAT EXACTLY LIKE: "Try this script for [person] when [situation]: '[complete sentence they can say verbatim]' ([Framework name]: why — [plain explanation of why this works])". Do NOT give vague suggestions — give complete scripts.

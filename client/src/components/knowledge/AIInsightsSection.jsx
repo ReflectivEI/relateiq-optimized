@@ -116,6 +116,13 @@ function buildTemplates(relationshipTerms, relationshipLabel) {
     `Progress in a ${bond} often looks like steadier communication, not perfection.`,
     `You can strengthen this ${bond} one honest interaction at a time.`,
   ];
+  if (type === "romantic") {
+    templates.affirmation.examples = [
+      "Love gets stronger when both people choose clarity over assumptions.",
+      "Progress in a relationship often looks like steadier communication, not perfection.",
+      "You can strengthen this relationship one honest interaction at a time.",
+    ];
+  }
   templates.question.examples = [
     `"What's something you wish I understood better about you in this ${bond}?"`,
     `"When do you feel most respected, supported, or appreciated by me?"`,

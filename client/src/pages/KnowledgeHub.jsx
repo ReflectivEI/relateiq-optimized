@@ -27,8 +27,8 @@ const RESOURCES = {
     },
     {
       title: "Psychology Today — Relationships",
-      description: "Free articles on communication, attachment, and relationship dynamics",
-      url: "https://www.psychologytoday.com/us/blog/unwrapped/202409/who-does-what-choosing-roles-for-gay-couples/amp",
+      description: "Free articles on communication, attachment, boundaries, and connection dynamics",
+      url: "https://www.psychologytoday.com/us/topics/relationships",
       category: "Core Relationship Science",
       relevantFrameworks: ["CBT", "EFT"],
     },
@@ -40,7 +40,7 @@ const RESOURCES = {
       relevantFrameworks: ["EFT"],
     },
   ],
-  lgbtq: [
+  romanticSpecific: [
     {
       title: "The Trevor Project",
       description: "Crisis support and resources for LGBTQ+ individuals and couples",
@@ -84,6 +84,36 @@ const RESOURCES = {
       relevantFrameworks: ["LGBTQ_RELATIONAL"],
     },
   ],
+  connectionSupport: [
+    {
+      title: "The Trevor Project",
+      description: "Crisis support and LGBTQ+ wellbeing resources for individuals, friends, and families",
+      url: "https://www.thetrevorproject.org",
+      category: "Connection Support",
+      relevantFrameworks: ["LGBTQ_RELATIONAL"],
+    },
+    {
+      title: "The Trevor Project — Resources",
+      description: "Practical LGBTQ+ mental health, identity, and support resources",
+      url: "https://www.thetrevorproject.org/resources/",
+      category: "Connection Support",
+      relevantFrameworks: ["LGBTQ_RELATIONAL"],
+    },
+    {
+      title: "Human Rights Campaign",
+      description: "Resources for LGBTQ+ equality, family support, workplace rights, and community wellbeing",
+      url: "https://www.hrc.org",
+      category: "Connection Support",
+      relevantFrameworks: ["LGBTQ_RELATIONAL"],
+    },
+    {
+      title: "LGBTQ+ Mental Health Resources (APA)",
+      description: "American Psychological Association LGBTQ+ mental health guidance and support resources",
+      url: "https://www.apa.org/pi/lgbtq",
+      category: "Connection Support",
+      relevantFrameworks: ["LGBTQ_RELATIONAL"],
+    },
+  ],
   communication: [
     {
       title: "Nonviolent Communication (NVC)",
@@ -109,8 +139,33 @@ const RESOURCES = {
   ],
 };
 
+function buildResourceSections(terms) {
+  const supportTitle =
+    terms.type === "romantic"
+      ? "LGBTQ+ Relationships & Male Couples"
+      : `${terms.typeLabel} + Connection Support`;
 
+  const supportResources =
+    terms.type === "romantic" ? RESOURCES.romanticSpecific : RESOURCES.connectionSupport;
 
+  return [
+    {
+      title: terms.type === "romantic" ? "Core Relationship Science" : `Core ${terms.typeLabel} Science`,
+      icon: Library,
+      resources: RESOURCES.core,
+    },
+    {
+      title: supportTitle,
+      icon: Heart,
+      resources: supportResources,
+    },
+    {
+      title: "Communication + Conflict",
+      icon: BookOpen,
+      resources: RESOURCES.communication,
+    },
+  ];
+}
 function ResourceCard({ resource }) {
   return (
     <Card className="hover:shadow-md transition-shadow border-2">
@@ -168,6 +223,8 @@ export default function KnowledgeHub() {
     queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: participants[1] }),
   });
 
+  const resourceSections = buildResourceSections(terms);
+
   return (
     <div className="space-y-8">
       {/* Hero */}
@@ -203,11 +260,7 @@ export default function KnowledgeHub() {
 
         {/* RESOURCES TAB */}
         <TabsContent value="resources" className="space-y-8 mt-4">
-          {[
-            { title: terms.type === "romantic" ? "Core Relationship Science" : `Core ${terms.typeLabel} Science`, icon: Library, resources: RESOURCES.core },
-            { title: terms.type === "romantic" ? "LGBTQ+ Relationships & Male Couples" : `Connection-Specific Support`, icon: Heart, resources: RESOURCES.lgbtq },
-            { title: "Communication + Conflict", icon: BookOpen, resources: RESOURCES.communication },
-          ].map((section) => (
+          {resourceSections.map((section) => (
             <div key={section.title} className="space-y-4">
               <h2 className="font-display text-2xl font-semibold flex items-center gap-3">
                 <section.icon className="h-6 w-6 text-primary" />

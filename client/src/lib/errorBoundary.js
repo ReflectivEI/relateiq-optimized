@@ -78,7 +78,7 @@ export function handleError(error, type = ERROR_TYPES.UNKNOWN) {
     [ERROR_TYPES.DATA_MISSING]: {
       type: ERROR_TYPES.DATA_MISSING,
       message: "Not enough data to generate insights.",
-      next_step: "Complete profiles and questionnaire for both partners.",
+      next_step: "Complete profiles and questionnaire for both people in this connection.",
       action: "build_profiles",
       icon: "👤",
     },
