@@ -119,7 +119,7 @@ export default function Profiles() {
 
     // Fallback if AI timed out, failed, or produced invalid output after 2 attempts
     if (!result) {
-      result = buildFallbackProfile(activePerson, responses);
+      result = buildFallbackProfile(activePerson, responses, partnerName);
     }
 
     // Always normalize — fills any missing fields so UI never renders empty sections

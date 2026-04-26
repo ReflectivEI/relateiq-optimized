@@ -22,28 +22,42 @@ function getNamesFromMemory(memory = {}) {
       primaryProfile?.person_name ||
       primaryResponsesName ||
       memory?.primaryPerson ||
-      "Tony",
+      "Person A",
     secondaryPerson:
       secondaryProfile?.person_name ||
       secondaryResponsesName ||
       memory?.secondaryPerson ||
-      "Drew",
+      "Other Person",
   };
+}
+
+function isPrimaryScope(scope = "", primaryPerson = "Person A") {
+  return scope === primaryPerson || scope === "Tony";
+}
+
+function isSecondaryScope(scope = "", secondaryPerson = "Other Person") {
+  return scope === secondaryPerson || scope === "Drew";
+}
+
+function isSharedScope(scope = "", primaryPerson = "Person A", secondaryPerson = "Other Person") {
+  return (
+    scope === `${primaryPerson}+${secondaryPerson}` ||
+    scope === "Tony+Drew" ||
+    (typeof scope === "string" &&
+      scope.includes(primaryPerson) &&
+      scope.includes(secondaryPerson))
+  );
 }
 
 function getPartnerLanguageForScope(scope = "", memory = {}) {
   const { primaryPerson, secondaryPerson } = getNamesFromMemory(memory);
-  if (scope === "Tony" || scope === primaryPerson) {
+  if (isPrimaryScope(scope, primaryPerson)) {
     return { personName: primaryPerson, partnerName: secondaryPerson };
   }
-  if (scope === "Drew" || scope === secondaryPerson) {
+  if (isSecondaryScope(scope, secondaryPerson)) {
     return { personName: secondaryPerson, partnerName: primaryPerson };
   }
-  if (
-    scope.includes("Tony") ||
-    scope.includes("Drew") ||
-    (scope.includes(primaryPerson) && scope.includes(secondaryPerson))
-  ) {
+  if (isSharedScope(scope, primaryPerson, secondaryPerson)) {
     return { personName: primaryPerson, partnerName: secondaryPerson, replacePronouns: false };
   }
   return null;
@@ -56,7 +70,7 @@ function getPartnerLanguageForScope(scope = "", memory = {}) {
 export function buildContextObject({
   page,
   sectionTitle,
-  scope, // "Tony" | "Drew" | "Tony+Drew"
+  scope,
   sourceInputs,
   originalOutput,
   profiles = [],
@@ -69,12 +83,12 @@ export function buildContextObject({
   const primaryPerson =
     tonyResponses[0]?.person_name ||
     profiles[0]?.person_name ||
-    "Tony";
+    "Person A";
   const secondaryPerson =
     drewResponses[0]?.person_name ||
     profiles.find((p) => p.person_name && p.person_name !== primaryPerson)?.person_name ||
     profiles[1]?.person_name ||
-    "Drew";
+    "Other Person";
 
   const primaryProfile =
     profiles.find((p) => p.person_name === primaryPerson) ||
@@ -125,16 +139,16 @@ function serializeMemoryForPrompt(ctx) {
   const { primaryPerson, secondaryPerson } = getNamesFromMemory(memory);
   const lines = [];
 
-  if (scope === "Tony" || scope === "Tony+Drew") {
+  if (isPrimaryScope(scope, primaryPerson) || isSharedScope(scope, primaryPerson, secondaryPerson)) {
     lines.push(serializeProfile(primaryPerson, memory.primaryProfile || memory.tonyProfile));
     if (memory.primaryTags || memory.tonyTags) lines.push(`${primaryPerson}'s behavioral patterns: ${memory.primaryTags || memory.tonyTags}`);
   }
-  if (scope === "Drew" || scope === "Tony+Drew") {
+  if (isSecondaryScope(scope, secondaryPerson) || isSharedScope(scope, primaryPerson, secondaryPerson)) {
     lines.push(serializeProfile(secondaryPerson, memory.secondaryProfile || memory.drewProfile));
     if (memory.secondaryTags || memory.drewTags) lines.push(`${secondaryPerson}'s behavioral patterns: ${memory.secondaryTags || memory.drewTags}`);
   }
   if (memory.relationshipDynamic?.ai_dynamic_summary) {
-    lines.push(`Couple dynamic summary: ${memory.relationshipDynamic.ai_dynamic_summary}`);
+    lines.push(`Connection dynamic summary: ${memory.relationshipDynamic.ai_dynamic_summary}`);
   }
   if (memory.recentSessions?.length > 0) {
     const sessionCtx = memory.recentSessions
@@ -187,10 +201,14 @@ Format your response with clear section headers and short readable paragraphs.`;
   // Log session
   try {
     const { primaryPerson, secondaryPerson } = getNamesFromMemory(ctx.memory);
-    const speaker = ctx.scope === "Drew" ? secondaryPerson : primaryPerson;
+    const speaker = isSecondaryScope(ctx.scope, secondaryPerson) ? secondaryPerson : primaryPerson;
     await api.entities.CoachSession.create({
       speaker,
-      speaking_to: ctx.scope === "Tony+Drew" ? secondaryPerson : speaker === primaryPerson ? secondaryPerson : primaryPerson,
+      speaking_to: isSharedScope(ctx.scope, primaryPerson, secondaryPerson)
+        ? secondaryPerson
+        : speaker === primaryPerson
+          ? secondaryPerson
+          : primaryPerson,
       situation: `[${ctx.page} / ${ctx.sectionTitle}] ${question}`,
       ai_response: result,
       tool_type: "coach",
@@ -234,7 +252,7 @@ Return your response in this exact format:
 [Brief reason grounded in ${scope}'s actual patterns — 2-3 sentences]
 
 ## 💬 What It Means for ${scope.includes("+") ? "You Both" : scope}
-[How this shows up in real life for this person / couple — 2-3 sentences]
+[How this shows up in real life for this person or connection — 2-3 sentences]
 
 ## ✅ What To Do Next
 [One or two realistic, immediate actions]
@@ -282,8 +300,8 @@ Return your response in this exact format:
 ## 🔄 The Pattern Being Identified
 [Name and describe the pattern specifically — what it looks like, where it comes from]
 
-## 💞 Why This Matters in Your Relationship
-[How this impacts ${scope.includes("+") ? "this relationship dynamic" : `${scope}'s experience`} — be specific]
+## 💞 Why This Matters in Your Connection
+[How this impacts ${scope.includes("+") ? "this connection dynamic" : `${scope}'s experience`} — be specific]
 
 ## 🧩 How It May Show Up in Real Life
 [A concrete, realistic example grounded in their dynamic]

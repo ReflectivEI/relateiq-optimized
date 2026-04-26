@@ -195,8 +195,7 @@ export async function safeInvokeLLM(params, timeoutMs = 35000, fallback = null, 
 
 // ─── FALLBACK BUILDERS ────────────────────────────────────────────────────────
 
-export function buildFallbackProfile(personName, responses = []) {
-  const partnerName = personName === "Tony" ? "Drew" : "Tony";
+export function buildFallbackProfile(personName, responses = [], partnerName = "Other Person") {
   const responseMap = Object.fromEntries(
     responses
       .filter((response) => response?.question_id)
@@ -376,8 +375,8 @@ export function buildFallbackProfile(personName, responses = []) {
   }, personName);
 }
 
-export function buildFallbackContextInsights(tonyResponses = [], drewResponses = [], sessions = [], checkIns = []) {
-  const totalData = tonyResponses.length + drewResponses.length + sessions.length + checkIns.length;
+export function buildFallbackContextInsights(primaryResponses = [], secondaryResponses = [], sessions = [], checkIns = []) {
+  const totalData = primaryResponses.length + secondaryResponses.length + sessions.length + checkIns.length;
   return normalizeContextInsights({
     what_system_sees: `Working with ${totalData} data points. Click Refresh to regenerate insights.`,
     confidence_level: "early_signal",

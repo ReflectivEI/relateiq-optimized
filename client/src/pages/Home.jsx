@@ -141,10 +141,10 @@ export default function Home() {
   const tonyProfile = profiles.find((p) => p.person_name === primaryPerson);
   const drewProfile = profiles.find((p) => p.person_name === secondaryPerson);
   const fallbackTony = !tonyProfile && tonyResponses.length > 0
-    ? normalizeProfileOutput(buildFallbackProfile(primaryPerson, tonyResponses), primaryPerson)
+    ? normalizeProfileOutput(buildFallbackProfile(primaryPerson, tonyResponses, secondaryPerson), primaryPerson)
     : null;
   const fallbackDrew = !drewProfile && drewResponses.length > 0
-    ? normalizeProfileOutput(buildFallbackProfile(secondaryPerson, drewResponses), secondaryPerson)
+    ? normalizeProfileOutput(buildFallbackProfile(secondaryPerson, drewResponses, primaryPerson), secondaryPerson)
     : null;
 
   // Run early warning system when check-ins load

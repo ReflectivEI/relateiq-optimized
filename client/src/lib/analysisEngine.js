@@ -73,7 +73,7 @@ const ANALYSIS_CONFIG = {
  */
 function buildPerspectiveInputs({
   perspective,
-  participants = ["Tony", "Drew"],
+  participants = ["Person A", "Other Person"],
   tonyResponses,
   drewResponses,
   tonyProfile,
@@ -81,7 +81,7 @@ function buildPerspectiveInputs({
   triggers,
   sessions,
 }) {
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   const primaryPatterns = computePatternProfile(primaryPerson, tonyResponses);
   const secondaryPatterns = computePatternProfile(secondaryPerson, drewResponses);
 

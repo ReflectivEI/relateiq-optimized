@@ -31,7 +31,7 @@ import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 const PAGE_META = {
   "/":             { label: "Context: Us",       subtitle: "Understanding each other deeply, communicating with intention, and growing together — powered by insight.", icon: LayoutDashboard },
-  "/journal":      { label: "Journal",            subtitle: "A private writing space for Tony and Drew",      icon: NotebookPen },
+  "/journal":      { label: "Journal",            subtitle: "A private writing space for this connection",      icon: NotebookPen },
   "/vision":       { label: "Vision Board",       subtitle: "Pin your shared dreams and aspirations",         icon: Telescope },
   "/playbook":     { label: "Playbook",           subtitle: "Your relationship operating manual and templates", icon: BookOpenText },
   "/play-lab-ii":  { label: "Play Lab II",        subtitle: "Guided session-based experiences for understanding, repair, and connection", icon: Layers3 },
