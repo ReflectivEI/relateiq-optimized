@@ -382,11 +382,15 @@ export function applyMode(base, mode) {
   assertBaseExists(base, mode);
   const fn = TRANSFORMERS[mode] || toDeep;
   const result = fn(base);
+  const headline =
+    typeof result?.display?.headline === "string"
+      ? result.display.headline
+      : String(result?.display?.headline ?? "");
   console.log("[analysisTransforms] applyMode() called", {
     mode,
     _no_ai_call: result._no_ai_call,
     _derived_from: result._derived_from,
-    headline_preview: result.display?.headline?.slice(0, 80),
+    headline_preview: headline.slice(0, 80),
     sections_count: result.display?.sections?.length,
   });
   return result;

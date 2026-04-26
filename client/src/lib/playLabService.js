@@ -90,11 +90,14 @@ export const PLAY_LAB_MODULES = [
   },
 ];
 
-export const PLAY_LAB_SCOPE_OPTIONS = [
-  { value: "Tony", label: "Tony" },
-  { value: "Drew", label: "Drew" },
-  { value: "Tony+Drew", label: "Tony + Drew" },
-];
+export function buildPlayLabScopeOptions(participants = ["Person A", "Other Person"]) {
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
+  return [
+    { value: primaryPerson, label: primaryPerson },
+    { value: secondaryPerson, label: secondaryPerson },
+    { value: `${primaryPerson}+${secondaryPerson}`, label: `${primaryPerson} + ${secondaryPerson}` },
+  ];
+}
 
 export function getPlayLabModule(moduleType) {
   return PLAY_LAB_MODULES.find((module) => module.id === moduleType) || PLAY_LAB_MODULES[0];
@@ -162,7 +165,7 @@ export function buildPlayLabExportContent(result, moduleTitle) {
 
   return {
     title: moduleTitle || result?.moduleLabel || "Play Lab Result",
-    scope: result?.scope || "Tony+Drew",
+    scope: result?.scope || "Shared Pair",
     summary: result?.summary || result?.ai_summary || "",
     interpretation: result?.interpretation || "",
     sections: sections.map((section) => ({

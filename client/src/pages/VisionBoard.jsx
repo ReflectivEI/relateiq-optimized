@@ -17,10 +17,10 @@ import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 const CATEGORIES = ["all", "dream", "goal", "value", "memory", "intention"];
 const PROGRESS_FILTERS = ["all", "not_started", "in_progress", "achieved"];
 
-const STATS = (pins) => ({
+const STATS = (pins, sharedScope) => ({
   total: pins.length,
   achieved: pins.filter((p) => p.progress === "achieved").length,
-  shared: pins.filter((p) => p.pinned_by === "Tony_Drew").length,
+  shared: pins.filter((p) => p.pinned_by === sharedScope).length,
   inProgress: pins.filter((p) => p.progress === "in_progress").length,
 });
 
@@ -81,7 +81,7 @@ export default function VisionBoard() {
     toast.success("Pin removed");
   };
 
-  const stats = STATS(pins);
+  const stats = STATS(pins, sharedScope);
 
   return (
     <div className="space-y-8">

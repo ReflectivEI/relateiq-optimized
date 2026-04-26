@@ -744,16 +744,6 @@ export default function Insights() {
     [repairEntries, participants, activeRelationship],
   );
 
-  const visibleResponseCounts = useMemo(
-    () => [
-      { person: participants[0], count: tonyResponses.length },
-      { person: participants[1], count: drewResponses.length },
-    ],
-    [participants, tonyResponses.length, drewResponses.length],
-  );
-
-  const missingParticipants = visibleResponseCounts.filter((entry) => entry.count === 0);
-
   const relationshipIntelligence = synthesizeRelationshipIntelligence({
     participants,
     relationshipTerms: terms,
@@ -1071,22 +1061,7 @@ export default function Insights() {
         />
       </div>
 
-      {/* Waiting for other-person notice — shown when only one person has questionnaire data */}
-      {missingParticipants.length > 0 && !loading && (
-        <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-muted/40 border border-border/40">
-          <Heart className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-          <p className="text-sm text-muted-foreground">
-            <strong className="text-foreground">Questionnaire data visibility:</strong>{" "}
-            Combined insights deepen when both people in this {terms.bond} have questionnaire responses available in this pairing.
-            {missingParticipants.length === visibleResponseCounts.length
-              ? " No questionnaire answers are currently visible in this view yet."
-              : ` Currently visible: ${visibleResponseCounts
-                  .filter((entry) => entry.count > 0)
-                  .map((entry) => `${entry.person} (${entry.count}/94)`)
-                  .join(", ")}.`}
-          </p>
-        </div>
-      )}
+      {/* Accuracy rule: do not show speculative completion warnings that can misstate questionnaire progress. */}
 
       {/* Relationship Intelligence Summary (always show) */}
       {dataLoaded && (

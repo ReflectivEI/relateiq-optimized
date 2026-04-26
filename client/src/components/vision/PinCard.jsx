@@ -29,7 +29,7 @@ const PROGRESS_CONFIG = {
 
 export default function PinCard({
   pin,
-  participants = ["Tony", "Drew"],
+  participants = ["Person A", "Other Person"],
   sharedScope = `${participants[0]}_${participants[1]}`,
   onUpdate,
   onDelete,

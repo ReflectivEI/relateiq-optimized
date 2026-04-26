@@ -22,10 +22,10 @@ export default function PinForm({
   initialData = {},
   onSave,
   onCancel,
-  participants = ["Tony", "Drew"],
+  participants = ["Person A", "Other Person"],
   defaultPinnedBy,
 }) {
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   const sharedScope = `${primaryPerson}_${secondaryPerson}`;
   const pinnedByOptions = [primaryPerson, secondaryPerson, sharedScope];
   const [form, setForm] = useState({

@@ -7,7 +7,7 @@ import { MessageCircle, UserRound } from "lucide-react";
 
 const MOOD_SCORE = { great: 5, good: 4, okay: 3, tough: 2, difficult: 1 };
 
-export default function CommunicationPatterns({ checkIns, coachSessions, participants = ["Tony", "Drew"] }) {
+export default function CommunicationPatterns({ checkIns = [], coachSessions = [], participants = ["Person A", "Other Person"] }) {
   const stats = useMemo(() => {
     // Per-person mood averages
     const personStats = participants.map((name) => {
