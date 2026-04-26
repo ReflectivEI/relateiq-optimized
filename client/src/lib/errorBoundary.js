@@ -106,7 +106,20 @@ export function validateInput(input) {
     );
   }
 
-  if (input.speaker && typeof input.speaker !== "string") {
+  const normalizedSpeaker =
+    typeof input.speaker === "string"
+      ? input.speaker.trim()
+      : typeof input.speaker === "number"
+        ? String(input.speaker)
+        : "";
+  const normalizedListener =
+    typeof input.speakingTo === "string"
+      ? input.speakingTo.trim()
+      : typeof input.speakingTo === "number"
+        ? String(input.speakingTo)
+        : "";
+
+  if (input.speaker !== undefined && !normalizedSpeaker) {
     throw new StructuredError(
       ERROR_TYPES.INVALID_INPUT,
       "Invalid speaker selected.",
@@ -114,7 +127,7 @@ export function validateInput(input) {
     );
   }
 
-  if (input.speakingTo && typeof input.speakingTo !== "string") {
+  if (input.speakingTo !== undefined && !normalizedListener) {
     throw new StructuredError(
       ERROR_TYPES.INVALID_INPUT,
       "Invalid listener selected.",
@@ -122,7 +135,7 @@ export function validateInput(input) {
     );
   }
 
-  if (input.speaker && input.speakingTo && input.speaker === input.speakingTo) {
+  if (normalizedSpeaker && normalizedListener && normalizedSpeaker === normalizedListener) {
     throw new StructuredError(
       ERROR_TYPES.INVALID_INPUT,
       "The speaker and listener cannot be the same person.",

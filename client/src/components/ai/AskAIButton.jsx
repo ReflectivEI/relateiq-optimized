@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 export default function AskAIButton({
   page,
   sectionTitle,
-  scope = "Tony+Drew",
+  scope = "this connection",
   onClick,
   className = "",
   size = "sm",

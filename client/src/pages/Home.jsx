@@ -28,6 +28,7 @@ import EarlyWarningCard from "@/components/dashboard/EarlyWarningCard";
 import { getRiskSummary } from "@/lib/earlyWarningEngine";
 import { buildFallbackProfile, normalizeProfileOutput } from "@/lib/aiSafe";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 import {
   Dialog,
   DialogContent,
@@ -137,6 +138,7 @@ export default function Home() {
     queryKey: ["triggers-home", activeRelationshipId],
     queryFn: () => api.entities.TriggerEntry.list(),
   });
+  const terms = getRelationshipTerms(activeRelationship);
 
   const tonyProfile = profiles.find((p) => p.person_name === primaryPerson);
   const drewProfile = profiles.find((p) => p.person_name === secondaryPerson);
@@ -214,7 +216,9 @@ export default function Home() {
           {relationshipLabel}
         </div>
         <p className="mx-auto text-base text-muted-foreground sm:text-lg lg:text-[1.25rem] lg:leading-8 lg:whitespace-nowrap">
-          Your relationship command center for reflection, coaching, insight generation, and practical growth tools.
+          {terms.type === "romantic"
+            ? "Your relationship command center for reflection, coaching, insight generation, and practical growth tools."
+            : `Your ${terms.bond} command center for reflection, coaching, insight generation, and practical support.`}
         </p>
       </motion.div>
 
@@ -407,7 +411,7 @@ export default function Home() {
               sessions,
               relationship: activeRelationship,
             })}
-            modalTitle="Ask AI About Early Warnings"
+            modalTitle={`Ask AI About ${relationshipLabel}`}
             showText={true}
             variant="outline"
           />

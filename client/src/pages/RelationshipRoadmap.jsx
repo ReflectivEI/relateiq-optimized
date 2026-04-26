@@ -1,6 +1,6 @@
 /**
  * RelationshipRoadmap.jsx — 6-month growth milestone plan
- * Tailored to couple's patterns, profiles, and detected challenges
+ * Tailored to the active pair's patterns, profiles, and detected challenges
  */
 
 import React, { useMemo, useRef, useState } from "react";
@@ -18,12 +18,14 @@ import AskAIButton from "@/components/askAI/AskAIButton";
 import { buildContext } from "@/lib/contextBuilder";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 
-function buildMonthResources(milestone, tonyName = "Tony", drewName = "Drew") {
+function buildMonthResources(milestone, primaryName = "Person A", secondaryName = "Person B", terms) {
+  const bond = terms?.bond || "connection";
   const resourcesByMonth = {
     1: {
       title: "Month 1 Resource Guide",
-      summary: `This month is about building a clear shared baseline. Focus on how ${tonyName} and ${drewName} each experience stress, repair, closeness, and emotional safety before trying to optimize anything else.`,
+      summary: `This month is about building a clear shared baseline. Focus on how ${primaryName} and ${secondaryName} each experience stress, repair, closeness, and emotional safety before trying to optimize anything else in this ${bond}.`,
       resources: [
         {
           title: "Questionnaire Review",
@@ -104,11 +106,11 @@ function buildMonthResources(milestone, tonyName = "Tony", drewName = "Drew") {
     },
     4: {
       title: "Month 4 Resource Guide",
-      summary: "Move from repair into alignment. This is the month to make the relationship feel more intentional, future-facing, and guided by shared values rather than only immediate problems.",
+      summary: `Move from repair into alignment. This is the month to make the ${bond} feel more intentional, future-facing, and guided by shared values rather than only immediate problems.`,
       resources: [
         {
           title: "Vision Board",
-          description: "Capture what a stronger next season looks like so the relationship has a visible direction.",
+          description: `Capture what a stronger next season looks like so the ${bond} has a visible direction.`,
           path: "/vision-board",
           cta: "Open Vision Board",
           icon: BookOpen,
@@ -122,7 +124,7 @@ function buildMonthResources(milestone, tonyName = "Tony", drewName = "Drew") {
         },
         {
           title: "Insights",
-          description: "Review the larger couple patterns and see whether your goals match the actual dynamic you are living.",
+          description: `Review the larger ${bond} patterns and see whether your goals match the actual dynamic you are living.`,
           path: "/insights",
           cta: "Review Insights",
           icon: TrendingUp,
@@ -169,7 +171,7 @@ function buildMonthResources(milestone, tonyName = "Tony", drewName = "Drew") {
         },
         {
           title: "Health Report",
-          description: "Use the broader weekly snapshot to see whether the relationship feels steadier, warmer, and more resilient overall.",
+          description: `Use the broader weekly snapshot to see whether the ${bond} feels steadier, warmer, and more resilient overall.`,
           path: "/health-report",
           cta: "Open Health Report",
           icon: CalendarCheck,
@@ -193,10 +195,11 @@ function buildMonthResources(milestone, tonyName = "Tony", drewName = "Drew") {
 }
 
 export default function RelationshipRoadmap() {
-  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
+  const { activeRelationshipId, activeRelationship, participants, relationshipLabel } = useRelationshipAuth();
   const [selectedMonth, setSelectedMonth] = useState(1);
   const resourcesRef = useRef(null);
   const roadmapRef = useRef(null);
+  const terms = getRelationshipTerms(activeRelationship);
 
   // Fetch data
   const { data: tonyResponses = [] } = useQuery({
@@ -236,13 +239,15 @@ export default function RelationshipRoadmap() {
   const roadmap = useMemo(() => {
     if (!tonyResponses.length || !drewResponses.length) return null;
 
-    const tonyPatterns = computePatternProfile("Tony", tonyResponses);
-    const drewPatterns = computePatternProfile("Drew", drewResponses);
-    const misalignments = detectMisalignments(tonyPatterns, "Tony", drewPatterns, "Drew");
+    const primaryName = participants[0] || "Person A";
+    const secondaryName = participants[1] || "Person B";
+    const primaryPatterns = computePatternProfile(primaryName, tonyResponses);
+    const secondaryPatterns = computePatternProfile(secondaryName, drewResponses);
+    const misalignments = detectMisalignments(primaryPatterns, primaryName, secondaryPatterns, secondaryName);
 
     return generateRoadmap({
-      tonyPatterns,
-      drewPatterns,
+      tonyPatterns: primaryPatterns,
+      drewPatterns: secondaryPatterns,
       tonyProfile,
       drewProfile,
       checkIns,
@@ -253,7 +258,7 @@ export default function RelationshipRoadmap() {
 
   const askAIContext = buildContext({
     section: "Relationship Roadmap",
-    perspective: "Tony+Drew",
+    perspective: relationshipLabel,
     roadmap,
     profiles: [tonyProfile, drewProfile].filter(Boolean),
     checkIns,
@@ -266,8 +271,9 @@ export default function RelationshipRoadmap() {
   const monthResourceGuide = selectedMilestone
     ? buildMonthResources(
         selectedMilestone,
-        tonyProfile?.person_name || "Tony",
-        drewProfile?.person_name || "Drew",
+        tonyProfile?.person_name || participants[0] || "Person A",
+        drewProfile?.person_name || participants[1] || "Person B",
+        terms,
       )
     : null;
 
@@ -355,9 +361,9 @@ export default function RelationshipRoadmap() {
             Tailored to Your Styles
           </p>
           <p className="text-base text-teal-950 leading-relaxed">
-            <span className="font-semibold">{tonyProfile?.person_name || "Tony"}</span> tends toward{" "}
+            <span className="font-semibold">{tonyProfile?.person_name || participants[0] || "Person A"}</span> tends toward{" "}
             <span className="font-medium">{roadmap.personalization.tonyStyle} communication</span>, while{" "}
-            <span className="font-semibold">{drewProfile?.person_name || "Drew"}</span> is more{" "}
+            <span className="font-semibold">{drewProfile?.person_name || participants[1] || "Person B"}</span> is more{" "}
             <span className="font-medium">{roadmap.personalization.drewStyle}</span>. This roadmap accounts for both of you.
           </p>
         </CardContent>
@@ -468,7 +474,7 @@ export default function RelationshipRoadmap() {
                 resources: (selectedMilestone?.resources || []).map((item) => `${item.title}: ${item.description}`),
               }}
               filename="relationship-roadmap.pdf"
-              title="Relationship Growth Roadmap"
+              title={`${relationshipLabel} Growth Roadmap`}
               showEmail={false}
             />
           </div>
@@ -478,7 +484,7 @@ export default function RelationshipRoadmap() {
       {/* Disclaimer */}
       <div className="text-center text-xs text-muted-foreground/60">
         <p>
-          This roadmap is generated from your questionnaire responses and relationship patterns.
+          This roadmap is generated from your questionnaire responses and {terms.bond} patterns.
           Adjust timing and focus based on your actual progress and needs.
         </p>
       </div>
