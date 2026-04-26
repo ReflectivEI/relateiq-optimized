@@ -1,8 +1,37 @@
-export function getRelationshipParticipants(activeRelationship, userName) {
-  const seeded = [
+function parseRelationshipNameParticipants(name) {
+  const raw = String(name || "").trim();
+  if (!raw) return [];
+
+  const pairSegment = raw
+    .replace(/\s+[·|-]\s+.*$/u, "")
+    .replace(/\s+—\s+.*$/u, "")
+    .trim();
+
+  const separators = [" & ", " + ", " and ", " AND "];
+  for (const separator of separators) {
+    if (!pairSegment.includes(separator)) continue;
+    const parts = pairSegment
+      .split(separator)
+      .map((value) => String(value || "").trim())
+      .filter(Boolean);
+    if (parts.length >= 2) {
+      return [...new Set(parts)].slice(0, 2);
+    }
+  }
+
+  return [];
+}
+
+function collectRelationshipNames(activeRelationship) {
+  return [
     ...(Array.isArray(activeRelationship?.participant_names) ? activeRelationship.participant_names : []),
     ...(Array.isArray(activeRelationship?.participants) ? activeRelationship.participants : []),
+    ...parseRelationshipNameParticipants(activeRelationship?.name),
   ].filter(Boolean);
+}
+
+export function getRelationshipParticipants(activeRelationship, userName) {
+  const seeded = collectRelationshipNames(activeRelationship);
 
   const unique = [...new Set(seeded.map((name) => String(name).trim()).filter(Boolean))];
   if (unique.length >= 2) return unique.slice(0, 2);
@@ -221,10 +250,7 @@ export function getForeignParticipantNames(relationships = [], activeParticipant
   const hidden = new Set();
 
   relationships.forEach((relationship) => {
-    [
-      ...(Array.isArray(relationship?.participant_names) ? relationship.participant_names : []),
-      ...(Array.isArray(relationship?.participants) ? relationship.participants : []),
-    ]
+    collectRelationshipNames(relationship)
       .map((name) => String(name || "").trim())
       .filter(Boolean)
       .forEach((name) => {
