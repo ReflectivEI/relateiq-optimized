@@ -23,6 +23,7 @@ import {
   NotebookPen,
   Telescope,
   ActivitySquare,
+  History,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -42,6 +43,7 @@ import { api } from "@/api/client";
 import PageBanner from "@/components/layout/PageBanner";
 import ThemeToggle from "@/components/layout/ThemeToggle";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
@@ -82,6 +84,7 @@ const navGroups = [
       { path: "/check-in", label: "Check-In", icon: CalendarCheck2 },
       { path: "/tools", label: "Smart Tools", icon: Wrench },
       { path: "/triggers", label: "Triggers", icon: ShieldAlert },
+      { path: "/restore-center", label: "Restore Center", icon: History },
       { path: "/appendix", label: "Appendix", icon: BookMarked },
     ],
   },
@@ -107,6 +110,7 @@ export default function AppLayout() {
   const location = useLocation();
   const { user, relationships, activeRelationshipId, activeRelationship, selectRelationship, updateRelationships, logout } =
     useRelationshipAuth();
+  const activeRelationshipTerms = getRelationshipTerms(activeRelationship);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -975,7 +979,7 @@ export default function AppLayout() {
             <textarea
               value={supportNotes}
               onChange={(event) => setSupportNotes(event.target.value)}
-              placeholder="Anything else that helps your partner understand your needs?"
+              placeholder={`Anything else that helps your ${activeRelationshipTerms.counterpart} understand your needs?`}
               className="min-h-[110px] w-full rounded-2xl border border-border px-4 py-3"
             />
             <textarea

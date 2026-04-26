@@ -29,6 +29,7 @@ import RelationshipJournal from './pages/RelationshipJournal.jsx';
 import VisionBoard from './pages/VisionBoard.jsx';
 import HealthReport from './pages/HealthReport.jsx';
 import ReferenceAppendix from './pages/ReferenceAppendix.jsx';
+import RestoreCenter from './pages/RestoreCenter.jsx';
 import InviteAcceptPage from './pages/InviteAcceptPage.jsx';
 import { RelationshipAuthProvider, useRelationshipAuth } from './context/RelationshipAuthContext';
 import { Button } from "@/components/ui/button";
@@ -208,6 +209,7 @@ const ApplicationRoutes = () => {
         <Route path="/journal" element={<RelationshipJournal />} />
         <Route path="/vision" element={<VisionBoard />} />
         <Route path="/health-report" element={<HealthReport />} />
+        <Route path="/restore-center" element={<RestoreCenter />} />
         <Route path="/appendix" element={<ReferenceAppendix />} />
       </Route>
       <Route path="/invite/:token" element={<InviteAcceptPage />} />

@@ -13,6 +13,7 @@ import {
   CalendarCheck2,
   ClipboardList,
   Handshake,
+  History,
   Gamepad2,
   Layers3,
   LayoutDashboard,
@@ -49,6 +50,7 @@ const PAGE_META = {
   "/tools":        { label: "Smart Tools",        subtitle: "Real-time support for in-the-moment challenges", icon: Wrench },
   "/triggers":     { label: "Trigger Library",    subtitle: "Know what activates you — and each other",     icon: ShieldAlert },
   "/repair":       { label: "Proactive Repair",   subtitle: "AI-guided repair after tension or conflict",    icon: ShieldAlert },
+  "/restore-center": { label: "Restore Center",  subtitle: "Owner-only emergency recovery for deleted records across the full site", icon: History },
   "/chat":         { label: "Relationship Chat",  subtitle: "Open conversation with your AI relationship coach", icon: MessagesSquare },
   "/health-report": { label: "Health Report",     subtitle: "An enterprise-grade snapshot of your relationship health", icon: ActivitySquare },
 };

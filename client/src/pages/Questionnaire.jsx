@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -231,18 +232,25 @@ export default function Questionnaire() {
             variant="outline"
             size="sm"
             onClick={() => {
+              if (verificationResponse) {
+                toast.success("d5 is already restored and saved on the server.");
+                return;
+              }
               const latest = d5DeleteAuditEvents.find((event) => !String(event?.id || "").startsWith("snapshot_"));
               if (!latest?.id) {
-                toast.error("No restorable delete event found for d5.");
+                toast.error("No audited delete event exists for d5 in this relationship yet.");
                 return;
               }
               void restoreD5FromAudit(latest.id, "manual");
             }}
-            disabled={!isOwner || restoringD5FromAudit || Boolean(verificationResponse) || d5DeleteAuditEvents.length === 0}
+            disabled={!isOwner || restoringD5FromAudit}
             className="gap-1.5"
           >
             {restoringD5FromAudit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-            {restoringD5FromAudit ? "Restoring d5..." : "Admin Restore d5"}
+            {restoringD5FromAudit ? "Restoring d5..." : verificationResponse ? "d5 Restored" : "Admin Restore d5"}
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/restore-center">Emergency Restore Center</Link>
           </Button>
         </div>
       </div>
