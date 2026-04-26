@@ -1,0 +1,45 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="116" y1="76" x2="388" y2="432" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1D1D78"/>
+      <stop offset="0.55" stop-color="#0C5F8C"/>
+      <stop offset="1" stop-color="#29C7C9"/>
+    </linearGradient>
+    <clipPath id="circleClip">
+      <circle cx="256" cy="256" r="172"/>
+    </clipPath>
+  </defs>
+
+  <circle cx="256" cy="256" r="172" fill="url(#bg)"/>
+
+  <g clip-path="url(#circleClip)" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M120 180H216"/>
+    <path d="M120 256H215"/>
+    <path d="M157 142L220 188"/>
+    <path d="M157 218L219 180"/>
+    <path d="M218 180L285 134"/>
+    <path d="M284 134L360 178"/>
+    <path d="M360 178L346 285"/>
+    <path d="M346 285L398 310"/>
+    <path d="M285 134L347 98"/>
+    <path d="M215 256L293 256"/>
+    <path d="M215 180L293 256"/>
+  </g>
+
+  <g fill="#FFFFFF">
+    <circle cx="216" cy="180" r="21"/>
+    <circle cx="285" cy="134" r="20"/>
+    <circle cx="347" cy="98" r="18"/>
+    <circle cx="360" cy="178" r="18"/>
+    <circle cx="346" cy="285" r="18"/>
+    <circle cx="398" cy="310" r="18"/>
+    <circle cx="120" cy="180" r="18"/>
+    <circle cx="120" cy="256" r="18"/>
+    <circle cx="157" cy="142" r="16"/>
+  </g>
+
+  <path
+    d="M256 158C293 158 323 187 323 224C323 250 310 271 291 286V301C291 308 297 314 304 314H356C365 314 372 321 372 330V418H145V351C145 317 165 288 197 273C215 264 227 246 227 226V219C227 185 242 158 256 158Z"
+    fill="#FFFFFF"
+  />
+</svg>

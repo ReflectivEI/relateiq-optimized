@@ -413,8 +413,8 @@ export default function AppLayout() {
         <div className={cn("border-b border-border", sidebarCollapsed ? "p-4" : "p-6")}>
           <div className="flex items-start justify-between gap-3">
             <Link to="/" className="flex items-center gap-2.5 min-w-0">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/35 bg-white/5 p-1 shrink-0">
-                <img src="/site-logo.png" alt="ReflectIQ logo" className="h-full w-full rounded-xl object-contain" />
+              <div className="flex h-[50px] w-[50px] items-center justify-center rounded-2xl border border-primary/35 bg-white/5 p-1 shrink-0">
+                <img src="/site-logo.svg" alt="ReflectIQ logo" className="h-full w-full rounded-xl object-contain" />
               </div>
               {!sidebarCollapsed && (
                 <div className="min-w-0">
@@ -582,7 +582,7 @@ export default function AppLayout() {
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-card/90 backdrop-blur-md border-b border-border">
         <div className="flex items-center justify-between px-4 h-14">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/site-logo.png" alt="ReflectIQ logo" className="h-8 w-8 rounded-lg object-contain" />
+            <img src="/site-logo.svg" alt="ReflectIQ logo" className="h-[2.3rem] w-[2.3rem] rounded-lg object-contain" />
             <span className="font-display font-semibold text-foreground">ReflectIQ</span>
           </Link>
           <div className="flex items-center gap-1">
