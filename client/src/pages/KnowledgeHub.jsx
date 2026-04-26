@@ -235,7 +235,7 @@ export default function KnowledgeHub() {
       {/* Hero */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-3">
         <h1 className="font-display text-5xl font-bold tracking-tight text-foreground">
-          {terms.type === "romantic" ? "Relationship Knowledge Hub" : "Connection Knowledge Hub"}
+          {terms.type === "romantic" ? "Relationship Knowledge Hub" : `${terms.typeLabel} Knowledge Hub`}
         </h1>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
           AI-generated insights + credible psychology resources for {relationshipLabel}, tailored to how this {terms.bond} communicates, connects, and grows.

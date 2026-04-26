@@ -13,6 +13,7 @@ import {
   fetchAhaCards,
   fetchPlayLabHistory,
   fetchSideQuests,
+  buildPlayLabScopeOptions,
   generateAhaCard,
   generateRepairPlan,
   getPlayLabModule,
@@ -240,9 +241,11 @@ export default function PlayLab() {
   const { activeRelationshipId, activeRelationship, participants, relationshipLabel } = useRelationshipAuth();
   const queryClient = useQueryClient();
   const [moduleType, setModuleType] = useState("guess_my_inner_world");
-  const [scope, setScope] = useState("Tony+Drew");
-  const [initiatedBy, setInitiatedBy] = useState(participants[0]);
-  const [answeringPerson, setAnsweringPerson] = useState(participants[0]);
+  const scopeOptions = useMemo(() => buildPlayLabScopeOptions(participants), [participants]);
+  const defaultScope = scopeOptions[2]?.value || scopeOptions[0]?.value || "";
+  const [scope, setScope] = useState(defaultScope);
+  const [initiatedBy, setInitiatedBy] = useState(participants[0] || "");
+  const [answeringPerson, setAnsweringPerson] = useState(participants[0] || "");
   const [session, setSession] = useState(null);
   const [form, setForm] = useState(DEFAULT_FORM);
   const [result, setResult] = useState(null);
@@ -275,6 +278,12 @@ export default function PlayLab() {
     setInitiatedBy((current) => (participants.includes(current) ? current : participants[0]));
     setAnsweringPerson((current) => (participants.includes(current) ? current : participants[0]));
   }, [participants]);
+
+  useEffect(() => {
+    if (!scopeOptions.some((option) => option.value === scope)) {
+      setScope(defaultScope);
+    }
+  }, [scope, scopeOptions, defaultScope]);
 
   const activeModule = getPlayLabModule(moduleType);
   const terms = getRelationshipTerms(activeRelationship);
@@ -1022,9 +1031,11 @@ export default function PlayLab() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Tony">{participants[0]}</SelectItem>
-                    <SelectItem value="Drew">{participants[1]}</SelectItem>
-                    <SelectItem value="Tony+Drew">{relationshipLabel}</SelectItem>
+                    {scopeOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label === `${participants[0]} + ${participants[1]}` ? relationshipLabel : option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1035,8 +1046,11 @@ export default function PlayLab() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Tony">{participants[0]}</SelectItem>
-                    <SelectItem value="Drew">{participants[1]}</SelectItem>
+                    {participants.map((person) => (
+                      <SelectItem key={person} value={person}>
+                        {person}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1047,8 +1061,11 @@ export default function PlayLab() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Tony">{participants[0]}</SelectItem>
-                    <SelectItem value="Drew">{participants[1]}</SelectItem>
+                    {participants.map((person) => (
+                      <SelectItem key={person} value={person}>
+                        {person}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

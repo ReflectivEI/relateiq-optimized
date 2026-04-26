@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import PinCard from "@/components/vision/PinCard";
 import PinForm from "@/components/vision/PinForm";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 const CATEGORIES = ["all", "dream", "goal", "value", "memory", "intention"];
 const PROGRESS_FILTERS = ["all", "not_started", "in_progress", "achieved"];
@@ -25,7 +26,7 @@ const STATS = (pins, sharedScope) => ({
 });
 
 export default function VisionBoard() {
-  const { activeRelationshipId, participants, relationshipLabel } = useRelationshipAuth();
+  const { activeRelationshipId, activeRelationship, participants, relationshipLabel } = useRelationshipAuth();
   const [showForm, setShowForm] = useState(false);
   const [editingPin, setEditingPin] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -36,8 +37,9 @@ export default function VisionBoard() {
     queryKey: ["vision-pins", activeRelationshipId],
     queryFn: () => api.entities.VisionPin.list("-created_date"),
   });
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   const sharedScope = `${primaryPerson}_${secondaryPerson}`;
+  const terms = getRelationshipTerms(activeRelationship);
 
   const filteredPins = pins.filter((p) => {
     const catOk = categoryFilter === "all" || p.category === categoryFilter;
@@ -95,7 +97,7 @@ export default function VisionBoard() {
           Vision Board
         </h1>
         <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-          Pin your shared dreams, goals, and values for {relationshipLabel}. Watch your relationship aspirations take shape together.
+          Pin your shared dreams, goals, and values for {relationshipLabel}. Watch your {terms.bond} aspirations take shape together.
         </p>
       </motion.div>
 
@@ -196,11 +198,11 @@ export default function VisionBoard() {
           <p className="text-lg font-medium text-foreground">
             {pins.length === 0 ? "Your vision board is empty" : "No pins match this filter"}
           </p>
-          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-            {pins.length === 0
-              ? "Start by pinning a shared dream, a goal you're working toward, or a value that defines your relationship."
+            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+              {pins.length === 0
+              ? `Start by pinning a shared dream, a goal you're working toward, or a value that defines this ${terms.bond}.`
               : "Try a different filter to see your pins."}
-          </p>
+            </p>
           {pins.length === 0 && (
             <Button onClick={() => setShowForm(true)} className="gap-2">
               <Plus className="w-4 h-4" />
@@ -236,7 +238,7 @@ export default function VisionBoard() {
       )}
 
       <p className="text-center text-xs text-muted-foreground/60 border-t border-border pt-6">
-        Vision pins are shared within {relationshipLabel}. Tap the progress status on any pin to update it.
+        Vision pins are shared within {relationshipLabel}. Tap the progress status on any pin to update this {terms.bond}.
       </p>
     </div>
   );

@@ -118,9 +118,11 @@ export default function AIHealthReport({
           <CardContent className="p-8 text-center space-y-4">
             <FileText className="w-10 h-10 text-primary mx-auto opacity-70" />
             <div>
-              <p className="text-lg font-semibold text-foreground">Generate Your Health Report</p>
+              <p className="text-lg font-semibold text-foreground">
+                Generate Your {relationshipTerms?.type === "romantic" ? "Relationship" : relationshipTerms?.typeLabel || "Connection"} Health Report
+              </p>
               <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-                AI will analyze your check-ins, reflections, and coach sessions to produce a personalized weekly narrative for this connection.
+                AI will analyze your check-ins, reflections, and coach sessions to produce a personalized weekly narrative for this {relationshipTerms?.bond || "connection"}.
               </p>
             </div>
             <Button onClick={generate} disabled={loading || (checkIns.length === 0 && reflections.length === 0)} className="gap-2">
