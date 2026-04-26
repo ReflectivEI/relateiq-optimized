@@ -78,6 +78,135 @@ const FRIEND_TEMPLATES = {
   ],
 };
 
+const FRIENDSHIP_CURATED_QUESTIONS = [
+  "When I’m in a really good mood, what usually caused it? A. Something social B. Personal win C. Quiet/reset time D. Random/unpredictable",
+  "What makes time together feel effortless for me? Humor, no pressure, deep conversation, shared routines, or distraction/activity?",
+  "How true is this for me: “I feel like we can pick up right where we left off, no matter how much time passes.”",
+  "If I cancel plans, it’s most likely because I’m overwhelmed, I need alone time, something came up, or I lost interest?",
+  "What energizes me most when we hang out: talking, doing something, being around others, one-on-one time, or low-effort hanging?",
+  "How true is this for me: “I feel fully myself when we’re together.”",
+  "My ideal hangout is chill at home, go out and be social, do a structured activity, or it doesn’t matter as long as there’s connection?",
+  "What do I rely on you for most, even if I don’t say it? Emotional support, stability, perspective, distraction, or consistency?",
+  "How true is this for me: “We bring out a version of each other that we like.”",
+  "If something funny happens, do I immediately share it, save it for later, forget, or depend on the situation?",
+  "What kind of plans usually make me look forward to seeing you most?",
+  "What kind of check-in from you lands best when we haven’t talked in a bit?",
+  "What part of our friendship feels most familiar in a good way?",
+  "When I think of comfort with you, what does that usually look like?",
+  "What is one thing about our usual rhythm that fits me better than I probably admit?",
+  "What usually helps me relax fastest when we’re spending time together?",
+  "What’s something small you do that makes me feel instantly more at ease?",
+  "When I’m quiet around you, what does it usually mean?",
+  "What kind of joke or humor from you always lands with me?",
+  "What kind of energy do I bring into a room when I’m actually feeling good?",
+  "When I’m stressed, do I tend to withdraw, talk it out, stay busy, or get irritable?",
+  "What are my signs of being overwhelmed: short responses, canceling plans, overexplaining, irritability, or silence?",
+  "How true is this for me: “You can tell when something is off with me.”",
+  "When I don’t respond, does it usually mean I forgot, I need space, I’m avoiding, or I’m busy?",
+  "Does my communication style lean more direct, indirect, emotional, logical, or avoidant?",
+  "How true is this for me: “We misunderstand each other more than we think.”",
+  "When I vent, do I want advice, listening, validation, or solutions?",
+  "What do I do that can be frustrating: interrupt, withdraw, overreact, get defensive, or shut down?",
+  "How true is this for me: “I feel heard when I talk to you.”",
+  "If I feel misunderstood, do I usually clarify, get frustrated, shut down, or let it go?",
+  "When I get quiet, what’s the most accurate guess about what’s happening internally?",
+  "How do I usually act when I’m trying to keep it together but clearly not okay?",
+  "What kind of follow-up from you helps when I’m stressed instead of making it worse?",
+  "When I’m overloaded, do I want more space or more gentle presence?",
+  "What kind of message from you helps when I’m overwhelmed?",
+  "When something is bothering me, how likely am I to say it directly instead of hoping you notice?",
+  "When I’m hurt, do I tend to show it right away or hide it first?",
+  "What kind of misunderstanding are we most prone to having?",
+  "What do I assume you should already know about me that I don’t always explain?",
+  "What kind of reaction from you makes me more likely to stay open instead of shut down?",
+  "What triggers me quickly: feeling ignored, judged, lack of response, or tone and attitude?",
+  "When I’m triggered, do I get quiet, reactive, overexplain, deflect, or shut down?",
+  "How true is this for me: “You understand what actually hurts me, not just what I say.”",
+  "If I say “I’m fine,” does it usually mean I’m fine, I’m not ready to talk, I’m upset, or I don’t know yet?",
+  "What makes me feel safe opening up: no judgment, patience, curiosity, no pressure, or emotional validation?",
+  "How true is this for me: “I feel emotionally safe with you.”",
+  "What tone from you helps me feel safe instead of defensive?",
+  "What kind of moment tends to make me feel unexpectedly exposed or sensitive?",
+  "When I’m carrying hurt, what do I most want you to notice without me having to spell it out?",
+  "What helps me stay present when a conversation starts getting more emotional?",
+  "If I’m hiding something heavier than I’m saying, what usually gives it away?",
+  "What fear do I most want you not to confirm when I’m already upset?",
+  "What part of me feels most protected when you respond well?",
+  "What kind of reaction from you makes me feel instantly less alone?",
+  "What usually makes me hold back even when I want to open up?",
+  "What kind of reassurance feels real to me instead of generic?",
+  "When I say I need space, what do I actually hope you’ll understand?",
+  "What kind of pressure makes me shut down fastest?",
+  "When something touches an old wound, how do I tend to act around you?",
+  "What does emotional steadiness from you look like in a way that actually lands with me?",
+  "What kind of misunderstanding would hurt me more than it might seem on the surface?",
+  "When I’m not ready to talk yet, what kind of patience feels supportive instead of distant?",
+  "What does trust feel like for me in this friendship when it’s really working?",
+  "What kind of check-in helps me reopen after I’ve pulled back?",
+  "In conflict, do I tend to push for resolution, pull back, get defensive, or stay calm?",
+  "What do I need during conflict: space, reassurance, clarity, being heard, or time?",
+  "How true is this for me: “We repair conflict well.”",
+  "After conflict, do I move on quickly, replay it, need reassurance, or avoid?",
+  "What makes an apology feel real to me: ownership, changed behavior, emotional acknowledgment, timing, or tone?",
+  "When we’re in tension, what usually matters more to me first: the facts or the feeling of the interaction?",
+  "What kind of response from you makes repair easier when I’m already upset?",
+  "What do I need you not to do when I’m trying to calm down after conflict?",
+  "How do I usually test whether repair is actually real?",
+  "What helps me believe we are okay again after something hard?",
+  "When conflict isn’t repaired well, what tends to linger for me the longest?",
+  "What kind of accountability feels clean and effective to me?",
+  "What makes me more willing to revisit a hard conversation later instead of avoiding it?",
+  "What does a solid reset usually look like for me after things feel off between us?",
+  "What kind of effort from you tells me you’re really trying, not just trying to end the conflict?",
+  "How true is this for me: “I feel like we’ve grown closer over time.”",
+  "How would I describe our friendship today: strong, stable, slightly distant, or inconsistent?",
+  "Where have we drifted most: communication, time together, emotional depth, priorities, or nothing major?",
+  "What helps me notice drift early instead of only after it’s already happened?",
+  "What is one thing that would make this friendship feel more current and alive again?",
+  "What kind of consistency from you helps me trust the friendship more deeply?",
+  "What part of our friendship feels strongest right now?",
+  "What part of our friendship could use more intention right now?",
+  "What helps me feel like this friendship still has room to grow?",
+  "What would make me feel more chosen or prioritized as your friend right now?",
+  "What’s something about you now that I might not fully understand?",
+  "When do you feel most supported by me?",
+  "When do you feel least supported?",
+  "What’s one thing you’ve held back from telling me?",
+  "What triggers you that I should better understand?",
+  "What does a good repair look like for you after conflict?",
+  "What do you need more of from me now than before?",
+  "What do you appreciate most about our friendship?",
+  "What’s one thing I should stop doing?",
+  "What’s one thing I should start doing?",
+  "What kind of friendship do you think we’re best at right now: fun, reliable, honest, protective, or emotionally deep?",
+  "What kind of support from me feels helpful in theory but not actually in practice?",
+  "What’s something I get right about you that makes you feel known?",
+  "Where do you think I still misread you?",
+  "What kind of moment makes you think, “This is why this friendship matters”?",
+  "If our friendship had one blind spot right now, what would it be?",
+  "What do you hope never changes about us?",
+  "What would make this friendship easier on your nervous system right now?",
+  "What’s one thing you trust me with that you don’t trust many people with?",
+  "If we had one reset conversation soon, what would you most want it to include?",
+];
+
+function friendshipDepthForIndex(index) {
+  if (index <= 30) return "light";
+  if (index <= 65) return "reflective";
+  if (index <= 85) return "deep";
+  if (index <= 100) return "reflective";
+  return "deep";
+}
+
+const FRIENDSHIP_CURATED_CARDS = FRIENDSHIP_CURATED_QUESTIONS.map((question, index) => ({
+  id: `friends-curated-${index + 1}`,
+  deckId: "friends",
+  deckLabel: "Friends",
+  depth: friendshipDepthForIndex(index + 1),
+  focus: index <= 29 ? "pattern_reveal" : index <= 64 ? "behavioral_patterns" : index <= 84 ? "emotional_triggers" : index <= 99 ? "conflict_repair" : "open_ended",
+  question,
+}));
+
 const DEPTH_ORDER = ["light", "reflective", "deep"];
 
 const PARTNER_INTIMACY_STORY_CARDS = [
@@ -907,7 +1036,10 @@ export const PLAY_LAB_II_DECKS = {
       "Capture the real answer by typing or voice memo so it becomes part of the learning record.",
       "Use the rounds to move from light connection into deeper understanding.",
     ],
-    cards: buildDeck("friends", "Friends", FRIEND_FOCUSES, FRIEND_TEMPLATES),
+    cards: [
+      ...FRIENDSHIP_CURATED_CARDS,
+      ...buildDeck("friends", "Friends", FRIEND_FOCUSES, FRIEND_TEMPLATES),
+    ],
   },
 };
 
@@ -924,14 +1056,16 @@ const PARTNER_PRIORITY_CARD_IDS = [
   "partners-rivalry-4",
 ];
 
+const FRIEND_PRIORITY_CARD_IDS = Array.from({ length: 10 }, (_, index) => `friends-curated-${index + 1}`);
+
 export function getPlayLabIIDeck(deckId) {
   return PLAY_LAB_II_DECKS[deckId] || PLAY_LAB_II_DECKS.partners;
 }
 
 function pickPriorityCard(deckId, deckCards, usedIds = []) {
-  if (deckId !== "partners") return null;
   const used = new Set(usedIds);
-  const nextPriorityId = PARTNER_PRIORITY_CARD_IDS.find((cardId) => !used.has(cardId));
+  const priorityIds = deckId === "partners" ? PARTNER_PRIORITY_CARD_IDS : deckId === "friends" ? FRIEND_PRIORITY_CARD_IDS : [];
+  const nextPriorityId = priorityIds.find((cardId) => !used.has(cardId));
   return deckCards.find((card) => card.id === nextPriorityId) || null;
 }
 

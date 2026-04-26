@@ -20,21 +20,21 @@ const RESOURCES = {
   core: [
     {
       title: "The Gottman Institute",
-      description: "Research-backed relationship science, conflict resolution, and repair tactics",
+      description: "Research-backed communication, conflict resolution, and repair tactics for real human connections.",
       url: "https://www.gottman.com",
       category: "Core Relationship Science",
       relevantFrameworks: ["GOTTMAN"],
     },
     {
       title: "Psychology Today — Relationships",
-      description: "Free articles on communication, attachment, boundaries, and connection dynamics",
+      description: "Free articles on communication, attachment, boundaries, and connection dynamics across many relationship types.",
       url: "https://www.psychologytoday.com/us/topics/relationships",
       category: "Core Relationship Science",
       relevantFrameworks: ["CBT", "EFT"],
     },
     {
       title: "Greater Good Science Center — Relationships",
-      description: "UC Berkeley research on happiness, connection, and relational science",
+      description: "UC Berkeley research on wellbeing, connection, empathy, and relational science.",
       url: "https://greatergood.berkeley.edu/relationships",
       category: "Core Relationship Science",
       relevantFrameworks: ["EFT"],
@@ -64,7 +64,7 @@ const RESOURCES = {
     },
     {
       title: "Gay Couples Institute",
-      description: "Specialized therapy, workshops, and guidance for male couples and same-sex relationships",
+      description: "Specialized therapy, workshops, and guidance for male couples and same-sex relationships.",
       url: "https://www.gaycouplesinstitute.com",
       category: "LGBTQ+ Relationships",
       relevantFrameworks: ["LGBTQ_RELATIONAL"],
@@ -148,11 +148,16 @@ function buildResourceSections(terms) {
   const supportResources =
     terms.type === "romantic" ? RESOURCES.romanticSpecific : RESOURCES.connectionSupport;
 
+  const coreResources = RESOURCES.core.map((resource) => ({
+    ...resource,
+    category: terms.type === "romantic" ? resource.category : `Core ${terms.typeLabel} Science`,
+  }));
+
   return [
     {
       title: terms.type === "romantic" ? "Core Relationship Science" : `Core ${terms.typeLabel} Science`,
       icon: Library,
-      resources: RESOURCES.core,
+      resources: coreResources,
     },
     {
       title: supportTitle,

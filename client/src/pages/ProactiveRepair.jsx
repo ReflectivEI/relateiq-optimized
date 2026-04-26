@@ -80,6 +80,9 @@ function RepairScriptCard({ script }) {
 }
 
 function RepairOutput({ repair, repairEntryId, person, partnerName }) {
+  const primaryNeeds = repair.what_primary_needs_now || repair.what_tony_needs_now || "";
+  const counterpartNeeds = repair.what_counterpart_needs_now || repair.what_drew_needs_now || "";
+
   return (
     <div className="space-y-5">
       {/* What likely happened */}
@@ -95,13 +98,13 @@ function RepairOutput({ repair, repairEntryId, person, partnerName }) {
         <Card>
           <CardContent className="p-4 space-y-1">
             <p className="text-xs font-medium text-muted-foreground">What {person} needs now</p>
-            <p className="text-sm text-foreground leading-relaxed">{repair.what_tony_needs_now}</p>
+            <p className="text-sm text-foreground leading-relaxed">{primaryNeeds}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 space-y-1">
             <p className="text-xs font-medium text-muted-foreground">What {partnerName} needs now</p>
-            <p className="text-sm text-foreground leading-relaxed">{repair.what_drew_needs_now}</p>
+            <p className="text-sm text-foreground leading-relaxed">{counterpartNeeds}</p>
           </CardContent>
         </Card>
       </div>
@@ -295,8 +298,8 @@ export default function ProactiveRepair() {
         type: "object",
         properties: {
           what_likely_happened: { type: "string" },
-          what_tony_needs_now: { type: "string" },
-          what_drew_needs_now: { type: "string" },
+          what_primary_needs_now: { type: "string" },
+          what_counterpart_needs_now: { type: "string" },
           best_repair_move: { type: "string" },
           repair_options: { type: "array", items: { type: "object", properties: { action: { type: "string" }, why: { type: "string" }, effort_level: { type: "string" } } } },
           what_to_avoid: { type: "array", items: { type: "string" } },
@@ -309,8 +312,8 @@ export default function ProactiveRepair() {
       },
     }, 20000, {
       what_likely_happened: "We couldn't complete the full analysis right now. Please try again.",
-      what_tony_needs_now: "Please regenerate for a full result.",
-      what_drew_needs_now: "Please regenerate for a full result.",
+      what_primary_needs_now: "Please regenerate for a full result.",
+      what_counterpart_needs_now: "Please regenerate for a full result.",
       best_repair_move: "Try again to get a personalized repair recommendation.",
       repair_options: [],
       what_to_avoid: [],

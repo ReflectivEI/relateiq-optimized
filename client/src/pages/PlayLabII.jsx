@@ -422,7 +422,7 @@ export default function PlayLabII() {
       return next;
     });
     resetComposer();
-    toast.success("Drew a fresh card.");
+    toast.success("Drew a fresh card from the active deck.");
   };
 
   const handleVoiceCaptured = (payload) => {

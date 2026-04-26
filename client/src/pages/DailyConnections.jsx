@@ -35,7 +35,7 @@ export default function DailyConnections() {
   }, [participants]);
 
   // Get today's question (deterministic)
-  const todayQuestion = getTodayQuestion();
+  const todayQuestion = getTodayQuestion(activeRelationship);
 
   // Fetch today's reflections
   const { data: reflections = [] } = useQuery({

@@ -10,7 +10,7 @@ import { serializeTriggers } from "./triggerService";
  */
 export function serializeOutcomeMemory(outcomeLogs = [], scope) {
   const relevant = outcomeLogs.filter(
-    (o) => o.scope === scope || o.scope === "Tony_Drew"
+    (o) => o.scope === scope
   ).slice(0, 10);
 
   if (relevant.length === 0) return "";
@@ -30,7 +30,7 @@ export function serializeOutcomeMemory(outcomeLogs = [], scope) {
  */
 export function serializeRepairMemory(repairEntries = [], scope) {
   const relevant = repairEntries
-    .filter((r) => r.owner === scope || r.owner === "Tony_Drew")
+    .filter((r) => r.owner === scope)
     .filter((r) => r.outcome_logged)
     .slice(0, 6);
 
@@ -65,14 +65,14 @@ export function buildRepairPrompt({
     serializeTriggers(triggers, partnerName),
   ].filter(Boolean).join("\n\n");
 
-  const outcomeMemory = serializeOutcomeMemory(outcomeLogs, person === "Tony" ? "Tony" : "Drew");
-  const repairMemory = serializeRepairMemory(repairEntries, person === "Tony" ? "Tony" : "Tony_Drew");
+  const outcomeMemory = serializeOutcomeMemory(outcomeLogs, person);
+  const repairMemory = serializeRepairMemory(repairEntries, person);
 
   const tagsLine = situationTags.length > 0 ? `Situation tags: ${situationTags.join(", ")}` : "";
 
   return `${RELATIONSHIP_COACH_SYSTEM}
 
-${person} is asking for proactive repair guidance. This is not a coaching session — this is a REPAIR intervention. Focus entirely on what will most effectively help ${person} and ${partnerName} reconnect and move forward.
+${person} is asking for proactive repair guidance inside a ${partnerName} connection. This is not a coaching session — this is a REPAIR intervention. Focus entirely on what will most effectively help ${person} and ${partnerName} reconnect and move forward.
 
 ═══════════════════════════════════════════════════════
 REPAIR REQUEST
@@ -107,7 +107,7 @@ ${repairMemory ? `\n${repairMemory}` : ""}
 REPAIR ANALYSIS INSTRUCTIONS
 ═══════════════════════════════════════════════════════
 
-Use ALL stored profile data, trigger memory, and past outcome history to generate the most tailored repair guidance possible.
+Use ALL stored profile data, trigger memory, and past outcome history to generate the most tailored repair guidance possible for this exact pairing.
 
 Past outcomes that "helped" should be weighted as more likely to work.
 Past outcomes that "worsened" should be noted as to avoid.
@@ -115,10 +115,10 @@ Past outcomes that "worsened" should be noted as to avoid.
 Generate a complete repair analysis as JSON with these exact fields:
 
 - what_likely_happened: string — 3–4 sentences interpreting the underlying dynamic; what was really happening beneath the surface
-- what_tony_needs_now: string — what ${person === "Tony" ? "Tony" : partnerName} likely needs right now (1–2 specific sentences grounded in profile)
-- what_drew_needs_now: string — what ${person === "Drew" ? "Drew" : partnerName} likely needs right now (1–2 specific sentences grounded in profile)
+- what_primary_needs_now: string — what ${person} likely needs right now (1–2 specific sentences grounded in profile)
+- what_counterpart_needs_now: string — what ${partnerName} likely needs right now (1–2 specific sentences grounded in profile)
 - best_repair_move: string — the single most effective immediate repair move for this specific moment; be concrete and specific
-- repair_options: array of 3–4 objects each with {action: string, why: string, effort_level: "low"|"medium"|"high"} — realistic repair options tailored to this couple
+- repair_options: array of 3–4 objects each with {action: string, why: string, effort_level: "low"|"medium"|"high"} — realistic repair options tailored to this connection
 - what_to_avoid: array of 3–4 strings — specific phrases, tones, or actions likely to worsen this situation given both profiles
 - repair_scripts: array of 2–3 objects each with {label: string, script: string, notes: string} — ready-to-use scripts ${person} can say or text right now; each must sound natural, not therapeutic
 - why_this_fits: string — 2–3 sentences explaining why these repair moves fit this specific couple's dynamic and history
