@@ -23,6 +23,7 @@ import {
   NotebookPen,
   Telescope,
   ActivitySquare,
+  Bell,
   History,
   ChevronDown,
   ChevronLeft,
@@ -40,10 +41,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { api } from "@/api/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import PageBanner from "@/components/layout/PageBanner";
 import ThemeToggle from "@/components/layout/ThemeToggle";
+import NotesPanel from "@/components/notes/NotesPanel";
+import { Textarea } from "@/components/ui/textarea";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
-import { getRelationshipTerms } from "@/lib/relationshipParticipants";
+import { getPartnerName, getRelationshipTerms } from "@/lib/relationshipParticipants";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
@@ -110,12 +114,16 @@ export default function AppLayout() {
   const location = useLocation();
   const { user, relationships, activeRelationshipId, activeRelationship, selectRelationship, updateRelationships, logout } =
     useRelationshipAuth();
+  const queryClient = useQueryClient();
   const activeRelationshipTerms = getRelationshipTerms(activeRelationship);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [sendMessageOpen, setSendMessageOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [relationshipName, setRelationshipName] = useState("");
   const [relationshipType, setRelationshipType] = useState("romantic");
@@ -132,6 +140,8 @@ export default function AppLayout() {
   const [supportNotes, setSupportNotes] = useState("");
   const [communicationNote, setCommunicationNote] = useState("");
   const [relationshipError, setRelationshipError] = useState("");
+  const [messageDraft, setMessageDraft] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [managementLoading, setManagementLoading] = useState(false);
   const [openGroups, setOpenGroups] = useState({
     core: true,
@@ -144,20 +154,72 @@ export default function AppLayout() {
     support: false,
   });
   const isOwner = activeRelationship?.current_user_role === "owner";
+  const currentUserName = user?.name || "";
+  const partnerName = getPartnerName(currentUserName, activeRelationship?.participant_names || []);
   const showPlayLabII = true;
-  const selectedManagedRelationshipId = useMemo(
-    () => selectedManagedRow?.relationship_id || editingRelationshipId || "",
-    [selectedManagedRow, editingRelationshipId],
-  );
   const visibleNavGroups = useMemo(
     () =>
       navGroups.map((group) => ({
         ...group,
-        items: group.items.filter((item) => item.path !== "/play-lab-ii" || showPlayLabII),
+        items: group.items.filter((item) => {
+          if (item.path === "/play-lab-ii" && !showPlayLabII) return false;
+          if (item.path === "/restore-center" && !isOwner) return false;
+          return true;
+        }),
       })),
-    [showPlayLabII],
+    [showPlayLabII, isOwner],
+  );
+  const { data: topbarNotes = [] } = useQuery({
+    queryKey: ["topbar-notes", activeRelationshipId],
+    queryFn: () => api.entities.Note.filter({ related_section: "messages" }),
+    enabled: Boolean(activeRelationshipId),
+  });
+  const inboxMessages = topbarNotes
+    .filter((note) => note.recipient_name === currentUserName && note.shared_with_partner)
+    .sort((left, right) => new Date(right.updated_date || right.created_date) - new Date(left.updated_date || left.created_date));
+  const unreadInboxCount = topbarNotes.filter(
+    (note) => note.recipient_name === currentUserName && note.shared_with_partner && !note.read_by_recipient,
+  ).length;
+  const selectedManagedRelationshipId = useMemo(
+    () => selectedManagedRow?.relationship_id || editingRelationshipId || "",
+    [selectedManagedRow, editingRelationshipId],
   );
 
+  const handleOpenNotifications = async () => {
+    setNotificationsOpen(true);
+    const unreadNotes = inboxMessages.filter((note) => !note.read_by_recipient && note.id);
+    if (!unreadNotes.length) return;
+    await Promise.all(
+      unreadNotes.map((note) => api.entities.Note.update(note.id, { read_by_recipient: true }).catch(() => null)),
+    );
+    await queryClient.invalidateQueries({ queryKey: ["topbar-notes", activeRelationshipId] });
+  };
+
+  const handleSendTopbarMessage = async () => {
+    if (!messageDraft.trim()) return;
+    setSendingMessage(true);
+    try {
+      await api.entities.Note.create({
+        person_name: currentUserName,
+        recipient_name: partnerName,
+        content: messageDraft.trim(),
+        related_section: "messages",
+        related_item_id: activeRelationshipId,
+        relationship_id: activeRelationshipId,
+        shared_with_partner: true,
+        read_by_recipient: false,
+        message_type: "manual_message",
+      });
+      setMessageDraft("");
+      setSendMessageOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ["topbar-notes", activeRelationshipId] });
+      toast.success(`Message sent to ${partnerName}.`);
+    } catch {
+      toast.error("Unable to send message right now.");
+    } finally {
+      setSendingMessage(false);
+    }
+  };
   const toggleGroup = (groupId) => {
     setOpenGroups((current) => ({
       ...current,
@@ -693,19 +755,105 @@ export default function AppLayout() {
       <main className={cn("flex-1 pt-14 lg:pt-0 transition-all duration-300", sidebarCollapsed ? "lg:ml-[92px]" : "lg:ml-72")}>
         {/* Top bar with theme toggle */}
         <div className="hidden lg:flex items-center justify-end px-8 pt-4 pb-0">
-          <div className="mr-auto text-sm text-muted-foreground">
-            {activeRelationship ? `${activeRelationship.name} · ${activeRelationship.type}` : ""}
-          </div>
-          <Button variant="outline" size="sm" className="mr-2" onClick={() => setOnboardingOpen(true)}>
+          <div className="flex items-center gap-6">
+            <Button variant="outline" size="sm" onClick={() => setNotesOpen(true)}>
+              Notes
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setSendMessageOpen(true)}>
+              Send a Message
+            </Button>
+            <Button variant="outline" size="icon" className="relative" onClick={() => void handleOpenNotifications()} aria-label="Notifications">
+              <Bell className="h-4 w-4" />
+              {unreadInboxCount > 0 ? (
+                <span className="absolute -right-2 -top-2 inline-flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-white">
+                  {unreadInboxCount}
+                </span>
+              ) : null}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setOnboardingOpen(true)}>
             Onboarding
-          </Button>
-          <ThemeToggle />
+            </Button>
+          </div>
+          <div className="ml-4">
+            <ThemeToggle />
+          </div>
         </div>
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="mx-auto w-full max-w-[1640px] px-5 sm:px-7 lg:px-10 py-6">
           <PageBanner />
           <Outlet />
         </div>
       </main>
+
+      <Dialog open={notesOpen} onOpenChange={setNotesOpen}>
+        <DialogContent className="max-w-3xl rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Notes</DialogTitle>
+            <DialogDescription>
+              Private and shared notes for this pairing.
+            </DialogDescription>
+          </DialogHeader>
+          <NotesPanel section="topbar-global" relatedItemId={activeRelationshipId} personName={currentUserName} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={sendMessageOpen} onOpenChange={setSendMessageOpen}>
+        <DialogContent className="max-w-2xl rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Send a Message</DialogTitle>
+            <DialogDescription>
+              Send a direct message to {partnerName || "the other person"} in this pairing.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={messageDraft}
+              onChange={(event) => setMessageDraft(event.target.value)}
+              placeholder={`Write a message to ${partnerName || "the other person"}...`}
+              className="min-h-[180px] resize-none bg-background"
+            />
+            <div className="flex justify-end">
+              <Button onClick={handleSendTopbarMessage} disabled={sendingMessage || !messageDraft.trim()}>
+                {sendingMessage ? "Sending..." : "Send Message"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+        <DialogContent className="max-w-3xl rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Notifications</DialogTitle>
+            <DialogDescription>
+              Messages sent to {currentUserName || "you"} in this pairing.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+            {inboxMessages.length === 0 ? (
+              <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
+                No messages yet.
+              </div>
+            ) : (
+              inboxMessages.map((note) => (
+                <div key={note.id} className="rounded-2xl border border-border/70 bg-background p-4 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-foreground">From {note.person_name || "Unknown"}</p>
+                    <div className="flex items-center gap-2">
+                      {!note.read_by_recipient ? (
+                        <span className="inline-flex rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">
+                          Unread
+                        </span>
+                      ) : null}
+                      <span className="text-xs text-muted-foreground">{note.updated_date || note.created_date}</span>
+                    </div>
+                  </div>
+                  <p className="text-sm leading-6 text-foreground whitespace-pre-wrap">{note.content}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg rounded-3xl">
