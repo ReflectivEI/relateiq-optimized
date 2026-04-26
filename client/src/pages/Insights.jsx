@@ -97,6 +97,47 @@ function isDynamicVisibleForParticipants(dynamic, hiddenParticipantNames) {
   return !containsForeignParticipantNames(buildDynamicText(dynamic), hiddenParticipantNames);
 }
 
+function sanitizeInsightEntry(entry, participants, activeRelationship) {
+  return {
+    ...entry,
+    perspective: presentRelationshipText(entry.perspective, participants, activeRelationship),
+    core_insight: presentRelationshipText(entry.core_insight, participants, activeRelationship),
+    scenario: presentRelationshipText(entry.scenario, participants, activeRelationship),
+    behavioral_patterns: (entry.behavioral_patterns || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
+    relationship_dynamics: (entry.relationship_dynamics || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
+    risk_flags: (entry.risk_flags || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
+    strengths: (entry.strengths || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
+    recommended_actions: (entry.recommended_actions || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
+    full_output_json: presentRelationshipText(entry.full_output_json, participants, activeRelationship),
+    note: presentRelationshipText(entry.note, participants, activeRelationship),
+  };
+}
+
+function sanitizeCoachSession(session, participants, activeRelationship) {
+  return {
+    ...session,
+    speaker: presentRelationshipText(session.speaker, participants, activeRelationship),
+    speaking_to: presentRelationshipText(session.speaking_to, participants, activeRelationship),
+    situation: presentRelationshipText(session.situation, participants, activeRelationship),
+    ai_response: presentRelationshipText(session.ai_response, participants, activeRelationship),
+  };
+}
+
+function sanitizeRepairEntry(entry, participants, activeRelationship) {
+  const whatToAvoid = Array.isArray(entry.what_to_avoid)
+    ? entry.what_to_avoid
+    : entry.what_to_avoid
+      ? [entry.what_to_avoid]
+      : [];
+
+  return {
+    ...entry,
+    situation_type: presentRelationshipText(entry.situation_type, participants, activeRelationship),
+    best_repair_move: presentRelationshipText(entry.best_repair_move, participants, activeRelationship),
+    what_to_avoid: whatToAvoid.map((item) => presentRelationshipText(item, participants, activeRelationship)),
+  };
+}
+
 function DataAvailableBar({ tonyResponses, drewResponses, sessions, checkIns }) {
   const coachCount = sessions.filter((s) => s.tool_type === "coach").length;
   const toolsCount = sessions.filter((s) => s.tool_type !== "coach").length;
@@ -678,19 +719,6 @@ export default function Insights() {
     tony: computePatternProfile(participants[0], tonyResponses),
     drew: computePatternProfile(participants[1], drewResponses),
   };
-
-  const relationshipIntelligence = synthesizeRelationshipIntelligence({
-    participants,
-    relationshipTerms: terms,
-    profiles,
-    patternScores,
-    recentCoachSessions: recentSessions,
-    recentCheckIns,
-    repairEntries,
-    triggers,
-  });
-
-  const trend = getStateTrend(relationshipIntelligence, null);
   const safeInsightEntries = useMemo(
     () =>
       insightEntries.filter(
@@ -700,6 +728,44 @@ export default function Insights() {
       ),
     [insightEntries, hiddenParticipantNames, participants],
   );
+
+  const sanitizedSafeInsightEntries = useMemo(
+    () => safeInsightEntries.map((entry) => sanitizeInsightEntry(entry, participants, activeRelationship)),
+    [safeInsightEntries, participants, activeRelationship],
+  );
+
+  const sanitizedRecentSessions = useMemo(
+    () => recentSessions.map((session) => sanitizeCoachSession(session, participants, activeRelationship)),
+    [recentSessions, participants, activeRelationship],
+  );
+
+  const sanitizedRepairEntries = useMemo(
+    () => repairEntries.map((entry) => sanitizeRepairEntry(entry, participants, activeRelationship)),
+    [repairEntries, participants, activeRelationship],
+  );
+
+  const visibleResponseCounts = useMemo(
+    () => [
+      { person: participants[0], count: tonyResponses.length },
+      { person: participants[1], count: drewResponses.length },
+    ],
+    [participants, tonyResponses.length, drewResponses.length],
+  );
+
+  const missingParticipants = visibleResponseCounts.filter((entry) => entry.count === 0);
+
+  const relationshipIntelligence = synthesizeRelationshipIntelligence({
+    participants,
+    relationshipTerms: terms,
+    profiles,
+    patternScores,
+    recentCoachSessions: sanitizedRecentSessions,
+    recentCheckIns,
+    repairEntries: sanitizedRepairEntries,
+    triggers,
+  });
+
+  const trend = getStateTrend(relationshipIntelligence, null);
 
   // Total data available — used to decide whether to auto-generate
   const totalData = tonyResponses.length + drewResponses.length + recentSessions.length + recentCheckIns.length;
@@ -1006,13 +1072,18 @@ export default function Insights() {
       </div>
 
       {/* Waiting for other-person notice — shown when only one person has questionnaire data */}
-      {(tonyResponses.length === 0 || drewResponses.length === 0) && !loading && (
+      {missingParticipants.length > 0 && !loading && (
         <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-muted/40 border border-border/40">
           <Heart className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
           <p className="text-sm text-muted-foreground">
-            <strong className="text-foreground">Waiting for {terms.counterpart} data:</strong>{" "}
-            {tonyResponses.length === 0 ? participants[0] : participants[1]} hasn't completed any questionnaire answers yet.
-            Combined insights will deepen significantly once both people in this {terms.bond} have contributed data.
+            <strong className="text-foreground">Questionnaire data visibility:</strong>{" "}
+            Combined insights deepen when both people in this {terms.bond} have questionnaire responses available in this pairing.
+            {missingParticipants.length === visibleResponseCounts.length
+              ? " No questionnaire answers are currently visible in this view yet."
+              : ` Currently visible: ${visibleResponseCounts
+                  .filter((entry) => entry.count > 0)
+                  .map((entry) => `${entry.person} (${entry.count}/94)`)
+                  .join(", ")}.`}
           </p>
         </div>
       )}
@@ -1047,10 +1118,16 @@ export default function Insights() {
           </div>
 
           {/* Pattern drift */}
-          <PatternDriftTracker recentSessions={recentSessions} patternScores={patternScores} />
+          <PatternDriftTracker recentSessions={sanitizedRecentSessions} patternScores={patternScores} />
 
           {/* Timeline */}
-          <InsightTimeline sessions={recentSessions} repairs={repairEntries} insights={safeInsightEntries} participants={participants} activeRelationship={activeRelationship} />
+          <InsightTimeline
+            sessions={sanitizedRecentSessions}
+            repairs={sanitizedRepairEntries}
+            insights={sanitizedSafeInsightEntries}
+            participants={participants}
+            activeRelationship={activeRelationship}
+          />
         </div>
       )}
 

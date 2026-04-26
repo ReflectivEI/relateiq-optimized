@@ -11,7 +11,24 @@ import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
 import { askCoach } from "@/lib/aiCoachService";
 import { cn } from "@/lib/utils";
-import { getDisplayPerspective } from "@/lib/relationshipParticipants";
+import { getDisplayPerspective, getRelationshipParticipants } from "@/lib/relationshipParticipants";
+
+function resolveCtxParticipants(ctx) {
+  const memory = ctx?.memory || {};
+  return getRelationshipParticipants(
+    {
+      participant_names: [
+        memory.primaryProfile?.person_name,
+        memory.secondaryProfile?.person_name,
+        memory.primaryResponses?.[0]?.person_name,
+        memory.secondaryResponses?.[0]?.person_name,
+        memory.primaryPerson,
+        memory.secondaryPerson,
+      ],
+    },
+    memory.primaryPerson,
+  );
+}
 
 export default function AskCoachDrawer({ ctx, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -46,10 +63,7 @@ export default function AskCoachDrawer({ ctx, defaultOpen = false }) {
     setLoading(false);
   };
 
-  const participants = [
-    ctx?.memory?.primaryPerson || "Tony",
-    ctx?.memory?.secondaryPerson || "Drew",
-  ];
+  const participants = resolveCtxParticipants(ctx);
   const scopeLabel = ctx?.scope ? getDisplayPerspective(ctx.scope, participants) : "You";
   const quickPrompts = [
     "What is the most grounded way to respond here?",

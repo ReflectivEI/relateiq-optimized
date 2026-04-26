@@ -11,13 +11,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ReactMarkdown from "react-markdown";
 import { askCoach } from "@/lib/aiCoachService";
 import { cn } from "@/lib/utils";
+import { getRelationshipParticipants } from "@/lib/relationshipParticipants";
+
+function resolveCtxParticipants(ctx) {
+  const memory = ctx?.memory || {};
+  return getRelationshipParticipants(
+    {
+      participant_names: [
+        memory.primaryProfile?.person_name,
+        memory.secondaryProfile?.person_name,
+        memory.primaryResponses?.[0]?.person_name,
+        memory.secondaryResponses?.[0]?.person_name,
+        memory.primaryPerson,
+        memory.secondaryPerson,
+      ],
+    },
+    memory.primaryPerson,
+  );
+}
 
 export default function AskAIFollowUp({ ctx, sectionTitle, sectionContent, className }) {
-  const participants = [
-    ctx?.memory?.primaryPerson || "Tony",
-    ctx?.memory?.secondaryPerson || "Drew",
-  ];
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const participants = resolveCtxParticipants(ctx);
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   const [open, setOpen] = useState(false);
   const [person, setPerson] = useState(primaryPerson);
   const [question, setQuestion] = useState("");

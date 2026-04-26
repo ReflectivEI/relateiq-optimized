@@ -104,10 +104,32 @@ function summarizeCoachSession(session) {
 function normalizeParticipantSelection(value, participants, fallback) {
   if (typeof value === "string" && participants.includes(value)) return value;
   if (typeof value === "string") {
-    const match = participants.find((participant) => participant.toLowerCase() === value.toLowerCase());
+    const normalizedValue = value.trim().toLowerCase();
+    const match = participants.find((participant) => participant.toLowerCase() === normalizedValue);
     if (match) return match;
   }
   return fallback;
+}
+
+function resolveCoachTarget(speakerValue, targetValue, participants) {
+  const normalizedParticipants = [...new Set((participants || []).map((person) => String(person || "").trim()).filter(Boolean))].slice(0, 2);
+  const normalizedSpeaker = normalizeParticipantSelection(speakerValue, normalizedParticipants, normalizedParticipants[0] || "");
+  const fallbackTarget = normalizedParticipants.length === 2 ? getPartnerName(normalizedSpeaker, normalizedParticipants) : "";
+  const normalizedTarget = normalizeParticipantSelection(targetValue, normalizedParticipants, fallbackTarget);
+
+  if (!normalizedSpeaker) {
+    return { speaker: "", speakingTo: "" };
+  }
+
+  if (normalizedParticipants.length < 2) {
+    return { speaker: normalizedSpeaker, speakingTo: "" };
+  }
+
+  if (!normalizedTarget || normalizedTarget === normalizedSpeaker) {
+    return { speaker: normalizedSpeaker, speakingTo: fallbackTarget };
+  }
+
+  return { speaker: normalizedSpeaker, speakingTo: normalizedTarget };
 }
 
 export default function Coach() {
@@ -161,12 +183,9 @@ export default function Coach() {
     }
   }, [activeParticipants, speaker, speakingTo]);
 
-  const currentSpeaker = normalizeParticipantSelection(speaker, activeParticipants, activeParticipants[0]);
-  const currentSpeakingTo = normalizeParticipantSelection(
-    speakingTo,
-    activeParticipants,
-    getPartnerName(currentSpeaker, activeParticipants),
-  );
+  const currentSelection = resolveCoachTarget(speaker, speakingTo, activeParticipants);
+  const currentSpeaker = currentSelection.speaker;
+  const currentSpeakingTo = currentSelection.speakingTo;
 
   const { data: triggers = [] } = useQuery({
     queryKey: ["triggers-coach", activeRelationshipId],
@@ -238,16 +257,9 @@ export default function Coach() {
       overrides.speakingToOverride ??
       currentSpeakingTo ??
       speakingTo;
-    const normalizedSpeaker = normalizeParticipantSelection(requestedSpeaker, normalizedParticipants, normalizedParticipants[0]);
-    const normalizedTarget = normalizeParticipantSelection(
-      requestedTarget,
-      normalizedParticipants,
-      getPartnerName(normalizedSpeaker, normalizedParticipants),
-    );
-    const resolvedTarget =
-      normalizedParticipants.length === 2 && normalizedTarget === normalizedSpeaker
-        ? getPartnerName(normalizedSpeaker, normalizedParticipants)
-        : normalizedTarget;
+    const repairedSelection = resolveCoachTarget(requestedSpeaker, requestedTarget, normalizedParticipants);
+    const normalizedSpeaker = repairedSelection.speaker;
+    const resolvedTarget = repairedSelection.speakingTo;
 
     if (normalizedSpeaker !== speaker) setSpeaker(normalizedSpeaker);
     if (resolvedTarget !== speakingTo) setSpeakingTo(resolvedTarget);
@@ -256,13 +268,17 @@ export default function Coach() {
       if (normalizedParticipants.length < 2) {
         throw new Error(`We need both people in this ${terms.bond} before AI Coach can generate guidance.`);
       }
-      if (typeof normalizedSpeaker !== "string" || typeof resolvedTarget !== "string" || !normalizedSpeaker || !resolvedTarget) {
+      if (!normalizedSpeaker || !resolvedTarget) {
         throw new Error("Please choose both people in this connection before asking AI Coach for guidance.");
       }
       if (normalizedSpeaker === resolvedTarget) {
         throw new Error(`The speaker and ${terms.counterpart} cannot be the same person.`);
       }
-      validateInput({ speaker: normalizedSpeaker, speakingTo: resolvedTarget, situation: situationText });
+      validateInput({
+        speaker: String(normalizedSpeaker),
+        speakingTo: String(resolvedTarget),
+        situation: situationText,
+      });
     } catch (err) {
       const fallback = handleError(err, ERROR_TYPES.INVALID_INPUT);
       if (err instanceof Error && err.message) {
@@ -414,18 +430,9 @@ export default function Coach() {
 
   const loadSessionIntoComposer = (session) => {
     const cleanedSituation = cleanSituationText(session.situation);
-    const normalizedSpeaker = normalizeParticipantSelection(
-      session.speaker,
-      activeParticipants,
-      activeParticipants[0],
-    );
-    const normalizedTarget = normalizeParticipantSelection(
-      session.speaking_to,
-      activeParticipants,
-      getPartnerName(normalizedSpeaker, activeParticipants),
-    );
-    setSpeaker(normalizedSpeaker);
-    setSpeakingTo(normalizedTarget === normalizedSpeaker ? getPartnerName(normalizedSpeaker, activeParticipants) : normalizedTarget);
+    const repairedSelection = resolveCoachTarget(session.speaker, session.speaking_to, activeParticipants);
+    setSpeaker(repairedSelection.speaker);
+    setSpeakingTo(repairedSelection.speakingTo);
     setSituation(cleanedSituation);
     const structured = enforceCoachStructure(session.ai_response, cleanedSituation);
     const modes = deriveCoachModes(structured);
