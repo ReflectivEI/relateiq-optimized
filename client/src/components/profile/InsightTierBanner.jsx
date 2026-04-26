@@ -12,12 +12,12 @@ export default function InsightTierBanner({
   drewProfile,
   tonyResponses,
   drewResponses,
-  participants = ["Tony", "Drew"],
-  relationshipNoun = "relationship",
-  relationshipType = "romantic",
+  participants = ["Person A", "Other Person"],
+  relationshipNoun = "connection",
+  relationshipType = "other",
   totalQuestions = 94,
 }) {
-  const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
+  const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   const totalExpected = Math.max(Number(totalQuestions) || 0, 1);
   const primaryCount = Math.min(Array.isArray(tonyResponses) ? tonyResponses.length : 0, totalExpected);
   const secondaryCount = Math.min(Array.isArray(drewResponses) ? drewResponses.length : 0, totalExpected);

@@ -11,7 +11,7 @@ const CONTEXT_STEPS = [
   { pct: 18, msg: "Loading check-in history…" },
   { pct: 30, msg: "Reading questionnaire responses…" },
   { pct: 42, msg: "Pulling profile data…" },
-  { pct: 55, msg: "Analyzing relationship patterns…" },
+  { pct: 55, msg: "Analyzing connection patterns…" },
   { pct: 68, msg: "Cross-referencing triggers and signals…" },
   { pct: 80, msg: "Generating early insights…" },
   { pct: 90, msg: "Structuring output…" },

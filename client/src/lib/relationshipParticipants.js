@@ -188,6 +188,16 @@ export function rewriteRelationshipCopy(text, activeRelationshipOrType) {
   if (terms.type === "romantic") return String(text);
 
   const replacements = [
+    [/\bhusbands\b/gi, terms.counterpartPlural],
+    [/\bhusband\b/gi, terms.counterpart],
+    [/\bwives\b/gi, terms.counterpartPlural],
+    [/\bwife\b/gi, terms.counterpart],
+    [/\bboyfriends\b/gi, terms.counterpartPlural],
+    [/\bboyfriend\b/gi, terms.counterpart],
+    [/\bgirlfriends\b/gi, terms.counterpartPlural],
+    [/\bgirlfriend\b/gi, terms.counterpart],
+    [/\bspouses\b/gi, terms.counterpartPlural],
+    [/\bspouse\b/gi, terms.counterpart],
     [/\bpartners\b/gi, terms.counterpartPlural],
     [/\bpartner\b/gi, terms.counterpart],
     [/\bcouples\b/gi, terms.bondPlural],

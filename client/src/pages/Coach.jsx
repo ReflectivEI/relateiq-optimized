@@ -75,7 +75,7 @@ function summarizeCoachSession(session) {
   const lower = rawText.toLowerCase();
 
   let title = "Recent Coaching Request";
-  let description = text || "A recent request for relationship guidance.";
+  let description = text || "A recent request for connection guidance.";
 
   if (lower.includes("repair") || lower.includes("reconnect")) {
     title = "Reconnection Support";

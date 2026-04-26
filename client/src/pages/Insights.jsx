@@ -914,7 +914,7 @@ export default function Insights() {
       strengths: ["Mutual commitment to self-awareness and growth", "13-year shared history and deep knowledge of each other"],
       risk_areas: [`Processing tempo mismatch — ${participants[0]} withdraws, ${participants[1]} pursues`],
       conflict_loops: ["Pursuer-distancer cycle triggered by silence"],
-      shared_strengths: ["Investment in relationship tools", "Willingness to reflect"],
+      shared_strengths: [`Investment in ${terms.bond} tools`, "Willingness to reflect"],
       comparison_table: [],
       predictions: [`When ${participants[0]} needs processing time and doesn't communicate it, ${participants[1]}'s anxiety may escalate — creating a cycle.`],
       recommendations: [`Agree on a time-limited processing signal ${participants[0]} can use in the moment.`],
