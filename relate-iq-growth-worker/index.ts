@@ -70,6 +70,19 @@ type StoredRecord = Record<string, unknown> & {
   updated_date: string;
 };
 
+type AuditEvent = {
+  id: string;
+  relationship_id: string;
+  entity: string;
+  entity_id: string;
+  action: "create" | "update" | "delete";
+  actor_user_id?: string;
+  source?: string;
+  record_before?: Record<string, unknown> | null;
+  record_after?: Record<string, unknown> | null;
+  created_date: string;
+};
+
 type PlayLabModuleType =
   | "guess_my_inner_world"
   | "repair_quest"
@@ -282,6 +295,8 @@ function nowIso(): string {
 function createId(prefix = "item"): string {
   return `${prefix}_${crypto.randomUUID()}`;
 }
+
+const AUDIT_EVENT_PREFIX = "audit:event:";
 
 function decodeBase64ToBytes(value: string): Uint8Array {
   const binary = atob(value);
@@ -707,6 +722,74 @@ async function kvPutJson(env: Env, key: string, value: unknown): Promise<void> {
 async function kvDelete(env: Env, key: string): Promise<void> {
   if (!env.QUESTIONNAIRES) throw new Error("storage_unavailable");
   await env.QUESTIONNAIRES.delete(key);
+}
+
+async function appendAuditEvent(
+  env: Env,
+  event: Omit<AuditEvent, "id" | "created_date"> & { id?: string; created_date?: string },
+) {
+  const payload: AuditEvent = {
+    id: normalizeText(event.id) || createId("audit"),
+    relationship_id: normalizeText(event.relationship_id),
+    entity: normalizeText(event.entity),
+    entity_id: normalizeText(event.entity_id),
+    action: event.action,
+    actor_user_id: normalizeText(event.actor_user_id),
+    source: normalizeText(event.source) || "api_data",
+    record_before: isObject(event.record_before) ? event.record_before : null,
+    record_after: isObject(event.record_after) ? event.record_after : null,
+    created_date: normalizeText(event.created_date) || nowIso(),
+  };
+  await kvPutJson(env, `${AUDIT_EVENT_PREFIX}${payload.id}`, payload);
+  return payload;
+}
+
+async function getAuditEventById(
+  env: Env,
+  auditEventId: string,
+  relationshipId?: string,
+): Promise<AuditEvent | null> {
+  const event = await kvGetJson<AuditEvent>(env, `${AUDIT_EVENT_PREFIX}${auditEventId}`);
+  if (!event) return null;
+  if (relationshipId && normalizeText(event.relationship_id) !== normalizeText(relationshipId)) return null;
+  return event;
+}
+
+async function listAuditEvents(
+  env: Env,
+  relationshipId: string,
+  options?: {
+    hours?: number;
+    limit?: number;
+    entity?: string;
+    action?: string;
+  },
+): Promise<AuditEvent[]> {
+  if (!env.QUESTIONNAIRES) return [];
+  const hours = Math.max(1, Number(options?.hours || 48));
+  const limit = Math.min(Math.max(1, Number(options?.limit || 200)), 1000);
+  const cutoff = Date.now() - hours * 60 * 60 * 1000;
+  const entityFilter = normalizeText(options?.entity || "").toLowerCase();
+  const actionFilter = normalizeText(options?.action || "").toLowerCase();
+
+  const list = await env.QUESTIONNAIRES.list({ prefix: AUDIT_EVENT_PREFIX, limit: 1000 });
+  const values = await Promise.all(list.keys.map((item) => kvGetJson<AuditEvent>(env, item.name)));
+  const filtered = values
+    .filter((value): value is AuditEvent => Boolean(value))
+    .filter((event) => normalizeText(event.relationship_id) === relationshipId)
+    .filter((event) => {
+      const created = Date.parse(normalizeText(event.created_date));
+      return Number.isFinite(created) ? created >= cutoff : false;
+    })
+    .filter((event) => (entityFilter ? normalizeText(event.entity).toLowerCase() === entityFilter : true))
+    .filter((event) => (actionFilter ? normalizeText(event.action).toLowerCase() === actionFilter : true))
+    .sort((a, b) => {
+      const left = Date.parse(normalizeText(a.created_date));
+      const right = Date.parse(normalizeText(b.created_date));
+      return right - left;
+    });
+
+  return filtered.slice(0, limit);
 }
 
 function authKey(entity: string, id: string) {
@@ -1974,7 +2057,7 @@ async function upsertQuestionnaireResponse(
       relationship_id: relationshipId,
       person_name: person,
       question_id: questionId,
-      created_date: normalizeText(current?.created_date) || timestamp,
+      created_date: normalizeText(current?.created_date) || normalizeText(incoming.created_date) || timestamp,
       updated_date: timestamp,
     };
     await kvPutJson(env, `data:${slugifyEntity("QuestionnaireResponse")}:${record.id}`, record);
@@ -2009,7 +2092,7 @@ async function upsertQuestionnaireResponse(
     created_date:
       normalizeText(existingId) && isObject(current) && normalizeText(current.created_date)
         ? normalizeText(current.created_date)
-        : timestamp,
+        : normalizeText(incoming.created_date) || timestamp,
     updated_date: timestamp,
   };
 
@@ -5440,6 +5523,15 @@ export default {
       if (request.method === "POST" && !id) {
         if (!isObject(body)) return json({ error: "invalid_payload" }, request, env, 400);
         const created = await createEntityRecord(env, entity, body, scoped.relationshipId);
+        await appendAuditEvent(env, {
+          relationship_id: scoped.relationshipId,
+          entity,
+          entity_id: normalizeText(created.id),
+          action: "create",
+          actor_user_id: scoped.user.id,
+          record_before: null,
+          record_after: created,
+        });
         await maybeInterpretEntityWrite(env, entity, created).catch(() => null);
         await safelyCaptureMetricSignals(env, buildEntityMetricSignals(entity, created));
         return json(created, request, env, 201);
@@ -5447,8 +5539,18 @@ export default {
 
       if (request.method === "PUT" && id) {
         if (!isObject(body)) return json({ error: "invalid_payload" }, request, env, 400);
+        const current = await getEntityRecord(env, entity, id, scoped.relationshipId);
         const updated = await updateEntityRecord(env, entity, id, body, scoped.relationshipId);
         if (updated) {
+          await appendAuditEvent(env, {
+            relationship_id: scoped.relationshipId,
+            entity,
+            entity_id: normalizeText(updated.id),
+            action: "update",
+            actor_user_id: scoped.user.id,
+            record_before: current,
+            record_after: updated,
+          });
           await maybeInterpretEntityWrite(env, entity, updated).catch(() => null);
           await safelyCaptureMetricSignals(env, buildEntityMetricSignals(entity, updated));
         }
@@ -5458,11 +5560,77 @@ export default {
       }
 
       if (request.method === "DELETE" && id) {
+        const existing = await getEntityRecord(env, entity, id, scoped.relationshipId);
         const deleted = await deleteEntityRecord(env, entity, id, scoped.relationshipId);
+        if (deleted && existing) {
+          await appendAuditEvent(env, {
+            relationship_id: scoped.relationshipId,
+            entity,
+            entity_id: normalizeText(existing.id),
+            action: "delete",
+            actor_user_id: scoped.user.id,
+            record_before: existing,
+            record_after: null,
+          });
+        }
         return deleted
           ? json({ ok: true, id }, request, env)
           : json({ error: "not_found" }, request, env, 404);
       }
+    }
+
+    if (url.pathname === "/api/audit" && request.method === "GET") {
+      const scoped = await requireScopedRelationship(request, env, url);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
+
+      const hours = Number(url.searchParams.get("hours") || "48");
+      const limit = Number(url.searchParams.get("limit") || "200");
+      const entity = normalizeText(url.searchParams.get("entity") || "");
+      const action = normalizeText(url.searchParams.get("action") || "");
+      const events = await listAuditEvents(env, scoped.relationshipId, { hours, limit, entity, action });
+      return json({ events }, request, env);
+    }
+
+    if (url.pathname === "/api/audit/restore" && request.method === "POST") {
+      const body = await readJson(request);
+      if (!isObject(body)) return json({ error: "invalid_payload" }, request, env, 400);
+
+      const scoped = await requireRelationshipOwner(request, env, url, body);
+      if ("error" in scoped) {
+        return json({ error: scoped.error }, request, env, scoped.status);
+      }
+
+      const eventId = normalizeText(body.event_id);
+      if (!eventId) {
+        return json({ error: "event_id_required" }, request, env, 400);
+      }
+
+      const event = await getAuditEventById(env, eventId, scoped.relationshipId);
+      if (!event) {
+        return json({ error: "audit_event_not_found" }, request, env, 404);
+      }
+      if (event.action !== "delete") {
+        return json({ error: "restore_requires_delete_event" }, request, env, 400);
+      }
+      if (!isObject(event.record_before)) {
+        return json({ error: "restore_payload_missing" }, request, env, 400);
+      }
+
+      const restored = await createEntityRecord(env, event.entity, event.record_before, scoped.relationshipId);
+      const restoreAudit = await appendAuditEvent(env, {
+        relationship_id: scoped.relationshipId,
+        entity: event.entity,
+        entity_id: normalizeText(restored.id),
+        action: "create",
+        actor_user_id: scoped.user.id,
+        source: "audit_restore",
+        record_before: null,
+        record_after: restored,
+      });
+
+      return json({ ok: true, restored, restore_audit_event_id: restoreAudit.id }, request, env);
     }
 
       return json({ error: "not_found" }, request, env, 404);

@@ -287,6 +287,17 @@ export const api = {
       });
     },
   },
+  audit: {
+    list(params) {
+      return request("/api/audit", { params });
+    },
+    restore(eventId) {
+      return request("/api/audit/restore", {
+        method: "POST",
+        body: { event_id: eventId },
+      });
+    },
+  },
   playLab: {
     createSession(payload) {
       return request("/api/play-lab/session", {

@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import AskCoachDrawer from "@/components/ai/AskCoachDrawer";
 import { buildContextObject } from "@/lib/aiCoachService";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 import { toast } from "sonner";
 
 export default function Questionnaire() {
@@ -21,8 +22,12 @@ export default function Questionnaire() {
   const [activeCategory, setActiveCategory] = useState("surface");
   const [mode, setMode] = useState("individual");
   const [prefilling, setPrefilling] = useState(false);
+  const [restoringD5FromAudit, setRestoringD5FromAudit] = useState(false);
+  const [autoAuditRestoreAttempted, setAutoAuditRestoreAttempted] = useState(false);
   const queryClient = useQueryClient();
   const relationshipType = activeRelationship?.type || "romantic";
+  const isOwner = activeRelationship?.current_user_role === "owner";
+  const terms = getRelationshipTerms(activeRelationship);
   const { questions, categories: questionCategories } = getQuestionnaireContent(relationshipType);
 
   useEffect(() => {
@@ -36,6 +41,80 @@ export default function Questionnaire() {
     queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: person }),
   });
 
+  const verificationQuestionId = "d5";
+  const verificationResponse = responses.find((record) => record.question_id === verificationQuestionId);
+
+  const { data: d5DeleteAuditEvents = [] } = useQuery({
+    queryKey: ["d5-delete-audit", activeRelationshipId, person, verificationQuestionId, isOwner],
+    enabled: Boolean(isOwner && activeRelationshipId),
+    queryFn: async () => {
+      const payload = await api.audit.list({
+        hours: 24 * 14,
+        limit: 300,
+        entity: "QuestionnaireResponse",
+        action: "delete",
+      });
+      const events = Array.isArray(payload?.events) ? payload.events : [];
+      return events.filter((event) => {
+        const before = event?.record_before || {};
+        return (
+          String(before.question_id || "").trim() === verificationQuestionId &&
+          String(before.person_name || "").trim().toLowerCase() === String(person || "").trim().toLowerCase()
+        );
+      });
+    },
+  });
+
+  const restoreD5FromAudit = async (eventId, source = "manual") => {
+    if (!isOwner) {
+      toast.error("Only the relationship owner can run admin restore.");
+      return false;
+    }
+    if (!eventId || String(eventId).startsWith("snapshot_")) {
+      toast.error("No restorable audit event was found for this response.");
+      return false;
+    }
+
+    setRestoringD5FromAudit(true);
+    try {
+      await api.audit.restore(eventId);
+      await queryClient.invalidateQueries({ queryKey: ["responses", activeRelationshipId, person] });
+      await queryClient.invalidateQueries({ queryKey: ["d5-delete-audit", activeRelationshipId, person, verificationQuestionId, isOwner] });
+      if (source === "auto") {
+        toast.success("Admin auto-restore recovered the deleted response from audit history.");
+      } else {
+        toast.success("Admin restore recovered the deleted response from audit history.");
+      }
+      return true;
+    } catch {
+      toast.error("Admin restore failed right now.");
+      return false;
+    } finally {
+      setRestoringD5FromAudit(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isOwner) return;
+    if (autoAuditRestoreAttempted) return;
+    if (verificationResponse) return;
+    if (!Array.isArray(d5DeleteAuditEvents) || d5DeleteAuditEvents.length === 0) return;
+
+    const latest = d5DeleteAuditEvents.find((event) => !String(event?.id || "").startsWith("snapshot_"));
+    if (!latest?.id) {
+      setAutoAuditRestoreAttempted(true);
+      return;
+    }
+
+    setAutoAuditRestoreAttempted(true);
+    void restoreD5FromAudit(latest.id, "auto");
+  }, [
+    isOwner,
+    autoAuditRestoreAttempted,
+    verificationResponse,
+    d5DeleteAuditEvents,
+  ]);
+
   const categoryQuestions = questions.filter((q) => q.category === activeCategory);
   const activeCatMeta = questionCategories.find((c) => c.id === activeCategory);
 
@@ -45,7 +124,7 @@ export default function Questionnaire() {
   const totalAnswered = Math.min([...answeredIds].filter((id) => validQuestionIds.has(id)).length, questions.length);
   const totalQuestions = questions.length;
   const progress = totalQuestions > 0 ? (totalAnswered / totalQuestions) * 100 : 0;
-  const canPrefillFromBaseline = relationshipType !== "romantic" && (person === "Tony" || person === "Drew");
+  const canPrefillFromBaseline = relationshipType !== "romantic" && person === participants[0];
 
   // New question IDs added in this enhancement — used to show "new questions" banner
   const NEW_QUESTION_IDS = new Set(["cf9", "cf10", "cf11", "d9", "d10", "nv9", "nv10", "p8"]);
@@ -97,12 +176,12 @@ export default function Questionnaire() {
         toast.error("We couldn't find a baseline questionnaire to copy from yet.");
         return;
       }
-      if (currentResult.manual_review_question_ids?.length) {
+          if (currentResult.manual_review_question_ids?.length) {
         toast.success(
           `Copied ${currentResult.copied} answers. ${currentResult.manual_review_question_ids.length} questions still need a quick manual review.`,
         );
       } else {
-        toast.success(`Copied ${currentResult.copied} baseline answers into this ${relationshipType} questionnaire.`);
+        toast.success(`Copied ${currentResult.copied} baseline answers into this ${terms.bond} questionnaire.`);
       }
     } catch (error) {
       toast.error("Unable to prefill this questionnaire right now.");
@@ -117,7 +196,7 @@ export default function Questionnaire() {
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">Questionnaire</h1>
           <p className="text-muted-foreground mt-1">
-            Build private relationship context for each person in this connection, one question at a time.
+            Build private context for each person in this {terms.bond}, one question at a time.
           </p>
       </div>
 
@@ -148,6 +227,23 @@ export default function Questionnaire() {
           >
             <Globe className="w-3.5 h-3.5" /> Shared
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const latest = d5DeleteAuditEvents.find((event) => !String(event?.id || "").startsWith("snapshot_"));
+              if (!latest?.id) {
+                toast.error("No restorable delete event found for d5.");
+                return;
+              }
+              void restoreD5FromAudit(latest.id, "manual");
+            }}
+            disabled={!isOwner || restoringD5FromAudit || Boolean(verificationResponse) || d5DeleteAuditEvents.length === 0}
+            className="gap-1.5"
+          >
+            {restoringD5FromAudit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+            {restoringD5FromAudit ? "Restoring d5..." : "Admin Restore d5"}
+          </Button>
         </div>
       </div>
 
@@ -167,15 +263,15 @@ export default function Questionnaire() {
           className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 md:flex-row md:items-center md:justify-between"
         >
           <div>
-            <p className="text-sm font-medium text-foreground">Use your Tony & Drew baseline as a starting point</p>
+            <p className="text-sm font-medium text-foreground">Use your existing baseline as a starting point</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              We can copy the answers that still fit this {relationshipType} context, adapt the wording where possible,
+              We can copy the answers that still fit this {terms.typeLabel.toLowerCase()} context, adapt the wording where possible,
               and leave a smaller set for manual review.
             </p>
           </div>
           <Button type="button" onClick={handlePrefillFromBaseline} disabled={prefilling} className="gap-2">
             {prefilling ? <Loader2 className="h-4 w-4 animate-spin" /> : <CopyPlus className="h-4 w-4" />}
-            {prefilling ? "Prefilling..." : "Prefill From Tony & Drew"}
+            {prefilling ? "Prefilling..." : "Prefill From Existing Baseline"}
           </Button>
         </motion.div>
       )}
