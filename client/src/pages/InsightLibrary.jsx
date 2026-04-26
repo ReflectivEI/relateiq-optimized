@@ -111,11 +111,13 @@ export default function InsightLibrary() {
 
   const safeEntries = useMemo(
     () =>
-      entries.filter(
-        (entry) =>
-          isPerspectiveInActivePair(entry.perspective, participants) &&
-          isEntryVisibleForParticipants(entry, hiddenParticipantNames),
-      ),
+      entries.filter((entry) => {
+        if (!isPerspectiveInActivePair(entry.perspective, participants)) return false;
+        if (!isEntryVisibleForParticipants(entry, hiddenParticipantNames)) return false;
+
+        const sanitized = sanitizeEntryText(entry, participants, activeRelationship);
+        return isEntryVisibleForParticipants(sanitized, hiddenParticipantNames);
+      }),
     [entries, hiddenParticipantNames, participants, activeRelationship],
   );
 

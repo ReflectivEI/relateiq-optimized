@@ -14,33 +14,40 @@ export default function InsightTierBanner({
   drewResponses,
   participants = ["Tony", "Drew"],
   relationshipNoun = "relationship",
+  relationshipType = "romantic",
+  totalQuestions = 94,
 }) {
   const [primaryPerson = "Tony", secondaryPerson = "Drew"] = participants;
-  const tonyHasAnswers = tonyResponses.length > 0;
-  const drewHasAnswers = drewResponses.length > 0;
-  const tonyReady = !!tonyProfile;
-  const drewReady = !!drewProfile;
-  const bothReady = tonyReady && drewReady;
+  const totalExpected = Math.max(Number(totalQuestions) || 0, 1);
+  const primaryCount = Math.min(Array.isArray(tonyResponses) ? tonyResponses.length : 0, totalExpected);
+  const secondaryCount = Math.min(Array.isArray(drewResponses) ? drewResponses.length : 0, totalExpected);
+  const primaryHasAnswers = primaryCount > 0;
+  const secondaryHasAnswers = secondaryCount > 0;
+  const primaryComplete = primaryCount >= totalExpected;
+  const secondaryComplete = secondaryCount >= totalExpected;
+  const bothComplete = primaryComplete && secondaryComplete;
+  const bondLabel = relationshipType === "romantic" ? relationshipNoun : `${relationshipNoun} intelligence`;
 
   let tier, message, cta, ctaPath;
 
-  if (bothReady) {
+  if (bothComplete) {
     tier = 3;
-    message = `Full ${relationshipNoun} intelligence is active. Deep insights available now.`;
-  } else if (tonyReady || drewReady) {
-    const missingName = tonyReady ? secondaryPerson : primaryPerson;
+    message = `Full ${bondLabel} is active. Both people have completed all ${totalExpected} questionnaire answers for this connection.`;
+  } else if (primaryHasAnswers || secondaryHasAnswers) {
     tier = 2;
-    message = `Partial ${relationshipNoun} insights are available. Full ${relationshipNoun} intelligence unlocks when ${missingName}'s profile is complete.`;
-    cta = `Build ${missingName}'s profile`;
+    if (primaryHasAnswers && secondaryHasAnswers) {
+      message = `${primaryPerson} has completed ${primaryCount}/${totalExpected} and ${secondaryPerson} has completed ${secondaryCount}/${totalExpected} questionnaire answers. Combined ${relationshipNoun} insights will deepen as both profiles fill in.`;
+    } else {
+      const activeName = primaryHasAnswers ? primaryPerson : secondaryPerson;
+      const activeCount = primaryHasAnswers ? primaryCount : secondaryCount;
+      const missingName = primaryHasAnswers ? secondaryPerson : primaryPerson;
+      message = `${activeName} has completed ${activeCount}/${totalExpected} questionnaire answers. ${missingName} has not contributed questionnaire data yet for this ${relationshipNoun}.`;
+    }
+    cta = "Continue questionnaire";
     ctaPath = "/questionnaire";
-  } else if (tonyHasAnswers || drewHasAnswers) {
-    tier = 1;
-    message = `Individual insights are available now. Full ${relationshipNoun} intelligence unlocks when both profiles are complete.`;
-    cta = "Generate profiles";
-    ctaPath = "/profiles";
   } else {
     tier = 0;
-    message = `Start with the questionnaire to build your ${relationshipNoun} intelligence layer.`;
+    message = `Start with the questionnaire to build this ${relationshipNoun} intelligence layer.`;
     cta = "Start questionnaire";
     ctaPath = "/questionnaire";
   }

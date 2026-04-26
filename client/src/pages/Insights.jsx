@@ -43,6 +43,7 @@ import {
   getRelationshipTerms,
   presentRelationshipText,
 } from "@/lib/relationshipParticipants";
+import { getQuestionnaireContent } from "@/lib/questions";
 
 const CONFIDENCE_CONFIG = {
   early_signal: { label: "Early Signal", color: "bg-orange-100 text-orange-700 border-orange-200" },
@@ -700,8 +701,16 @@ export default function Insights() {
 
   const tonyProfile = profiles.find((p) => p.person_name === participants[0]);
   const drewProfile = profiles.find((p) => p.person_name === participants[1]);
-  const bothReady = tonyProfile && drewProfile;
   const terms = getRelationshipTerms(activeRelationship);
+  const questionnaireTotal = useMemo(
+    () => getQuestionnaireContent(activeRelationship?.type || "romantic").questions.length,
+    [activeRelationship?.type],
+  );
+  const primaryCompletionCount = Math.min(tonyResponses.length, questionnaireTotal);
+  const secondaryCompletionCount = Math.min(drewResponses.length, questionnaireTotal);
+  const bothQuestionnairesComplete =
+    primaryCompletionCount >= questionnaireTotal &&
+    secondaryCompletionCount >= questionnaireTotal;
 
   const hiddenParticipantNames = useMemo(() => {
     return getForeignParticipantNames(relationships, participants);
@@ -722,11 +731,15 @@ export default function Insights() {
   const safeInsightEntries = useMemo(
     () =>
       insightEntries.filter(
-        (entry) =>
-          isPerspectiveInActivePair(entry.perspective, participants) &&
-          isEntryVisibleForParticipants(entry, hiddenParticipantNames),
+        (entry) => {
+          if (!isPerspectiveInActivePair(entry.perspective, participants)) return false;
+          if (!isEntryVisibleForParticipants(entry, hiddenParticipantNames)) return false;
+
+          const sanitized = sanitizeInsightEntry(entry, participants, activeRelationship);
+          return isEntryVisibleForParticipants(sanitized, hiddenParticipantNames);
+        },
       ),
-    [insightEntries, hiddenParticipantNames, participants],
+    [insightEntries, hiddenParticipantNames, participants, activeRelationship],
   );
 
   const sanitizedSafeInsightEntries = useMemo(
@@ -1027,6 +1040,8 @@ export default function Insights() {
         drewResponses={drewResponses}
         participants={participants}
         relationshipNoun={terms.bond}
+        relationshipType={terms.type}
+        totalQuestions={questionnaireTotal}
       />
 
       {/* Data available bar */}
@@ -1051,9 +1066,9 @@ export default function Insights() {
         <ModeCard
           icon={BookOpen}
           title="Full Deep Insights"
-          description={bothReady
+          description={bothQuestionnairesComplete
             ? `Use this for the deeper ${terms.counterpart} comparison: shared strengths, risks, recurring loops, predictions, and grounded next steps.`
-            : `A deeper ${terms.bond} analysis is still available now. It becomes more precise as both ${participants[0]} and ${participants[1]} complete more profile data.`}
+            : `A deeper ${terms.bond} analysis is still available now. ${participants[0]} is at ${primaryCompletionCount}/${questionnaireTotal} and ${participants[1]} is at ${secondaryCompletionCount}/${questionnaireTotal}; the analysis sharpens as both questionnaires fill in.`}
           locked={false}
           active={activeTab === "deep"}
           loading={loadingMode === "deep"}
