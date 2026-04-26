@@ -21,6 +21,20 @@ import {
   presentRelationshipText,
 } from "@/lib/relationshipParticipants";
 
+function getHealthReportTitle(terms) {
+  switch (terms.type) {
+    case "friendship":
+      return "Friendship Health Report";
+    case "family":
+      return "Family Health Report";
+    case "other":
+      return "Connection Health Report";
+    case "romantic":
+    default:
+      return "Relationship Health Report";
+  }
+}
+
 function buildHealthEntryText(entry) {
   return Object.values(entry || {})
     .filter((value) => typeof value === "string")
@@ -40,6 +54,7 @@ export default function HealthReport() {
   const { activeRelationshipId, activeRelationship, participants, relationshipLabel, relationships } = useRelationshipAuth();
   const [viewMode, setViewMode] = useState("compare");
   const terms = getRelationshipTerms(activeRelationship);
+  const reportTitle = getHealthReportTitle(terms);
   const hiddenParticipantNames = useMemo(
     () => getForeignParticipantNames(relationships, participants),
     [relationships, participants],
@@ -94,11 +109,11 @@ export default function HealthReport() {
               Weekly Summary
             </div>
             <h1 className="font-display text-4xl font-bold text-white md:text-5xl">
-              {terms.type === "romantic" ? "Relationship Health Report" : "Connection Health Report"}
+              {reportTitle}
             </h1>
             <p className="max-w-3xl text-base leading-6 text-slate-200">
               A cleaner, enterprise-grade snapshot of {relationshipLabel}. This page is meant to surface
-              traction, friction, and recurring patterns in a way that is easier to read and easier to use.
+              traction, friction, and recurring patterns in this {terms.bond} in a way that is easier to read and easier to use.
             </p>
             <div className="flex flex-wrap gap-2 pt-2">
               {[

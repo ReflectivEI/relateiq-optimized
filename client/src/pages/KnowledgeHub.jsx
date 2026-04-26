@@ -307,7 +307,15 @@ export default function KnowledgeHub() {
             <Card className="border-2 border-[#14263f]/25 bg-[#eef4fb] shadow-sm">
               <CardContent className="p-5 space-y-2">
                 <p className="text-sm font-bold text-[#14263f] uppercase tracking-wider flex items-center gap-2"><Target className="h-4 w-4" /> Focus for Next Week</p>
-                <p className="text-base text-[#14263f]">Practice proactive check-ins before tension builds so this {terms.bond} stays steady and easier to repair.</p>
+                <p className="text-base text-[#14263f]">
+                  {terms.type === "friendship"
+                    ? "Practice proactive check-ins before tension builds so this friendship stays easy to repair and emotionally clear."
+                    : terms.type === "family"
+                      ? "Practice proactive check-ins before tension builds so this family connection stays steadier and easier to repair."
+                      : terms.type === "other"
+                        ? "Practice proactive check-ins before tension builds so this connection stays clear, steady, and easier to repair."
+                        : "Practice proactive check-ins before tension builds so this relationship stays steady and easier to repair."}
+                </p>
               </CardContent>
             </Card>
           </div>

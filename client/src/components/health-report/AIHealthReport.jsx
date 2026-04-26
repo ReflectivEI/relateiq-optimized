@@ -13,9 +13,24 @@ import { format, subDays } from "date-fns";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
 import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 
+function getHealthReportTitle(terms) {
+  switch (terms?.type) {
+    case "friendship":
+      return "Friendship Health Report";
+    case "family":
+      return "Family Health Report";
+    case "other":
+      return "Connection Health Report";
+    case "romantic":
+    default:
+      return "Relationship Health Report";
+  }
+}
+
 function buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel, viewMode, participants, relationshipLabel, relationshipTerms }) {
   const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants || [];
   const terms = relationshipTerms || getRelationshipTerms("romantic");
+  const reportTitle = getHealthReportTitle(terms);
   const subject =
     viewMode === primaryPerson
       ? `${primaryPerson} within ${relationshipLabel}`
@@ -38,7 +53,7 @@ function buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel, vi
     .map((s) => `[${s.speaker}→${s.speaking_to}] ${s.situation}`)
     .join("\n");
 
-  return `You are a ${terms.type === "romantic" ? "relationship" : "connection"} intelligence system generating a weekly ${terms.type === "romantic" ? "Relationship Health Report" : "Connection Health Report"} focused on ${subject}.
+  return `You are a ${terms.type === "romantic" ? "relationship" : "connection"} intelligence system generating a weekly ${reportTitle} focused on ${subject}.
 
 WEEK: ${weekLabel}
 
@@ -51,7 +66,7 @@ ${reflectionSummary || "None yet."}
 AI COACH SESSIONS:
 ${sessionSummary || "None yet."}
 
-Generate a structured ${terms.type === "romantic" ? "Relationship Health Report" : "Connection Health Report"} with these sections:
+Generate a structured ${reportTitle} with these sections:
 1. **Overall Health Pulse** — 2-3 sentences on the relevant relational health this period.
 2. **Sentiment Trends** — What emotional tones are showing up? Are things improving, plateauing, or under strain?
 3. **Communication Patterns** — What communication strengths and friction patterns are visible across check-ins and sessions?
@@ -76,6 +91,7 @@ export default function AIHealthReport({
   const [loading, setLoading] = useState(false);
   const [creditError, setCreditError] = useState(false);
   const reportRef = useRef(null);
+  const reportTitle = getHealthReportTitle(relationshipTerms);
 
   const weekLabel = `Week of ${format(new Date(), "MMM d, yyyy")}`;
 
@@ -119,7 +135,7 @@ export default function AIHealthReport({
             <FileText className="w-10 h-10 text-primary mx-auto opacity-70" />
             <div>
               <p className="text-lg font-semibold text-foreground">
-                Generate Your {relationshipTerms?.type === "romantic" ? "Relationship" : relationshipTerms?.typeLabel || "Connection"} Health Report
+                Generate Your {reportTitle}
               </p>
               <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
                 AI will analyze your check-ins, reflections, and coach sessions to produce a personalized weekly narrative for this {relationshipTerms?.bond || "connection"}.
@@ -149,7 +165,7 @@ export default function AIHealthReport({
               <CardTitle className="flex items-center gap-2 text-base">
                 <FileText className="w-4 h-4 text-primary" />
                 {viewMode === "compare"
-                  ? `AI ${relationshipTerms?.type === "romantic" ? "Relationship" : "Connection"} Health Report — ${weekLabel}`
+                  ? `AI ${reportTitle} — ${weekLabel}`
                   : `AI ${viewMode} Health Report — ${weekLabel}`}
               </CardTitle>
               <Button variant="ghost" size="sm" onClick={generate} disabled={loading} className="gap-1.5 text-xs">

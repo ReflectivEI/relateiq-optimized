@@ -27,6 +27,7 @@ export default function InsightTierBanner({
   const secondaryComplete = secondaryCount >= totalExpected;
   const bothComplete = primaryComplete && secondaryComplete;
   const bondLabel = relationshipType === "romantic" ? relationshipNoun : `${relationshipNoun} intelligence`;
+  const contextLabel = relationshipType === "romantic" ? "relationship" : relationshipNoun;
 
   let tier, message, cta, ctaPath;
 
@@ -36,12 +37,12 @@ export default function InsightTierBanner({
   } else if (primaryHasAnswers || secondaryHasAnswers) {
     tier = 2;
     if (primaryHasAnswers && secondaryHasAnswers) {
-      message = `${primaryPerson} has completed ${primaryCount}/${totalExpected} and ${secondaryPerson} has completed ${secondaryCount}/${totalExpected} questionnaire answers. Combined ${relationshipNoun} insights will deepen as both profiles fill in.`;
+      message = `${primaryPerson} has completed ${primaryCount}/${totalExpected} and ${secondaryPerson} has completed ${secondaryCount}/${totalExpected} questionnaire answers. This ${contextLabel} intelligence layer will keep getting sharper as both profiles fill in.`;
     } else {
       const activeName = primaryHasAnswers ? primaryPerson : secondaryPerson;
       const activeCount = primaryHasAnswers ? primaryCount : secondaryCount;
       const missingName = primaryHasAnswers ? secondaryPerson : primaryPerson;
-      message = `${activeName} has completed ${activeCount}/${totalExpected} questionnaire answers. ${missingName} has not contributed questionnaire data yet for this ${relationshipNoun}.`;
+      message = `${activeName} has completed ${activeCount}/${totalExpected} questionnaire answers. Waiting for ${missingName}'s questionnaire data so this ${contextLabel} view can reflect both people accurately.`;
     }
     cta = "Continue questionnaire";
     ctaPath = "/questionnaire";

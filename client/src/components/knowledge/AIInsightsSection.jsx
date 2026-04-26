@@ -149,6 +149,14 @@ export default function AIInsightsSection({ onRefresh, relationshipTerms, relati
   const [insights, setInsights] = useState([]);
   const [loading, setLoading] = useState(false);
   const insightTemplates = buildTemplates(relationshipTerms, relationshipLabel);
+  const insightsTitle =
+    relationshipTerms?.type === "romantic"
+      ? "AI Relationship Insights"
+      : relationshipTerms?.type === "friendship"
+        ? "AI Friendship Insights"
+        : relationshipTerms?.type === "family"
+          ? "AI Family Insights"
+          : `AI ${relationshipTerms?.typeLabel || "Connection"} Insights`;
 
   // Generate insights on mount and when refresh is clicked
   useEffect(() => {
@@ -180,7 +188,7 @@ export default function AIInsightsSection({ onRefresh, relationshipTerms, relati
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-2xl font-bold text-foreground">
-            AI {relationshipTerms?.type === "romantic" ? "Relationship" : relationshipTerms?.typeLabel || "Connection"} Insights
+            {insightsTitle}
           </h2>
           <p className="text-base text-muted-foreground mt-1">
             Personalized guidance for {relationshipLabel}, shaped by this {relationshipTerms?.bond || "connection"}

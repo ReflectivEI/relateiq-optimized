@@ -212,6 +212,12 @@ export default function Coach() {
   const currentSelection = resolveCoachTarget(speaker, speakingTo, activeParticipants);
   const currentSpeaker = currentSelection.speaker;
   const currentSpeakingTo = currentSelection.speakingTo;
+  const canSubmitCoach =
+    activeParticipants.length >= 2 &&
+    Boolean(currentSpeaker) &&
+    Boolean(currentSpeakingTo) &&
+    currentSpeaker !== currentSpeakingTo &&
+    situation.trim().length >= 10;
 
   const { data: triggers = [] } = useQuery({
     queryKey: ["triggers-coach", activeRelationshipId],
@@ -566,6 +572,11 @@ export default function Coach() {
                 </>
               )}
             </div>
+            {activeParticipants.length < 2 && (
+              <p className="text-xs text-amber-700">
+                We need both people in this {terms.bond} before AI Coach can tailor guidance correctly.
+              </p>
+            )}
           </div>
 
           {/* Input */}
@@ -592,7 +603,7 @@ export default function Coach() {
                 speakingToOverride: currentSpeakingTo,
               })
             }
-            disabled={loading || !currentSpeaker || !currentSpeakingTo || !situation.trim()}
+            disabled={loading || !canSubmitCoach}
             className="w-full sm:w-auto gap-2"
             size="lg"
           >
