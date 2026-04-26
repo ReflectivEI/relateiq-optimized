@@ -1159,7 +1159,7 @@ export default function Insights() {
       )}
 
       {/* Profiles notice - softer messaging */}
-      {!bothReady && (contextInsights || !loading) && (
+      {!bothQuestionnairesComplete && (contextInsights || !loading) && (
         <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/40 border border-border/40">
           <Lightbulb className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
           <p className="text-sm text-muted-foreground">
