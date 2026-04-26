@@ -22,10 +22,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import {
   containsForeignParticipantNames,
+  containsRelationshipTypeLeakage,
   getActivePerspectiveKeys,
   getDisplayPerspective,
   getForeignParticipantNames,
   isPerspectiveInActivePair,
+  isTextVisibleForRelationshipContext,
   presentRelationshipText,
 } from "@/lib/relationshipParticipants";
 
@@ -113,10 +115,10 @@ export default function InsightLibrary() {
     () =>
       entries.filter((entry) => {
         if (!isPerspectiveInActivePair(entry.perspective, participants)) return false;
-        if (!isEntryVisibleForParticipants(entry, hiddenParticipantNames)) return false;
+        if (!isTextVisibleForRelationshipContext(buildEntryText(entry), hiddenParticipantNames, activeRelationship)) return false;
 
         const sanitized = sanitizeEntryText(entry, participants, activeRelationship);
-        return isEntryVisibleForParticipants(sanitized, hiddenParticipantNames);
+        return isTextVisibleForRelationshipContext(buildEntryText(sanitized), hiddenParticipantNames, activeRelationship);
       }),
     [entries, hiddenParticipantNames, participants, activeRelationship],
   );

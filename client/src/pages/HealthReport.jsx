@@ -14,12 +14,36 @@ import ThemeCloud from "@/components/health-report/ThemeCloud";
 import AIHealthReport from "@/components/health-report/AIHealthReport";
 import CommunicationPatterns from "@/components/health-report/CommunicationPatterns";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
-import { getRelationshipTerms } from "@/lib/relationshipParticipants";
+import {
+  getRelationshipTerms,
+  getForeignParticipantNames,
+  isTextVisibleForRelationshipContext,
+  presentRelationshipText,
+} from "@/lib/relationshipParticipants";
+
+function buildHealthEntryText(entry) {
+  return Object.values(entry || {})
+    .filter((value) => typeof value === "string")
+    .join("\n");
+}
+
+function sanitizeHealthEntry(entry, participants, activeRelationship) {
+  return Object.fromEntries(
+    Object.entries(entry || {}).map(([key, value]) => [
+      key,
+      typeof value === "string" ? presentRelationshipText(value, participants, activeRelationship) : value,
+    ]),
+  );
+}
 
 export default function HealthReport() {
-  const { activeRelationshipId, activeRelationship, participants, relationshipLabel } = useRelationshipAuth();
+  const { activeRelationshipId, activeRelationship, participants, relationshipLabel, relationships } = useRelationshipAuth();
   const [viewMode, setViewMode] = useState("compare");
   const terms = getRelationshipTerms(activeRelationship);
+  const hiddenParticipantNames = useMemo(
+    () => getForeignParticipantNames(relationships, participants),
+    [relationships, participants],
+  );
 
   const { data: checkIns = [] } = useQuery({
     queryKey: ["health-checkins", activeRelationshipId],
@@ -37,18 +61,28 @@ export default function HealthReport() {
   });
 
   const visibleData = useMemo(() => {
+    const sanitizeAndFilter = (items) =>
+      (items || [])
+        .filter((entry) => isTextVisibleForRelationshipContext(buildHealthEntryText(entry), hiddenParticipantNames, activeRelationship))
+        .map((entry) => sanitizeHealthEntry(entry, participants, activeRelationship))
+        .filter((entry) => isTextVisibleForRelationshipContext(buildHealthEntryText(entry), hiddenParticipantNames, activeRelationship));
+
+    const safeCheckIns = sanitizeAndFilter(checkIns);
+    const safeReflections = sanitizeAndFilter(reflections);
+    const safeCoachSessions = sanitizeAndFilter(coachSessions);
+
     if (viewMode === "compare") {
-      return { checkIns, reflections, coachSessions };
+      return { checkIns: safeCheckIns, reflections: safeReflections, coachSessions: safeCoachSessions };
     }
 
     return {
-      checkIns: checkIns.filter((entry) => entry.person_name === viewMode),
-      reflections: reflections.filter((entry) => entry.person_name === viewMode),
-      coachSessions: coachSessions.filter(
+      checkIns: safeCheckIns.filter((entry) => entry.person_name === viewMode),
+      reflections: safeReflections.filter((entry) => entry.person_name === viewMode),
+      coachSessions: safeCoachSessions.filter(
         (entry) => entry.speaker === viewMode || entry.speaking_to === viewMode,
       ),
     };
-  }, [checkIns, reflections, coachSessions, viewMode]);
+  }, [checkIns, reflections, coachSessions, viewMode, hiddenParticipantNames, activeRelationship, participants]);
 
   return (
     <div className="space-y-8">

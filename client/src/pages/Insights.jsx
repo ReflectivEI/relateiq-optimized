@@ -38,9 +38,11 @@ import { computePatternProfile } from "@/lib/patternEngine";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import {
   containsForeignParticipantNames,
+  containsRelationshipTypeLeakage,
   getForeignParticipantNames,
   isPerspectiveInActivePair,
   getRelationshipTerms,
+  isTextVisibleForRelationshipContext,
   presentRelationshipText,
 } from "@/lib/relationshipParticipants";
 import { getQuestionnaireContent } from "@/lib/questions";
@@ -95,7 +97,7 @@ function buildDynamicText(dynamic) {
 }
 
 function isDynamicVisibleForParticipants(dynamic, hiddenParticipantNames) {
-  return !containsForeignParticipantNames(buildDynamicText(dynamic), hiddenParticipantNames);
+  return isTextVisibleForRelationshipContext(buildDynamicText(dynamic), hiddenParticipantNames);
 }
 
 function sanitizeInsightEntry(entry, participants, activeRelationship) {
@@ -717,8 +719,20 @@ export default function Insights() {
   }, [relationships, participants]);
 
   const safeRelationshipDynamics = useMemo(
-    () => relationshipDynamics.filter((dynamic) => isDynamicVisibleForParticipants(dynamic, hiddenParticipantNames)),
-    [relationshipDynamics, hiddenParticipantNames],
+    () =>
+      relationshipDynamics.filter((dynamic) => {
+        if (!isDynamicVisibleForParticipants(dynamic, hiddenParticipantNames)) return false;
+
+        const sanitized = {
+          ...dynamic,
+          ai_dynamic_summary: presentRelationshipText(dynamic?.ai_dynamic_summary, participants, activeRelationship),
+          context_insights_json: presentRelationshipText(dynamic?.context_insights_json, participants, activeRelationship),
+          deep_insights_json: presentRelationshipText(dynamic?.deep_insights_json, participants, activeRelationship),
+        };
+
+        return isDynamicVisibleForParticipants(sanitized, hiddenParticipantNames);
+      }),
+    [relationshipDynamics, hiddenParticipantNames, participants, activeRelationship],
   );
 
   const existingDynamic = safeRelationshipDynamics[0] || null;
@@ -733,10 +747,10 @@ export default function Insights() {
       insightEntries.filter(
         (entry) => {
           if (!isPerspectiveInActivePair(entry.perspective, participants)) return false;
-          if (!isEntryVisibleForParticipants(entry, hiddenParticipantNames)) return false;
+          if (!isTextVisibleForRelationshipContext(buildEntryText(entry), hiddenParticipantNames, activeRelationship)) return false;
 
           const sanitized = sanitizeInsightEntry(entry, participants, activeRelationship);
-          return isEntryVisibleForParticipants(sanitized, hiddenParticipantNames);
+          return isTextVisibleForRelationshipContext(buildEntryText(sanitized), hiddenParticipantNames, activeRelationship);
         },
       ),
     [insightEntries, hiddenParticipantNames, participants, activeRelationship],

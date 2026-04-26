@@ -48,7 +48,14 @@ import ResponseExportBar from "@/components/export/ResponseExportBar";
 import NotesPanel from "@/components/notes/NotesPanel";
 import { enforceCoachStructure, deriveCoachModes } from "@/lib/coachStructureEnforcer";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
-import { buildParticipantData, getPartnerName, getRelationshipTerms } from "@/lib/relationshipParticipants";
+import {
+  buildParticipantData,
+  getForeignParticipantNames,
+  getPartnerName,
+  getRelationshipTerms,
+  isTextVisibleForRelationshipContext,
+  presentRelationshipText,
+} from "@/lib/relationshipParticipants";
 
 const SUGGESTION_PILLS = [
   { id: "handling_conflict", label: "Handling Conflict", icon: AlertTriangle, description: "Get grounded guidance before a hard conversation escalates." },
@@ -67,6 +74,21 @@ function cleanSituationText(value) {
     .replace(/\[[^\]]+\]\s*/g, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function buildCoachEntryText(entry) {
+  return Object.values(entry || {})
+    .filter((value) => typeof value === "string")
+    .join("\n");
+}
+
+function sanitizeCoachEntry(entry, participants, activeRelationship) {
+  return Object.fromEntries(
+    Object.entries(entry || {}).map(([key, value]) => [
+      key,
+      typeof value === "string" ? presentRelationshipText(value, participants, activeRelationship) : value,
+    ]),
+  );
 }
 
 function summarizeCoachSession(session) {
@@ -133,13 +155,17 @@ function resolveCoachTarget(speakerValue, targetValue, participants) {
 }
 
 export default function Coach() {
-  const { activeRelationshipId, activeRelationship, participants } = useRelationshipAuth();
+  const { activeRelationshipId, activeRelationship, participants, relationships } = useRelationshipAuth();
   const activeParticipants = useMemo(
     () => [...new Set((participants || []).map((person) => String(person || "").trim()).filter(Boolean))].slice(0, 2),
     [participants],
   );
   const participantA = activeParticipants[0] || "";
   const participantB = activeParticipants[1] || "";
+  const hiddenParticipantNames = useMemo(
+    () => getForeignParticipantNames(relationships, activeParticipants),
+    [relationships, activeParticipants],
+  );
   const [speaker, setSpeaker] = useState(activeParticipants[0] || "");
   const [speakingTo, setSpeakingTo] = useState(activeParticipants[1] || "");
   const [situation, setSituation] = useState("");
@@ -226,6 +252,24 @@ export default function Coach() {
     drewResponses,
   );
 
+  const safePastSessions = useMemo(
+    () =>
+      pastSessions
+        .filter((entry) => isTextVisibleForRelationshipContext(buildCoachEntryText(entry), hiddenParticipantNames, activeRelationship))
+        .map((entry) => sanitizeCoachEntry(entry, activeParticipants, activeRelationship))
+        .filter((entry) => isTextVisibleForRelationshipContext(buildCoachEntryText(entry), hiddenParticipantNames, activeRelationship)),
+    [pastSessions, hiddenParticipantNames, activeRelationship, activeParticipants],
+  );
+
+  const safeRecentCheckIns = useMemo(
+    () =>
+      recentCheckIns
+        .filter((entry) => isTextVisibleForRelationshipContext(buildCoachEntryText(entry), hiddenParticipantNames, activeRelationship))
+        .map((entry) => sanitizeCoachEntry(entry, activeParticipants, activeRelationship))
+        .filter((entry) => isTextVisibleForRelationshipContext(buildCoachEntryText(entry), hiddenParticipantNames, activeRelationship)),
+    [recentCheckIns, hiddenParticipantNames, activeRelationship, activeParticipants],
+  );
+
   // Sync data to global state
   useEffect(() => {
     globalState.setState({
@@ -234,10 +278,10 @@ export default function Coach() {
       tonyResponses: legacySlots.tonyResponses,
       drewResponses: legacySlots.drewResponses,
       triggers,
-      checkIns: recentCheckIns,
-      coachSessions: pastSessions,
+      checkIns: safeRecentCheckIns,
+      coachSessions: safePastSessions,
     });
-  }, [legacySlots, triggers, recentCheckIns, pastSessions]);
+  }, [legacySlots, triggers, safeRecentCheckIns, safePastSessions]);
 
   const speakerProfile = profiles.find((p) => p.person_name === currentSpeaker);
   const targetProfile = profiles.find((p) => p.person_name === currentSpeakingTo);
@@ -328,7 +372,7 @@ export default function Coach() {
       targetProfile: profiles.find((p) => p.person_name === resolvedTarget),
       speakerResponses: normalizedSpeaker === activeParticipants[0] ? tonyResponses : drewResponses,
       targetResponses: resolvedTarget === activeParticipants[0] ? tonyResponses : drewResponses,
-      pastSessions: pastSessions
+      pastSessions: safePastSessions
         .filter((s) => s.speaker === normalizedSpeaker || s.speaking_to === normalizedSpeaker)
         .slice(0, 10),
     }) + (triggerCtx ? `\n\nTRIGGER MEMORY:\n${triggerCtx}` : "");
@@ -586,7 +630,7 @@ export default function Coach() {
                     sources={[
                       { label: "profile fields", count: speakerProfile ? 8 : 0 },
                       { label: "questionnaire answers", count: speakerResponses.length + targetResponses.length },
-                      { label: "past sessions", count: pastSessions.filter((s) => s.tool_type === "coach").length },
+                      { label: "past sessions", count: safePastSessions.filter((s) => s.tool_type === "coach").length },
                     ]}
                   />
                   <div className="flex gap-2 flex-wrap">
@@ -639,11 +683,11 @@ export default function Coach() {
       </AnimatePresence>
 
       {/* Recent Sessions */}
-      {pastSessions.filter((s) => s.tool_type === "coach").length > 0 && (
+      {safePastSessions.filter((s) => s.tool_type === "coach").length > 0 && (
         <div className="space-y-4">
           <h2 className="font-display text-xl font-semibold">Recent Conversations</h2>
           <div className="space-y-3">
-            {pastSessions
+            {safePastSessions
               .filter((s) => s.tool_type === "coach")
               .slice(0, 8)
               .map((session) => {

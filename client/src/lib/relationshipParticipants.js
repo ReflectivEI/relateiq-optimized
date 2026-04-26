@@ -247,6 +247,38 @@ export function containsForeignParticipantNames(text, foreignNames = []) {
   });
 }
 
+export function containsRelationshipTypeLeakage(text, activeRelationshipOrType) {
+  if (!text) return false;
+  const type = normalizeRelationshipType(activeRelationshipOrType);
+  if (type === "romantic") return false;
+
+  const romanticOnlyPatterns = [
+    /\bhusband(?:s)?\b/i,
+    /\bwife|wives\b/i,
+    /\bboyfriend(?:s)?\b/i,
+    /\bgirlfriend(?:s)?\b/i,
+    /\bspouse(?:s)?\b/i,
+    /\bfianc(?:e|é|és|ées)\b/i,
+    /\bdating\b/i,
+    /\bmarriage\b/i,
+    /\bmarried\b/i,
+    /\bromantic\b/i,
+    /\bsexual\b/i,
+    /\bsex\b/i,
+    /\bintimacy\b/i,
+  ];
+
+  return romanticOnlyPatterns.some((pattern) => pattern.test(String(text)));
+}
+
+export function isTextVisibleForRelationshipContext(text, foreignNames = [], activeRelationshipOrType) {
+  if (!text) return true;
+  return (
+    !containsForeignParticipantNames(text, foreignNames) &&
+    !containsRelationshipTypeLeakage(text, activeRelationshipOrType)
+  );
+}
+
 export function presentRelationshipText(text, participants = ["Tony", "Drew"], activeRelationshipOrType) {
   return rewriteRelationshipCopy(replaceParticipantNames(text, participants), activeRelationshipOrType);
 }
