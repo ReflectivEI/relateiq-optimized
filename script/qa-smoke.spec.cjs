@@ -1,6 +1,10 @@
 const { test, expect } = require("@playwright/test");
 
 const BASE_URL = process.env.SMOKE_BASE_URL || "https://relateiq-growth.pages.dev";
+const WORKER_URL = process.env.SMOKE_WORKER_URL || "https://relate-iq-growth-api.tonyabdelmalak.workers.dev";
+const SMOKE_EMAIL = process.env.SMOKE_EMAIL || "tony@relateiq.local";
+const SMOKE_PASSWORD = process.env.SMOKE_PASSWORD || "";
+const SMOKE_RELATIONSHIP_ID = process.env.SMOKE_RELATIONSHIP_ID || "";
 
 const ROUTES = [
   "/",
@@ -23,6 +27,44 @@ const ROUTES = [
   "/vision",
   "/health-report",
 ];
+
+async function authenticate(page) {
+  if (!SMOKE_PASSWORD) {
+    throw new Error(
+      "Set SMOKE_PASSWORD before running authenticated smoke tests. Optional overrides: SMOKE_EMAIL, SMOKE_WORKER_URL, SMOKE_RELATIONSHIP_ID.",
+    );
+  }
+
+  const response = await page.request.post(`${WORKER_URL}/api/auth/login`, {
+    data: {
+      email: SMOKE_EMAIL,
+      password: SMOKE_PASSWORD,
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(`Smoke login failed for ${SMOKE_EMAIL} with status ${response.status()}.`);
+  }
+
+  const payload = await response.json();
+  const relationshipId =
+    SMOKE_RELATIONSHIP_ID ||
+    payload?.default_relationship_id ||
+    payload?.relationships?.[0]?.id ||
+    "";
+
+  if (!payload?.token || !relationshipId) {
+    throw new Error("Smoke login succeeded but did not return a usable token and relationship id.");
+  }
+
+  await page.addInitScript(
+    ({ token, relationshipId }) => {
+      window.localStorage.setItem("relateiq.auth.token", token);
+      window.localStorage.setItem("relateiq.active.relationship", relationshipId);
+    },
+    { token: payload.token, relationshipId },
+  );
+}
 
 function createIssueTracker(page) {
   const issues = [];
@@ -75,6 +117,10 @@ async function dismissTransientOverlays(page) {
 }
 
 test.describe.configure({ mode: "serial" });
+
+test.beforeEach(async ({ page }) => {
+  await authenticate(page);
+});
 
 test("route smoke", async ({ page }) => {
   const issues = createIssueTracker(page);
