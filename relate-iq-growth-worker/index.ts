@@ -724,6 +724,27 @@ async function kvDelete(env: Env, key: string): Promise<void> {
   await env.QUESTIONNAIRES.delete(key);
 }
 
+async function listKvJsonByPrefix<T>(env: Env, prefix: string): Promise<T[]> {
+  if (!env.QUESTIONNAIRES) return [];
+
+  let cursor: string | undefined;
+  const results: T[] = [];
+
+  while (true) {
+    const page = await env.QUESTIONNAIRES.list({ prefix, cursor, limit: 1000 });
+    const values = await Promise.all(page.keys.map((item) => kvGetJson<T>(env, item.name)));
+    results.push(...values.filter((value): value is T => Boolean(value)));
+
+    if (page.list_complete || !page.cursor) {
+      break;
+    }
+
+    cursor = page.cursor;
+  }
+
+  return results;
+}
+
 async function appendAuditEvent(
   env: Env,
   event: Omit<AuditEvent, "id" | "created_date"> & { id?: string; created_date?: string },
@@ -772,10 +793,8 @@ async function listAuditEvents(
   const entityFilter = normalizeText(options?.entity || "").toLowerCase();
   const actionFilter = normalizeText(options?.action || "").toLowerCase();
 
-  const list = await env.QUESTIONNAIRES.list({ prefix: AUDIT_EVENT_PREFIX, limit: 1000 });
-  const values = await Promise.all(list.keys.map((item) => kvGetJson<AuditEvent>(env, item.name)));
+  const values = await listKvJsonByPrefix<AuditEvent>(env, AUDIT_EVENT_PREFIX);
   const filtered = values
-    .filter((value): value is AuditEvent => Boolean(value))
     .filter((event) => normalizeText(event.relationship_id) === relationshipId)
     .filter((event) => {
       const created = Date.parse(normalizeText(event.created_date));
@@ -803,11 +822,8 @@ function getFrontendOrigin(request: Request) {
 }
 
 async function listAuthRecords<T extends { id: string }>(env: Env, entity: string): Promise<T[]> {
-  if (!env.QUESTIONNAIRES) return [];
   const prefix = `auth:${entity}:`;
-  const list = await env.QUESTIONNAIRES.list({ prefix, limit: 1000 });
-  const values = await Promise.all(list.keys.map((item) => kvGetJson<T>(env, item.name)));
-  return values.filter((value): value is T => Boolean(value));
+  return listKvJsonByPrefix<T>(env, prefix);
 }
 
 function dedupeById<T extends { id: string }>(records: T[]) {
@@ -1586,11 +1602,75 @@ async function loadUploadedQuestionnaire(env: Env, person: PersonId): Promise<Up
 }
 
 async function listEntityRecords(env: Env, entity: string): Promise<StoredRecord[]> {
-  if (!env.QUESTIONNAIRES) return [];
   const prefix = `data:${slugifyEntity(entity)}:`;
-  const list = await env.QUESTIONNAIRES.list({ prefix, limit: 1000 });
-  const values = await Promise.all(list.keys.map((item) => kvGetJson<StoredRecord>(env, item.name)));
-  return values.filter((value): value is StoredRecord => Boolean(value));
+  return listKvJsonByPrefix<StoredRecord>(env, prefix);
+}
+
+async function resolveScopedQuestionnairePerson(
+  env: Env,
+  relationshipId: string,
+  incoming: Record<string, unknown>,
+  current?: StoredRecord | null,
+  existingId?: string,
+) {
+  const currentPerson = normalizeText(current?.person_name);
+  const normalizedExistingId = normalizeText(existingId);
+  const currentId = normalizeText(current?.id);
+  const isCorruptedQuestionnairePerson = (value: string) =>
+    Boolean(value) && (value === normalizedExistingId || value === currentId || value.startsWith("question_"));
+
+  const explicitPerson = normalizeText(incoming.person_name);
+  if (explicitPerson && !isCorruptedQuestionnairePerson(explicitPerson)) {
+    return explicitPerson;
+  }
+
+  const hasCorruptedCurrentPerson = isCorruptedQuestionnairePerson(currentPerson);
+
+  if (currentPerson && !hasCorruptedCurrentPerson) {
+    return currentPerson;
+  }
+
+  const questionId = normalizeText(incoming.question_id) || normalizeText(current?.question_id);
+  const stableId = normalizeText(existingId) || normalizeText(current?.id);
+  if (!stableId || !questionId) {
+    return currentPerson || "Participant";
+  }
+
+  const relationship = await getRelationshipPersistent(env, relationshipId);
+  const participants = relationship?.participants || [];
+  const prefix = `question_${slugifyEntity(relationshipId)}_`;
+  const suffix = `_${slugifyEntity(questionId)}`;
+
+  if (stableId.startsWith(prefix) && stableId.endsWith(suffix)) {
+    const encodedPerson = stableId.slice(prefix.length, stableId.length - suffix.length);
+    const matchedParticipant = participants.find(
+      (participant) => slugifyEntity(normalizeText(participant)) === encodedPerson,
+    );
+    if (matchedParticipant) {
+      return matchedParticipant;
+    }
+  }
+
+  return currentPerson || "Participant";
+}
+
+async function reconcileQuestionnaireResponseRecord(env: Env, record: StoredRecord) {
+  const relationshipId = normalizeText(record.relationship_id);
+  if (!relationshipId || relationshipId === DEFAULT_RELATIONSHIP_ID) {
+    return record;
+  }
+
+  const resolvedPerson = await resolveScopedQuestionnairePerson(env, relationshipId, record, record, record.id);
+  if (!resolvedPerson || normalizeText(record.person_name) === resolvedPerson) {
+    return record;
+  }
+
+  const repairedRecord: StoredRecord = {
+    ...record,
+    person_name: resolvedPerson,
+  };
+  await kvPutJson(env, `data:${slugifyEntity("QuestionnaireResponse")}:${record.id}`, repairedRecord);
+  return repairedRecord;
 }
 
 function toQuestionnaireRecord(
@@ -1623,7 +1703,11 @@ async function listQuestionnaireResponseRecords(env: Env): Promise<StoredRecord[
     );
   });
 
-  const persistedRecords = await listEntityRecords(env, "QuestionnaireResponse");
+  const persistedRecords = await Promise.all(
+    (await listEntityRecords(env, "QuestionnaireResponse")).map((record) =>
+      reconcileQuestionnaireResponseRecord(env, record),
+    ),
+  );
   return [...uploadedRecords, ...persistedRecords];
 }
 
@@ -2038,9 +2122,9 @@ async function upsertQuestionnaireResponse(
   relationshipId = DEFAULT_RELATIONSHIP_ID,
 ): Promise<StoredRecord> {
   if (relationshipId !== DEFAULT_RELATIONSHIP_ID) {
-    const person = normalizeText(incoming.person_name) || normalizeText(existingId?.split(":")[0]) || "Participant";
     const provisionalId = normalizeText(existingId);
     const current = provisionalId ? await getEntityRecord(env, "QuestionnaireResponse", provisionalId, relationshipId) : null;
+    const person = await resolveScopedQuestionnairePerson(env, relationshipId, incoming, current, provisionalId);
     const questionId =
       normalizeText(incoming.question_id) ||
       normalizeText(current?.question_id) ||
@@ -2318,6 +2402,9 @@ async function queryEntityCollection(
 
   const queryValue = requestUrl.searchParams.get("q");
   let filtered = dedupeMetricStateRecords(entity, mergeSeedRecords(records, entity, relationshipId));
+  if (entity === "QuestionnaireResponse") {
+    filtered = dedupeById(filtered);
+  }
   if (queryValue) {
     try {
       const parsed = JSON.parse(queryValue) as Record<string, unknown>;
