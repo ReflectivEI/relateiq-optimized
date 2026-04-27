@@ -1670,6 +1670,15 @@ async function reconcileQuestionnaireResponseRecord(env: Env, record: StoredReco
     person_name: resolvedPerson,
   };
   await kvPutJson(env, `data:${slugifyEntity("QuestionnaireResponse")}:${record.id}`, repairedRecord);
+  await appendAuditEvent(env, {
+    relationship_id: relationshipId,
+    entity: "QuestionnaireResponse",
+    entity_id: normalizeText(record.id),
+    action: "update",
+    source: "auto_repair_questionnaire_person",
+    record_before: record,
+    record_after: repairedRecord,
+  });
   return repairedRecord;
 }
 

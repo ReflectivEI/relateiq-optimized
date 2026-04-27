@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { getQuestionnaireContent } from "@/lib/questions";
 import QuestionCard from "@/components/questionnaire/QuestionCard";
-import { Lock, Globe, CheckCircle2, Sparkles, CopyPlus, Loader2 } from "lucide-react";
+import { Lock, Globe, CheckCircle2, Sparkles, CopyPlus, Loader2, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AskCoachDrawer from "@/components/ai/AskCoachDrawer";
 import { buildContextObject } from "@/lib/aiCoachService";
@@ -63,6 +63,21 @@ export default function Questionnaire() {
           String(before.person_name || "").trim().toLowerCase() === String(person || "").trim().toLowerCase()
         );
       });
+    },
+  });
+
+  const { data: questionnaireRepairAuditEvents = [] } = useQuery({
+    queryKey: ["questionnaire-auto-repairs", activeRelationshipId, isOwner],
+    enabled: Boolean(isOwner && activeRelationshipId),
+    queryFn: async () => {
+      const payload = await api.audit.list({
+        hours: 24 * 30,
+        limit: 500,
+        entity: "QuestionnaireResponse",
+        action: "update",
+      });
+      const events = Array.isArray(payload?.events) ? payload.events : [];
+      return events.filter((event) => String(event?.source || "") === "auto_repair_questionnaire_person");
     },
   });
 
@@ -141,10 +156,11 @@ export default function Questionnaire() {
       tags: question.tags || [],
       weight: question.weight || "medium",
     };
+    let record;
     if (existing) {
-      await api.entities.QuestionnaireResponse.update(existing.id, payload);
+      record = await api.entities.QuestionnaireResponse.update(existing.id, payload);
     } else {
-      await api.entities.QuestionnaireResponse.create({
+      record = await api.entities.QuestionnaireResponse.create({
         person_name: person,
         category: question.category,
         question_id: question.id,
@@ -152,7 +168,8 @@ export default function Questionnaire() {
         ...payload,
       });
     }
-    queryClient.invalidateQueries({ queryKey: ["responses", activeRelationshipId, person] });
+    await queryClient.invalidateQueries({ queryKey: ["responses", activeRelationshipId, person] });
+    return record;
   };
 
   const handlePrefillFromBaseline = async () => {
@@ -228,30 +245,34 @@ export default function Questionnaire() {
           >
             <Globe className="w-3.5 h-3.5" /> Shared
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (verificationResponse) {
-                toast.success("d5 is already restored and saved on the server.");
-                return;
-              }
-              const latest = d5DeleteAuditEvents.find((event) => !String(event?.id || "").startsWith("snapshot_"));
-              if (!latest?.id) {
-                toast.error("No audited delete event exists for d5 in this relationship yet.");
-                return;
-              }
-              void restoreD5FromAudit(latest.id, "manual");
-            }}
-            disabled={!isOwner || restoringD5FromAudit}
-            className="gap-1.5"
-          >
-            {restoringD5FromAudit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-            {restoringD5FromAudit ? "Restoring d5..." : verificationResponse ? "d5 Restored" : "Admin Restore d5"}
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/restore-center">Emergency Restore Center</Link>
-          </Button>
+          {isOwner ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (verificationResponse) {
+                    toast.success("d5 is already restored and saved on the server.");
+                    return;
+                  }
+                  const latest = d5DeleteAuditEvents.find((event) => !String(event?.id || "").startsWith("snapshot_"));
+                  if (!latest?.id) {
+                    toast.error("No audited delete event exists for d5 in this relationship yet.");
+                    return;
+                  }
+                  void restoreD5FromAudit(latest.id, "manual");
+                }}
+                disabled={restoringD5FromAudit}
+                className="gap-1.5"
+              >
+                {restoringD5FromAudit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                {restoringD5FromAudit ? "Restoring d5..." : verificationResponse ? "d5 Restored" : "Admin Restore d5"}
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/restore-center">Emergency Restore Center</Link>
+              </Button>
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -283,6 +304,53 @@ export default function Questionnaire() {
           </Button>
         </motion.div>
       )}
+
+      {isOwner ? (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4" />
+                <p className="text-sm font-semibold">Owner-only questionnaire integrity diagnostics</p>
+              </div>
+              <p className="text-xs leading-5 text-amber-900/80">
+                This panel flags questionnaire records the worker auto-repaired after detecting the saved response was still present but hidden by corrupted identity data.
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/restore-center">Open Restore Center</Link>
+            </Button>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {questionnaireRepairAuditEvents.length === 0 ? (
+              <div className="rounded-lg border border-amber-200 bg-white/70 px-3 py-3 text-xs text-amber-900/80">
+                No questionnaire auto-repair events have been logged for this relationship since repair auditing was enabled.
+              </div>
+            ) : (
+              questionnaireRepairAuditEvents.slice(0, 8).map((event) => {
+                const before = event?.record_before || {};
+                const after = event?.record_after || {};
+                return (
+                  <div key={event.id} className="rounded-lg border border-amber-200 bg-white/80 px-3 py-3">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <Badge variant="outline">{String(after.question_id || before.question_id || "unknown")}</Badge>
+                      <Badge variant="outline">{String(after.person_name || "unknown")}</Badge>
+                      <span className="text-amber-900/70">Auto-repaired at {event.created_date}</span>
+                    </div>
+                    <p className="mt-2 text-xs text-amber-950">
+                      Corrected person mapping from <span className="font-mono">{String(before.person_name || "unknown")}</span> to <span className="font-mono">{String(after.person_name || "unknown")}</span>.
+                    </p>
+                    <p className="mt-1 text-xs text-amber-900/80">
+                      {String(after.question_text || before.question_text || "Question text unavailable")}
+                    </p>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      ) : null}
 
       {/* Categories */}
       <div className="flex flex-wrap gap-2">
@@ -353,6 +421,7 @@ export default function Questionnaire() {
               existingAnswer={responses.find((r) => r.question_id === q.id)}
               onSubmit={handleSubmit}
               mode={mode}
+              draftKey={`relateiq:draft:questionnaire:${activeRelationshipId}:${person}:${q.id}`}
             />
           ))}
         </div>
