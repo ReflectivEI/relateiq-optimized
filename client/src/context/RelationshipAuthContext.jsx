@@ -4,10 +4,9 @@ import { queryClientInstance } from "@/lib/query-client";
 import { getRelationshipLabel, getRelationshipParticipants } from "@/lib/relationshipParticipants";
 
 const RelationshipAuthContext = createContext(null);
-const HIDDEN_RELATIONSHIP_IDS = new Set(["relationship_tony_drew_friendship"]);
 
 function sanitizeRelationships(list = []) {
-  return list.filter((relationship) => !HIDDEN_RELATIONSHIP_IDS.has(relationship?.id));
+  return Array.isArray(list) ? list.filter(Boolean) : [];
 }
 
 export function RelationshipAuthProvider({ children }) {

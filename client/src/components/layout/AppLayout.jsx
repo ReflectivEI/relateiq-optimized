@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -86,6 +86,7 @@ const navGroups = [
     label: "Support Tools",
     items: [
       { path: "/check-in", label: "Check-In", icon: CalendarCheck2 },
+      { path: "/tester-inbox", label: "Connection Inbox", icon: MessagesSquare },
       { path: "/tools", label: "Smart Tools", icon: Wrench },
       { path: "/triggers", label: "Triggers", icon: ShieldAlert },
       { path: "/restore-center", label: "Restore Center", icon: History },
@@ -112,6 +113,7 @@ function formatRelationshipTypeLabel(type) {
 
 export default function AppLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, relationships, activeRelationshipId, activeRelationship, selectRelationship, updateRelationships, logout } =
     useRelationshipAuth();
   const queryClient = useQueryClient();
@@ -155,7 +157,8 @@ export default function AppLayout() {
   });
   const isOwner = activeRelationship?.current_user_role === "owner";
   const currentUserName = user?.name || "";
-  const partnerName = getPartnerName(currentUserName, activeRelationship?.participant_names || []);
+  const currentPersonName = activeRelationship?.current_person_name || currentUserName || "";
+  const partnerName = getPartnerName(currentPersonName, activeRelationship?.participant_names || []);
   const showPlayLabII = true;
   const visibleNavGroups = useMemo(
     () =>
@@ -173,12 +176,14 @@ export default function AppLayout() {
     queryKey: ["topbar-notes", activeRelationshipId],
     queryFn: () => api.entities.Note.filter({ related_section: "messages" }),
     enabled: Boolean(activeRelationshipId),
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
   const inboxMessages = topbarNotes
-    .filter((note) => note.recipient_name === currentUserName && note.shared_with_partner)
+    .filter((note) => note.recipient_name === currentPersonName && note.shared_with_partner)
     .sort((left, right) => new Date(right.updated_date || right.created_date) - new Date(left.updated_date || left.created_date));
   const unreadInboxCount = topbarNotes.filter(
-    (note) => note.recipient_name === currentUserName && note.shared_with_partner && !note.read_by_recipient,
+    (note) => note.recipient_name === currentPersonName && note.shared_with_partner && !note.read_by_recipient,
   ).length;
   const selectedManagedRelationshipId = useMemo(
     () => selectedManagedRow?.relationship_id || editingRelationshipId || "",
@@ -200,7 +205,7 @@ export default function AppLayout() {
     setSendingMessage(true);
     try {
       await api.entities.Note.create({
-        person_name: currentUserName,
+        person_name: currentPersonName,
         recipient_name: partnerName,
         content: messageDraft.trim(),
         related_section: "messages",
@@ -212,7 +217,11 @@ export default function AppLayout() {
       });
       setMessageDraft("");
       setSendMessageOpen(false);
-      await queryClient.invalidateQueries({ queryKey: ["topbar-notes", activeRelationshipId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["topbar-notes", activeRelationshipId] }),
+        queryClient.invalidateQueries({ queryKey: ["home-notes", activeRelationshipId] }),
+        queryClient.invalidateQueries({ queryKey: ["tester-inbox-messages", activeRelationshipId] }),
+      ]);
       toast.success(`Message sent to ${partnerName}.`);
     } catch {
       toast.error("Unable to send message right now.");
@@ -688,20 +697,24 @@ export default function AppLayout() {
                   </option>
                 ))}
               </select>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-            <Button variant="outline" onClick={() => { setRelationshipError(""); resetConnectionForm(); setCreateOpen(true); }}>
-                  <Plus className="mr-1 h-4 w-4" />
-                  Add
-                </Button>
-            <Button variant="outline" onClick={() => { setRelationshipError(""); if (!invitePassword.trim()) setInvitePassword(generateTemporaryPassword()); setInviteOpen(true); }}>
-                  <Link2 className="mr-1 h-4 w-4" />
-                  Invite
-                </Button>
-              </div>
-              <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={() => void openManageDialog()}>
-                  <SlidersHorizontal className="mr-2 h-4 w-4" />
-                  Manage Connections
-                </Button>
+              {isOwner ? (
+                <>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <Button variant="outline" onClick={() => { setRelationshipError(""); resetConnectionForm(); setCreateOpen(true); }}>
+                      <Plus className="mr-1 h-4 w-4" />
+                      Add
+                    </Button>
+                    <Button variant="outline" onClick={() => { setRelationshipError(""); if (!invitePassword.trim()) setInvitePassword(generateTemporaryPassword()); setInviteOpen(true); }}>
+                      <Link2 className="mr-1 h-4 w-4" />
+                      Invite
+                    </Button>
+                  </div>
+                  <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={() => void openManageDialog()}>
+                    <SlidersHorizontal className="mr-2 h-4 w-4" />
+                    Manage Connections
+                  </Button>
+                </>
+              ) : null}
             </div>
             {visibleNavGroups.map((group) => {
               const groupHasActiveItem = group.items.some((item) => location.pathname === item.path);
@@ -757,12 +770,21 @@ export default function AppLayout() {
         <div className="hidden lg:flex items-center justify-end px-8 pt-4 pb-0">
           <div className="flex items-center gap-6">
             <Button variant="outline" size="sm" onClick={() => setNotesOpen(true)}>
-              Notes
+              Shared Notes
             </Button>
             <Button variant="outline" size="sm" onClick={() => setSendMessageOpen(true)}>
-              Send a Message
+              Send Message
             </Button>
-            <Button variant="outline" size="icon" className="relative" onClick={() => void handleOpenNotifications()} aria-label="Notifications">
+            <Button
+              variant="outline"
+              size="icon"
+              className="relative"
+              onClick={() => {
+                void handleOpenNotifications();
+                navigate("/tester-inbox");
+              }}
+              aria-label="Notifications"
+            >
               <Bell className="h-4 w-4" />
               {unreadInboxCount > 0 ? (
                 <span className="absolute -right-2 -top-2 inline-flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-white">
@@ -787,33 +809,33 @@ export default function AppLayout() {
       <Dialog open={notesOpen} onOpenChange={setNotesOpen}>
         <DialogContent className="max-w-3xl rounded-3xl">
           <DialogHeader>
-            <DialogTitle>Notes</DialogTitle>
+            <DialogTitle>Shared Notes for This Connection</DialogTitle>
             <DialogDescription>
-              Private and shared notes for this pairing.
+              Keep private notes and share selected notes with {partnerName || activeRelationshipTerms.counterpart}.
             </DialogDescription>
           </DialogHeader>
-          <NotesPanel section="topbar-global" relatedItemId={activeRelationshipId} personName={currentUserName} />
+          <NotesPanel section="topbar-global" relatedItemId={activeRelationshipId} personName={currentPersonName} />
         </DialogContent>
       </Dialog>
 
       <Dialog open={sendMessageOpen} onOpenChange={setSendMessageOpen}>
         <DialogContent className="max-w-2xl rounded-3xl">
           <DialogHeader>
-            <DialogTitle>Send a Message</DialogTitle>
+            <DialogTitle>Send a Direct Message</DialogTitle>
             <DialogDescription>
-              Send a direct message to {partnerName || "the other person"} in this pairing.
+              Send a direct message to {partnerName || activeRelationshipTerms.counterpart} in this connection. It will appear in their Connection Inbox and notification bell.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <Textarea
               value={messageDraft}
               onChange={(event) => setMessageDraft(event.target.value)}
-              placeholder={`Write a message to ${partnerName || "the other person"}...`}
+              placeholder={`Write a message to ${partnerName || activeRelationshipTerms.counterpart}...`}
               className="min-h-[180px] resize-none bg-background"
             />
             <div className="flex justify-end">
               <Button onClick={handleSendTopbarMessage} disabled={sendingMessage || !messageDraft.trim()}>
-                {sendingMessage ? "Sending..." : "Send Message"}
+                {sendingMessage ? "Sending..." : `Send to ${partnerName || activeRelationshipTerms.counterpart}`}
               </Button>
             </div>
           </div>
@@ -825,7 +847,7 @@ export default function AppLayout() {
           <DialogHeader>
             <DialogTitle>Notifications</DialogTitle>
             <DialogDescription>
-              Messages sent to {currentUserName || "you"} in this pairing.
+              New messages sent to {currentUserName || "you"} for this connection.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
@@ -1124,13 +1146,13 @@ export default function AppLayout() {
               placeholder="What helps you feel supported?"
               className="w-full rounded-2xl border border-border px-4 py-3"
             />
-            <textarea
+            <Textarea
               value={supportNotes}
               onChange={(event) => setSupportNotes(event.target.value)}
               placeholder={`Anything else that helps your ${activeRelationshipTerms.counterpart} understand your needs?`}
               className="min-h-[110px] w-full rounded-2xl border border-border px-4 py-3"
             />
-            <textarea
+            <Textarea
               value={communicationNote}
               onChange={(event) => setCommunicationNote(event.target.value)}
               placeholder="Anything they should know about how you communicate?"
