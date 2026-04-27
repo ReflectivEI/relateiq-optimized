@@ -1,12 +1,15 @@
 /**
- * ResponseExportBar.jsx — PDF export + email button for all response sections
+ * ResponseExportBar.jsx — PDF export + direct send button for all response sections
  */
 
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { FileDown, Mail, Loader2 } from "lucide-react";
-import { downloadPDF, exportTextToPDF, generateEmailPDF, serializeExportContent } from "@/lib/pdfExportService";
-import { openEmailWithPDF } from "@/lib/emailService";
+import { FileDown, Loader2, Send } from "lucide-react";
+import { downloadPDF, exportTextToPDF, serializeExportContent } from "@/lib/pdfExportService";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getPartnerName } from "@/lib/relationshipParticipants";
+import { queueSharedMessageDraft } from "@/lib/messageShare";
 import { toast } from "sonner";
 
 export default function ResponseExportBar({ 
@@ -14,10 +17,18 @@ export default function ResponseExportBar({
   content = null,
   filename = "response.pdf",
   title = "Response",
-  showEmail = true 
+  showShare = true,
+  shareSourceLabel = null,
 }) {
   const [exporting, setExporting] = useState(false);
-  const [emailing, setEmailing] = useState(false);
+  const navigate = useNavigate();
+  const { user, activeRelationshipId, activeRelationship } = useRelationshipAuth();
+  const currentPersonName = activeRelationship?.current_person_name || user?.name || "";
+  const partnerName = getPartnerName(currentPersonName, activeRelationship?.participant_names || []);
+
+  const resolvedShareBody = content
+    ? serializeExportContent(content, title)
+    : String(contentRef?.current?.innerText || contentRef?.current?.textContent || "").trim();
 
   const handleExportPDF = async () => {
     if (!content && !contentRef?.current) {
@@ -55,48 +66,34 @@ export default function ResponseExportBar({
     }
   };
 
-  const handleEmailPDF = async () => {
-    if (!content && !contentRef?.current) {
+  const handleShare = () => {
+    if (!resolvedShareBody) {
       toast.error("Content not found");
       return;
     }
 
-    setEmailing(true);
-    try {
-      const result = content
-        ? await exportTextToPDF({
-            text: serializeExportContent(content, title),
-            filename: `${title}.pdf`,
-            title,
-          })
-        : await generateEmailPDF({
-            element: contentRef.current,
-            title,
-          });
-
-      if (result?.blob) {
-        // Open email with PDF
-        openEmailWithPDF({
-          pdfBlob: result.blob,
-          filename,
-          subject: `My ${title}`,
-          body: `I wanted to share this with you.`,
-        });
-        toast.success("Opening email client...");
-      }
-    } catch (err) {
-      toast.error("Failed to prepare PDF for email");
-      console.error(err);
-    } finally {
-      setEmailing(false);
+    if (!activeRelationshipId || !partnerName) {
+      toast.error("Connection partner not found");
+      return;
     }
+
+    queueSharedMessageDraft({
+      relationshipId: activeRelationshipId,
+      sourceLabel: shareSourceLabel || title,
+      title,
+      body: resolvedShareBody,
+      recipientName: partnerName,
+    });
+
+    navigate("/tester-inbox");
+    toast.success(`Draft loaded for ${partnerName}.`);
   };
 
   return (
     <div className="flex gap-3 flex-wrap" data-export-ignore="true">
       <Button
         onClick={handleExportPDF}
-        disabled={exporting || emailing}
+        disabled={exporting}
         variant="outline"
         className="gap-2 text-sm rounded-full border-2 border-teal-500 bg-[#14263f] px-4 font-semibold text-white hover:bg-[#0f1d31] hover:text-white"
       >
@@ -108,18 +105,14 @@ export default function ResponseExportBar({
         {exporting ? "Exporting..." : "Export to PDF"}
       </Button>
 
-      {showEmail && (
+      {showShare && (
         <Button
-          onClick={handleEmailPDF}
-          disabled={exporting || emailing}
-          className="border-2 border-teal-600 bg-teal-50 hover:bg-teal-100 text-teal-700 gap-2 text-sm font-semibold"
+          onClick={handleShare}
+          disabled={exporting || !resolvedShareBody}
+          className="border-2 border-primary/35 bg-white hover:bg-primary/5 text-primary gap-2 text-sm font-semibold rounded-full"
         >
-          {emailing ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Mail className="w-4 h-4" />
-          )}
-          {emailing ? "Preparing..." : "PDF & Email"}
+          <Send className="w-4 h-4" />
+          {`Share with ${partnerName || "Partner"}`}
         </Button>
       )}
     </div>

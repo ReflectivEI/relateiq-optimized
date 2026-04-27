@@ -377,7 +377,6 @@ export default function AnalysisEngine() {
                 }}
                 filename={`analysis-${exportFilenameLabel}.pdf`}
                 title={`${activePerspectiveLabel} Analysis`}
-                showEmail={false}
               />
               <div ref={analysisRef}>
                 <AnalysisOutputCard analysis={displayAnalysis} />

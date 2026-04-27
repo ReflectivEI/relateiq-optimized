@@ -157,7 +157,6 @@ export default function AIHealthReport({
             content={report}
             filename={`health-report-${weekLabel.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.pdf`}
             title={`Relationship Health Report — ${weekLabel}`}
-            showEmail={false}
           />
         <Card className="enterprise-panel border-2" ref={reportRef}>
           <CardHeader className="pb-3">

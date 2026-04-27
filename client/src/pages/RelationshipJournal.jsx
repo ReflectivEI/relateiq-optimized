@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import PersistentSaveBar from "@/components/ui/PersistentSaveBar";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -18,6 +19,8 @@ import ResponseExportBar from "@/components/export/ResponseExportBar";
 import { BookText, Clock3, NotebookPen, Save, FileText, UserRound, Trash2, Pencil, X, ChevronDown, ChevronUp } from "lucide-react";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import JournalEntryCard from "@/components/journal/JournalEntryCard";
+import useAutosave from "@/hooks/useAutosave";
+import useLocalDraft from "@/hooks/useLocalDraft";
 
 function JournalPreview({ personName, title, content, timestamp }) {
   return (
@@ -49,14 +52,23 @@ export default function RelationshipJournal() {
   const previewRef = useRef(null);
   const editorRef = useRef(null);
   const [personName, setPersonName] = useState(participants[0]);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState(null);
   const [expandedEntryId, setExpandedEntryId] = useState(null);
   const [expandedTimelineId, setExpandedTimelineId] = useState(null);
+  const journalDraftKey = `relateiq:draft:journal:${activeRelationshipId}:${editingEntryId || "new"}:${personName}`;
+  const { value: draft, setValue: setDraft, resetFromSource: resetDraft } = useLocalDraft(journalDraftKey, {
+    title: "",
+    content: "",
+  });
+  const { status: draftStatus } = useAutosave({
+    value: draft,
+    saveValue: async () => true,
+    canSave: Boolean(draft.title?.trim() || draft.content?.trim()),
+    debounceMs: 350,
+  });
 
-  const timestamp = useMemo(() => new Date(), [title, content, personName]);
+  const timestamp = useMemo(() => new Date(), [draft.title, draft.content, personName]);
 
   const { data: entries = [] } = useQuery({
     queryKey: ["journal-entries", activeRelationshipId],
@@ -134,23 +146,21 @@ export default function RelationshipJournal() {
 
   const resetEditor = () => {
     setEditingEntryId(null);
-    setTitle("");
-    setContent("");
+    resetDraft({ title: "", content: "" });
   };
 
   const loadEntryIntoEditor = (entry) => {
     setEditingEntryId(entry.id);
     setExpandedEntryId(entry.id);
     setPersonName(entry.person_name || participants[0]);
-    setTitle(entry.title || "");
-    setContent(entry.content || "");
+    resetDraft({ title: entry.title || "", content: entry.content || "" });
     window.requestAnimationFrame(() => {
       editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   };
 
   const handleSave = async () => {
-    if (!content.trim()) {
+    if (!draft.content.trim()) {
       toast.error("Write something before saving.");
       return;
     }
@@ -159,8 +169,8 @@ export default function RelationshipJournal() {
     try {
       const payload = {
         person_name: personName,
-        title: title.trim() || `${personName}'s Journal Entry`,
-        content: content.trim(),
+        title: draft.title.trim() || `${personName}'s Journal Entry`,
+        content: draft.content.trim(),
         entry_timestamp: timestamp.toISOString(),
       };
 
@@ -258,8 +268,8 @@ export default function RelationshipJournal() {
               <div className="space-y-2">
                 <p className="enterprise-section-label">Entry Title</p>
                 <Input
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
+                  value={draft.title}
+                  onChange={(event) => setDraft({ ...draft, title: event.target.value })}
                   placeholder="Example: After tonight’s conversation"
                   className="h-11 rounded-2xl border-2 bg-background"
                 />
@@ -268,12 +278,26 @@ export default function RelationshipJournal() {
               <div className="space-y-2">
                 <p className="enterprise-section-label">Journal Entry</p>
                 <Textarea
-                  value={content}
-                  onChange={(event) => setContent(event.target.value)}
+                  value={draft.content}
+                  onChange={(event) => setDraft({ ...draft, content: event.target.value })}
                   placeholder="Write what happened, what you're feeling, what mattered, and anything you want to revisit later."
                   className="min-h-[320px] rounded-[1.15rem] border-2 bg-background p-4 text-[15px] leading-7"
                 />
               </div>
+
+              <PersistentSaveBar
+                status={draftStatus}
+                statusLabels={{
+                  idle: "Journal draft ready",
+                  dirty: "Unsaved journal draft",
+                  saving: "Saving draft locally...",
+                  saved: "Draft saved locally",
+                  error: "Draft save failed",
+                }}
+                onSave={handleSave}
+                saveLabel={editingEntryId ? "Save Changes" : "Save Entry"}
+                disabled={saving || !draft.content.trim()}
+              />
 
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-2">
                 <div className="text-sm text-muted-foreground">
@@ -293,7 +317,7 @@ export default function RelationshipJournal() {
                       Cancel Edit
                     </Button>
                   ) : null}
-                  <Button onClick={handleSave} disabled={saving || !content.trim()} className="gap-2">
+                  <Button onClick={handleSave} disabled={saving || !draft.content.trim()} className="gap-2">
                     <Save className="h-4 w-4" />
                     {saving ? "Saving..." : editingEntryId ? "Save Changes" : "Save Entry"}
                   </Button>
@@ -301,13 +325,12 @@ export default function RelationshipJournal() {
                     contentRef={previewRef}
                     content={{
                       person: personName,
-                      title: title || "Untitled Entry",
+                      title: draft.title || "Untitled Entry",
                       timestamp: format(timestamp, "MMMM d, yyyy 'at' h:mm a"),
-                      entry: content,
+                      entry: draft.content,
                     }}
                     filename={`journal-${personName.toLowerCase()}-${format(timestamp, "yyyy-MM-dd-HHmm")}.pdf`}
                     title={`${personName} Journal Entry`}
-                    showEmail={false}
                   />
                 </div>
               </div>
@@ -315,7 +338,7 @@ export default function RelationshipJournal() {
           </Card>
 
           <div ref={previewRef} className="fixed -left-[9999px] top-0" aria-hidden="true">
-            <JournalPreview personName={personName} title={title} content={content} timestamp={timestamp} />
+            <JournalPreview personName={personName} title={draft.title} content={draft.content} timestamp={timestamp} />
           </div>
         </div>
 

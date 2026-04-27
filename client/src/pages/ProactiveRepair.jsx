@@ -500,7 +500,6 @@ export default function ProactiveRepair() {
               content={repair}
               filename={`repair-guidance-${person}.pdf`}
               title={`${person} Repair Guidance`}
-              showEmail={false}
             />
             <div ref={repairRef}>
               <RepairOutput repair={repair} repairEntryId={repairEntryId} person={person} partnerName={partnerName} />

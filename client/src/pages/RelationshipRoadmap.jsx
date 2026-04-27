@@ -475,7 +475,6 @@ export default function RelationshipRoadmap() {
               }}
               filename="relationship-roadmap.pdf"
               title={`${relationshipLabel} Growth Roadmap`}
-              showEmail={false}
             />
           </div>
         </CardContent>

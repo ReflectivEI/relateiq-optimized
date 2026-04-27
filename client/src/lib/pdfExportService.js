@@ -32,6 +32,19 @@ function normalizeLine(value = "") {
   return value.replace(/\r/g, "").replace(/[ \t]+/g, " ").trim();
 }
 
+function isLikelyHeading(text = "") {
+  return /^[A-Z][A-Za-z0-9 &:+/\-]{0,80}$/.test(text) && text.length < 90;
+}
+
+function stripMarkdown(text = "") {
+  return text
+    .replace(/\*\*/g, "")
+    .replace(/`/g, "")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/^>\s?/gm, "")
+    .trim();
+}
+
 function collectBlocks(node, blocks = []) {
   if (!(node instanceof HTMLElement)) return blocks;
   if (shouldSkipNode(node)) return blocks;
@@ -96,7 +109,7 @@ function serializeValue(value, depth = 0, label = "") {
   if (value == null || value === "") return [];
 
   if (typeof value === "string") {
-    const cleaned = normalizeLine(value.replace(/\*\*/g, "").replace(/`/g, ""));
+    const cleaned = normalizeLine(stripMarkdown(value));
     if (!cleaned) return [];
     const blocks = [];
     if (label) blocks.push({ kind: "heading", text: formatLabel(label) });
@@ -166,10 +179,10 @@ export async function exportTextToPDF({
     .filter(Boolean);
 
   const blocks = rawBlocks.flatMap((block) => {
-    const cleaned = block.replace(/\*\*/g, "").replace(/`/g, "");
+    const cleaned = stripMarkdown(block);
     const lines = cleaned
       .split("\n")
-      .map((line) => normalizeLine(line.replace(/^#{1,6}\s*/, "")))
+      .map((line) => normalizeLine(line))
       .filter(Boolean);
 
     if (lines.length === 0) return [];
@@ -177,20 +190,28 @@ export async function exportTextToPDF({
     if (lines.length === 1) {
       const [line] = lines;
       return [{
-        kind: /^[A-Z][A-Za-z0-9 &:+/-]{0,80}$/.test(line) && line.length < 90 ? "heading" : "paragraph",
+        kind: isLikelyHeading(line) ? "heading" : "paragraph",
         text: line,
       }];
     }
 
     const [first, ...rest] = lines;
     const blockItems = [];
-    if (/^[A-Z][A-Za-z0-9 &:+/-]{0,80}$/.test(first) && first.length < 90) {
+    if (isLikelyHeading(first)) {
       blockItems.push({ kind: "heading", text: first });
-      rest.forEach((line) => blockItems.push({ kind: "paragraph", text: line }));
+      rest.forEach((line) => {
+        blockItems.push({
+          kind: line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ") ? "bullet" : "paragraph",
+          text: line.replace(/^[-*]\s+/, "• "),
+        });
+      });
       return blockItems;
     }
 
-    return [{ kind: "paragraph", text: lines.join(" ") }];
+    return lines.map((line) => ({
+      kind: line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ") ? "bullet" : "paragraph",
+      text: line.replace(/^[-*]\s+/, "• "),
+    }));
   });
 
   return exportBlocksToPDF({ blocks, filename, title });
@@ -221,26 +242,31 @@ async function exportBlocksToPDF({ blocks, filename, title }) {
     pdf.line(margin, yPosition, pageWidth - margin, yPosition);
     yPosition += 20;
 
+    const ensurePageSpace = (requiredHeight = 20) => {
+      if (yPosition + requiredHeight <= pageHeight - margin) return;
+      pdf.addPage();
+      yPosition = margin;
+    };
+
     blocks.forEach((block) => {
       const isHeading =
         block.kind === "heading" ||
-        (/^[A-Z][A-Za-z0-9 &:+/-]{0,80}$/.test(block.text) && block.text.length < 90);
+        isLikelyHeading(block.text);
+      const isBullet = block.kind === "bullet";
 
       pdf.setFont("helvetica", isHeading ? "bold" : "normal");
-      pdf.setFontSize(isHeading ? 12 : 10);
+      pdf.setFontSize(isHeading ? 12 : 10.5);
       pdf.setTextColor(isHeading ? 20 : 45, isHeading ? 38 : 55, isHeading ? 63 : 55);
 
-      const wrapped = pdf.splitTextToSize(block.text, maxWidth);
+      const wrapped = pdf.splitTextToSize(block.text, maxWidth - (isBullet ? 10 : 0));
+      ensurePageSpace((wrapped.length + 1) * (isHeading ? 16 : 14));
       wrapped.forEach((line) => {
-        if (yPosition > pageHeight - margin) {
-          pdf.addPage();
-          yPosition = margin;
-        }
-        pdf.text(line, margin, yPosition);
+        const xPosition = isBullet ? margin + 10 : margin;
+        pdf.text(line, xPosition, yPosition);
         yPosition += isHeading ? 16 : 14;
       });
 
-      yPosition += isHeading ? 6 : 4;
+      yPosition += isHeading ? 8 : 6;
     });
 
     const totalPages = pdf.getNumberOfPages();
@@ -272,8 +298,4 @@ export async function downloadPDF({ element, filename = "response.pdf", title = 
   link.download = filename;
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-}
-
-export function generateEmailPDF({ element, title = "Response" }) {
-  return exportElementToPDF({ element, filename: `${title}.pdf`, title });
 }
