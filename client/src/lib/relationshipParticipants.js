@@ -173,6 +173,21 @@ export function getRelationshipTerms(activeRelationshipOrType) {
   }
 }
 
+export function getRelationshipCoachLabel(activeRelationshipOrType) {
+  const terms = getRelationshipTerms(activeRelationshipOrType);
+  switch (terms.type) {
+    case "friendship":
+      return "Friendship Coach";
+    case "family":
+      return "Family Coach";
+    case "other":
+      return "Connection Coach";
+    case "romantic":
+    default:
+      return "Relationship Coach";
+  }
+}
+
 export function replaceParticipantNames(text, participants = ["Tony", "Drew"]) {
   if (!text) return text;
   const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;

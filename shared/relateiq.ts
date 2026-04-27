@@ -643,15 +643,7 @@ function inferRelationshipRole(relationship: Relationship, userId: string) {
   const membership = getMembershipForUser(relationship.id, userId);
   if (membership?.role === "owner") return "owner";
 
-  const memberships = RELATEIQ_MEMBERSHIPS.filter((entry) => entry.relationship_id === relationship.id);
-  const hasOwner = memberships.some((entry) => entry.role === "owner");
   const currentUser = getUserById(userId);
-  const firstParticipant = relationship.participants?.[0]?.trim().toLowerCase();
-  const currentName = currentUser?.name?.trim().toLowerCase();
-
-  if (!hasOwner && currentUser && firstParticipant && firstParticipant === currentName) {
-    return "owner";
-  }
 
   if (
     currentUser?.id === "tony" &&
@@ -1016,19 +1008,19 @@ export function submitRelationshipOnboarding(input: {
     state.profiles = state.profiles.map((profile) =>
       profile.person === user.name
         ? {
-            ...profile,
-            communicationStyle:
-              entry.self_description || profile.communicationStyle,
-            likelyNeedsUnderStress: entry.support_style
-              ? [entry.support_style, ...(entry.support_notes ? [entry.support_notes] : [])]
-              : profile.likelyNeedsUnderStress,
-            summary:
-              entry.communication_note || entry.self_description
-                ? [entry.self_description, entry.communication_note]
-                    .filter(Boolean)
-                    .join(" ")
-                : profile.summary,
-          }
+          ...profile,
+          communicationStyle:
+            entry.self_description || profile.communicationStyle,
+          likelyNeedsUnderStress: entry.support_style
+            ? [entry.support_style, ...(entry.support_notes ? [entry.support_notes] : [])]
+            : profile.likelyNeedsUnderStress,
+          summary:
+            entry.communication_note || entry.self_description
+              ? [entry.self_description, entry.communication_note]
+                .filter(Boolean)
+                .join(" ")
+              : profile.summary,
+        }
         : profile,
     );
   }

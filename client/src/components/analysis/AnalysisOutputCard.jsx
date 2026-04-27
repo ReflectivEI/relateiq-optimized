@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import SendPartnerPill from "@/components/ui/SendPartnerPill";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +59,18 @@ export default function AnalysisOutputCard({ analysis }) {
             </div>
           </div>
           <div className="flex flex-wrap gap-1.5">
+            <SendPartnerPill
+              content={{
+                label: _label,
+                perspective,
+                headline: display.headline,
+                sections: display.sections || [],
+                frameworksUsed: frameworks_used || [],
+              }}
+              title={`${_label} Analysis`}
+              sourceLabel={_label}
+              className="h-7 px-3 text-xs"
+            />
             {(frameworks_used || []).slice(0, 4).map((f) => (
               <Badge key={f} variant="outline" className="text-[10px] px-2 py-0.5">{f}</Badge>
             ))}

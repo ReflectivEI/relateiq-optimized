@@ -16,7 +16,10 @@ import DailyQuestionCard from "@/components/reflection/DailyQuestionCard";
 import ReflectionResponse from "@/components/reflection/ReflectionResponse";
 import PrivacyBanner from "@/components/ui/PrivacyBanner";
 import VoiceRecorder from "@/components/reflection/VoiceRecorder";
+import PersistentSaveBar from "@/components/ui/PersistentSaveBar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import useAutosave from "@/hooks/useAutosave";
+import useLocalDraft from "@/hooks/useLocalDraft";
 import { toast } from "sonner";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import { getPartnerName, getRelationshipLabel, getRelationshipTerms } from "@/lib/relationshipParticipants";
@@ -24,10 +27,7 @@ import { getPartnerName, getRelationshipLabel, getRelationshipTerms } from "@/li
 export default function DailyConnections() {
   const { activeRelationshipId, activeRelationship, participants } = useRelationshipAuth();
   const [person, setPerson] = useState(participants[0]);
-  const [answer, setAnswer] = useState("");
-  const [mood, setMood] = useState("");
   const [loading, setLoading] = useState(false);
-  const [inputMode, setInputMode] = useState("text");
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -36,6 +36,23 @@ export default function DailyConnections() {
 
   // Get today's question (deterministic)
   const todayQuestion = getTodayQuestion(activeRelationship);
+  const dailyDraftKey = `relateiq:draft:daily:${activeRelationshipId}:${person}:${todayQuestion.date}`;
+  const {
+    value: draft,
+    setValue: setDraft,
+    resetFromSource: resetDraft,
+  } = useLocalDraft(dailyDraftKey, {
+    answer: "",
+    mood: "",
+    inputMode: "text",
+  });
+
+  const { status: draftStatus } = useAutosave({
+    value: draft,
+    saveValue: async () => true,
+    canSave: Boolean(draft.answer?.trim() || draft.mood),
+    debounceMs: 350,
+  });
 
   // Fetch today's reflections
   const { data: reflections = [] } = useQuery({
@@ -65,12 +82,16 @@ export default function DailyConnections() {
   }, [partnerResponse, myResponse]);
 
   const handleVoiceTranscribed = (data) => {
-    setAnswer(data.text);
-    setMood(data.emotion || "thoughtful");
+    setDraft((current) => ({
+      ...current,
+      answer: data.text,
+      mood: data.emotion || current.mood || "thoughtful",
+      inputMode: "voice",
+    }));
   };
 
   const handleSubmit = async () => {
-    if (!answer.trim()) return;
+    if (!draft.answer.trim()) return;
 
     setLoading(true);
 
@@ -78,16 +99,14 @@ export default function DailyConnections() {
       await api.entities.DailyReflection.create({
         person_name: person,
         question_id: todayQuestion.index.toString(),
-        answer: answer.trim(),
-        mood: mood || "thoughtful",
+        answer: draft.answer.trim(),
+        mood: draft.mood || "thoughtful",
         reflection_date: todayQuestion.date,
         shared_with_partner: true,
         partner_viewed: false,
       });
 
-      setAnswer("");
-      setMood("");
-      setInputMode("text");
+      resetDraft({ answer: "", mood: "", inputMode: "text" });
       toast.success(`Response shared with your ${terms.counterpart} ✨`);
       queryClient.invalidateQueries({ queryKey: ["daily-reflections-today", activeRelationshipId] });
     } catch (err) {
@@ -185,9 +204,9 @@ export default function DailyConnections() {
                 {/* Input mode tabs */}
                 <div className="flex gap-2 border-b border-border">
                   <button
-                    onClick={() => setInputMode("text")}
+                    onClick={() => setDraft((current) => ({ ...current, inputMode: "text" }))}
                     className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
-                      inputMode === "text"
+                      draft.inputMode === "text"
                         ? "border-primary text-foreground"
                         : "border-transparent text-muted-foreground hover:text-foreground"
                     }`}
@@ -195,9 +214,9 @@ export default function DailyConnections() {
                     Type
                   </button>
                   <button
-                    onClick={() => setInputMode("voice")}
+                    onClick={() => setDraft((current) => ({ ...current, inputMode: "voice" }))}
                     className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
-                      inputMode === "voice"
+                      draft.inputMode === "voice"
                         ? "border-primary text-foreground"
                         : "border-transparent text-muted-foreground hover:text-foreground"
                     }`}
@@ -206,11 +225,11 @@ export default function DailyConnections() {
                   </button>
                 </div>
 
-                {inputMode === "text" ? (
+                {draft.inputMode === "text" ? (
                   <Textarea
                     placeholder="Take your time. Be honest. Your words matter..."
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
+                    value={draft.answer}
+                    onChange={(e) => setDraft((current) => ({ ...current, answer: e.target.value }))}
                     className="min-h-[180px] resize-none bg-background text-base"
                   />
                 ) : (
@@ -230,14 +249,28 @@ export default function DailyConnections() {
                   />
                 )}
 
+                <PersistentSaveBar
+                  status={draftStatus}
+                  statusLabels={{
+                    idle: "Draft ready",
+                    dirty: "Unsaved response draft",
+                    saving: "Saving draft locally...",
+                    saved: "Draft saved locally",
+                    error: "Draft save failed",
+                  }}
+                  onSave={handleSubmit}
+                  saveLabel="Share Response"
+                  disabled={!draft.answer.trim() || loading}
+                />
+
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-foreground">How are you feeling right now?</p>
                   <div className="grid grid-cols-2 gap-2">
                     {["vulnerable", "thoughtful", "grateful", "hopeful", "reflective", "honest"].map((m) => (
                       <Button
                         key={m}
-                        onClick={() => setMood(m)}
-                        variant={mood === m ? "default" : "outline"}
+                        onClick={() => setDraft((current) => ({ ...current, mood: m }))}
+                        variant={draft.mood === m ? "default" : "outline"}
                         className="border-2 text-sm capitalize"
                       >
                         {m}
@@ -248,7 +281,7 @@ export default function DailyConnections() {
 
                 <Button
                   onClick={handleSubmit}
-                  disabled={!answer.trim() || loading}
+                  disabled={!draft.answer.trim() || loading}
                   className="w-full border-2 border-primary text-base gap-2"
                 >
                   {loading ? (

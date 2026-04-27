@@ -194,7 +194,7 @@ export default function Questionnaire() {
         toast.error("We couldn't find a baseline questionnaire to copy from yet.");
         return;
       }
-          if (currentResult.manual_review_question_ids?.length) {
+      if (currentResult.manual_review_question_ids?.length) {
         toast.success(
           `Copied ${currentResult.copied} answers. ${currentResult.manual_review_question_ids.length} questions still need a quick manual review.`,
         );
@@ -213,9 +213,9 @@ export default function Questionnaire() {
       {/* Header */}
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">Questionnaire</h1>
-          <p className="text-muted-foreground mt-1">
-            Build private context for each person in this {terms.bond}, one question at a time.
-          </p>
+        <p className="text-muted-foreground mt-1">
+          Build private context for each person in this {terms.bond}, one question at a time.
+        </p>
       </div>
 
       {/* Controls */}
@@ -409,7 +409,7 @@ export default function Questionnaire() {
         sourceInputs: { category: activeCategory, answeredCount: totalAnswered },
         tonyResponses: person === participants[0] ? responses : [],
         drewResponses: person === participants[1] ? responses : [],
-      })} />
+      })} defaultOpen />
 
       {/* Questions */}
       <AnimatePresence mode="wait">

@@ -3,6 +3,7 @@
  */
 import React, { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import SendPartnerPill from "@/components/ui/SendPartnerPill";
 import { Hash } from "lucide-react";
 
 const STOP_WORDS = new Set([
@@ -55,6 +56,14 @@ export default function ThemeCloud({ checkIns, reflections, coachSessions }) {
           Key Themes
         </CardTitle>
         <p className="text-xs text-muted-foreground">Most recurring words across all entries</p>
+        <div className="pt-2">
+          <SendPartnerPill
+            content={words}
+            title="Key Themes"
+            sourceLabel="Health Report"
+            className="h-7 px-3 text-xs"
+          />
+        </div>
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap gap-2">

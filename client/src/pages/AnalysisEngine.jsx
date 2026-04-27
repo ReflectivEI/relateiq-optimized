@@ -195,7 +195,7 @@ export default function AnalysisEngine() {
       // Auto-save to Insight Library
       const safeInsightPayload = sanitizeInsightPayload(activePerspective, result);
       if (safeInsightPayload) {
-        api.entities.InsightEntry.create(safeInsightPayload).catch(() => {}); // fire-and-forget, non-blocking
+        api.entities.InsightEntry.create(safeInsightPayload).catch(() => { }); // fire-and-forget, non-blocking
       }
     } catch (err) {
       if (err instanceof CreditLimitError) setCreditError(true);

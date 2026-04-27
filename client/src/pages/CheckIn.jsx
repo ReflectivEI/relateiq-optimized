@@ -20,6 +20,9 @@ import OutcomeLogger from "@/components/repair/OutcomeLogger";
 import { safeInvokeLLM } from "@/lib/aiSafe";
 import PrivacyBanner from "@/components/ui/PrivacyBanner";
 import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
+import PersistentSaveBar from "@/components/ui/PersistentSaveBar";
+import useAutosave from "@/hooks/useAutosave";
+import useLocalDraft from "@/hooks/useLocalDraft";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import { getPartnerName, getRelationshipTerms } from "@/lib/relationshipParticipants";
 import { toast } from "sonner";
@@ -43,7 +46,14 @@ const moods = [
 export default function CheckIn() {
   const { activeRelationshipId, activeRelationship, participants } = useRelationshipAuth();
   const [person, setPerson] = useState(participants[0]);
-  const [form, setForm] = useState({
+  const [submitting, setSubmitting] = useState(false);
+  const [aiReflection, setAiReflection] = useState(null);
+  const [checkInId, setCheckInId] = useState(null);
+  const [checkInCtx, setCheckInCtx] = useState(null);
+  const [creditError, setCreditError] = useState(false);
+  const queryClient = useQueryClient();
+  const checkInDraftKey = `relateiq:draft:checkin:${activeRelationshipId}:${person}`;
+  const { value: form, setValue: setForm, resetFromSource: resetDraft } = useLocalDraft(checkInDraftKey, {
     what_worked: "",
     what_could_improve: "",
     mood: "",
@@ -52,12 +62,12 @@ export default function CheckIn() {
     distance_moment: "",
     unasked_need: "",
   });
-  const [submitting, setSubmitting] = useState(false);
-  const [aiReflection, setAiReflection] = useState(null);
-  const [checkInId, setCheckInId] = useState(null);
-  const [checkInCtx, setCheckInCtx] = useState(null);
-  const [creditError, setCreditError] = useState(false);
-  const queryClient = useQueryClient();
+  const { status: draftStatus } = useAutosave({
+    value: form,
+    saveValue: async () => true,
+    canSave: Boolean(form.what_worked?.trim() || form.what_could_improve?.trim() || form.gratitude?.trim()),
+    debounceMs: 350,
+  });
 
   useEffect(() => {
     if (!participants.includes(person)) {
@@ -137,7 +147,7 @@ export default function CheckIn() {
       tonyResponses: person === participants[0] ? allResponses : [],
       drewResponses: person === participants[1] ? allResponses : [],
     }));
-    setForm({ what_worked: "", what_could_improve: "", mood: "", gratitude: "", connected_moment: "", distance_moment: "", unasked_need: "" });
+    resetDraft({ what_worked: "", what_could_improve: "", mood: "", gratitude: "", connected_moment: "", distance_moment: "", unasked_need: "" });
     setSubmitting(false);
     queryClient.invalidateQueries({ queryKey: ["checkins", activeRelationshipId, person] });
     toast.success(`Check-in saved for ${person}.`);
@@ -266,6 +276,20 @@ export default function CheckIn() {
               className="min-h-[60px] resize-none bg-background/50"
             />
           </div>
+
+          <PersistentSaveBar
+            status={draftStatus}
+            statusLabels={{
+              idle: "Check-in draft ready",
+              dirty: "Unsaved check-in draft",
+              saving: "Saving draft locally...",
+              saved: "Draft saved locally",
+              error: "Draft save failed",
+            }}
+            onSave={handleSubmit}
+            saveLabel="Submit Check-In"
+            disabled={submitting || !form.what_worked.trim()}
+          />
 
           <Button onClick={handleSubmit} disabled={submitting || !form.what_worked.trim()} className="gap-2">
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

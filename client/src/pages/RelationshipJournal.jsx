@@ -495,6 +495,6 @@ export default function RelationshipJournal() {
     </div>
   );
 }
-  const toggleSavedEntry = (entryId) => {
-    setExpandedEntryId((current) => (current === entryId ? null : entryId));
-  };
+const toggleSavedEntry = (entryId) => {
+  setExpandedEntryId((current) => (current === entryId ? null : entryId));
+};

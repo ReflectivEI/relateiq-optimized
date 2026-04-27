@@ -35,8 +35,8 @@ function buildReportPrompt({ checkIns, reflections, coachSessions, weekLabel, vi
     viewMode === primaryPerson
       ? `${primaryPerson} within ${relationshipLabel}`
       : viewMode === secondaryPerson
-      ? `${secondaryPerson} within ${relationshipLabel}`
-      : relationshipLabel;
+        ? `${secondaryPerson} within ${relationshipLabel}`
+        : relationshipLabel;
   const recentCheckIns = checkIns.slice(0, 8);
   const recentReflections = reflections.slice(0, 10);
   const recentSessions = coachSessions.slice(0, 5);
@@ -107,8 +107,8 @@ export default function AIHealthReport({
             viewMode === participants[0]
               ? { personName: participants[0], partnerName: participants[1], replacePronouns: false }
               : viewMode === participants[1]
-              ? { personName: participants[1], partnerName: participants[0], replacePronouns: false }
-              : { personName: participants[0], partnerName: participants[1], replacePronouns: false },
+                ? { personName: participants[1], partnerName: participants[0], replacePronouns: false }
+                : { personName: participants[0], partnerName: participants[1], replacePronouns: false },
         },
         40000,
         null
@@ -158,27 +158,27 @@ export default function AIHealthReport({
             filename={`health-report-${weekLabel.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.pdf`}
             title={`Relationship Health Report — ${weekLabel}`}
           />
-        <Card className="enterprise-panel border-2" ref={reportRef}>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <FileText className="w-4 h-4 text-primary" />
-                {viewMode === "compare"
-                  ? `AI ${reportTitle} — ${weekLabel}`
-                  : `AI ${viewMode} Health Report — ${weekLabel}`}
-              </CardTitle>
-              <Button variant="ghost" size="sm" onClick={generate} disabled={loading} className="gap-1.5 text-xs">
-                {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                Regenerate
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary prose-headings:font-display">
-              <ReactMarkdown>{report}</ReactMarkdown>
-            </div>
-          </CardContent>
-        </Card>
+          <Card className="enterprise-panel border-2" ref={reportRef}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FileText className="w-4 h-4 text-primary" />
+                  {viewMode === "compare"
+                    ? `AI ${reportTitle} — ${weekLabel}`
+                    : `AI ${viewMode} Health Report — ${weekLabel}`}
+                </CardTitle>
+                <Button variant="ghost" size="sm" onClick={generate} disabled={loading} className="gap-1.5 text-xs">
+                  {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                  Regenerate
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary prose-headings:font-display">
+                <ReactMarkdown>{report}</ReactMarkdown>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

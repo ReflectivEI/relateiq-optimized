@@ -7,6 +7,7 @@ import { api } from "@/api/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import PersistentSaveBar from "@/components/ui/PersistentSaveBar";
 import { Textarea } from "@/components/ui/textarea";
 import { ChevronDown, ChevronUp, Plus, Send, Share2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +15,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import { getPartnerName, getRelationshipTerms } from "@/lib/relationshipParticipants";
+import useAutosave from "@/hooks/useAutosave";
+import useLocalDraft from "@/hooks/useLocalDraft";
 
 export default function NotesPanel({
   section = "general",
@@ -22,9 +25,16 @@ export default function NotesPanel({
 }) {
   const { activeRelationshipId, participants, activeRelationship } = useRelationshipAuth();
   const [expanded, setExpanded] = useState(false);
-  const [newNote, setNewNote] = useState("");
   const queryClient = useQueryClient();
   const terms = getRelationshipTerms(activeRelationship);
+  const noteDraftKey = `relateiq:draft:note:${activeRelationshipId}:${section}:${relatedItemId || "any"}:${personName}`;
+  const { value: newNote, setValue: setNewNote, resetFromSource: resetNoteDraft } = useLocalDraft(noteDraftKey, "");
+  const { status: noteDraftStatus } = useAutosave({
+    value: newNote,
+    saveValue: async () => true,
+    canSave: Boolean(newNote.trim()),
+    debounceMs: 350,
+  });
 
   // Fetch notes for this section
   const { data: notes = [] } = useQuery({
@@ -39,14 +49,15 @@ export default function NotesPanel({
   const sharedScope = `${participants[0]}_${participants[1]}`;
   const isSharedScope = personName === sharedScope;
   const partnerName = getPartnerName(personName, participants);
+  const counterpartLabel = partnerName || terms.counterpart;
   const myNotes = isSharedScope
     ? notes.filter((n) => participants.includes(n.person_name))
     : notes.filter((n) => n.person_name === personName);
   const sharedNotes = isSharedScope
     ? []
     : notes.filter(
-        (n) => n.person_name === partnerName && n.shared_with_partner
-      );
+      (n) => n.person_name === partnerName && n.shared_with_partner
+    );
 
   // Create note
   const createNoteMutation = useMutation({
@@ -59,7 +70,7 @@ export default function NotesPanel({
         relationship_id: activeRelationshipId,
       }),
     onSuccess: () => {
-      setNewNote("");
+      resetNoteDraft("");
       queryClient.invalidateQueries({ queryKey: ["notes", activeRelationshipId, section, relatedItemId] });
       toast.success("Note saved");
     },
@@ -71,7 +82,7 @@ export default function NotesPanel({
       api.entities.Note.update(noteId, { shared_with_partner: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notes", activeRelationshipId, section, relatedItemId] });
-      toast.success(`Note shared with your ${terms.counterpart}`);
+      toast.success(`Note shared with ${counterpartLabel}`);
     },
   });
 
@@ -120,10 +131,23 @@ export default function NotesPanel({
               {/* Add new note */}
               <div className="space-y-2">
                 <Textarea
-                  placeholder="Jot down lessons learned, insights, or anything to remember..."
+                  placeholder="Jot down a note while it's still fresh on your mind..."
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
                   className="min-h-[80px] resize-none bg-background text-sm"
+                />
+                <PersistentSaveBar
+                  status={noteDraftStatus}
+                  statusLabels={{
+                    idle: "Note draft ready",
+                    dirty: "Unsaved note draft",
+                    saving: "Saving draft locally...",
+                    saved: "Draft saved locally",
+                    error: "Draft save failed",
+                  }}
+                  onSave={handleSaveNote}
+                  saveLabel="Save Note"
+                  disabled={!newNote.trim() || createNoteMutation.isPending}
                 />
                 <Button
                   onClick={handleSaveNote}
@@ -157,11 +181,11 @@ export default function NotesPanel({
                             className="text-xs border border-teal-600 text-teal-700 hover:bg-teal-50"
                           >
                             <Share2 className="w-3 h-3 mr-1" />
-                            Share
+                            Share with {counterpartLabel}
                           </Button>
                         ) : !isSharedScope ? (
                           <span className="text-xs text-teal-700 font-semibold px-2 py-1">
-                            ✓ Shared
+                            ✓ Shared with {counterpartLabel}
                           </span>
                         ) : (
                           <span className="text-xs text-muted-foreground px-2 py-1">
@@ -187,7 +211,7 @@ export default function NotesPanel({
               {sharedNotes.length > 0 && (
                 <div className="space-y-2 border-t border-border/40 pt-3">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {partnerName}'s Shared Notes ({sharedNotes.length})
+                    {counterpartLabel}'s Shared Notes ({sharedNotes.length})
                   </p>
                   {sharedNotes.map((note) => (
                     <div
@@ -196,7 +220,7 @@ export default function NotesPanel({
                     >
                       <p className="text-foreground">{note.content}</p>
                       <p className="text-xs text-muted-foreground">
-                        Shared by {partnerName}
+                        Shared by {counterpartLabel}
                       </p>
                     </div>
                   ))}

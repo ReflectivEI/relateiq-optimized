@@ -11,6 +11,7 @@ import { RELATIONSHIP_COACH_SYSTEM } from "@/lib/prompts";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import ResponseExportBar from "@/components/export/ResponseExportBar";
 import { getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 const EXPANSIONS = [
@@ -139,6 +140,14 @@ export default function ProfileSection({ title, icon: Icon, content, personName,
                     </div>
                     <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground [&>*:first-child]:mt-0">
                       <ReactMarkdown>{expansionResult[activeExpansion]}</ReactMarkdown>
+                    </div>
+                    <div className="mt-3">
+                      <ResponseExportBar
+                        content={expansionResult[activeExpansion]}
+                        title={`${personName} — ${title} — ${EXPANSIONS.find(e => e.id === activeExpansion)?.label || "Guidance"}`}
+                        filename={`${personName}-${title}-${activeExpansion}.pdf`.toLowerCase().replace(/[^a-z0-9.-]+/g, "-")}
+                        shareSourceLabel={`${title} Guidance`}
+                      />
                     </div>
                   </motion.div>
                 )}

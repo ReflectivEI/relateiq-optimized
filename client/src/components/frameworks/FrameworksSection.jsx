@@ -5,6 +5,7 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import SendPartnerPill from "@/components/ui/SendPartnerPill";
 import { Lightbulb, ChevronDown, ChevronUp } from "lucide-react";
 import FrameworkCard from "./FrameworkCard";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,18 @@ export default function FrameworksSection({ frameworks, compact = false }) {
         <p className="text-[11px] text-muted-foreground mt-1">
           Evidence-based therapeutic models informing this guidance
         </p>
+        <div className="pt-2">
+          <SendPartnerPill
+            content={frameworks.map((fw) => ({
+              framework: fw.framework,
+              whyApplied: fw.why_applied,
+              howItApplies: fw.how_it_applies,
+            }))}
+            title="Frameworks Behind This Insight"
+            sourceLabel="Frameworks"
+            className="h-7 px-3 text-xs"
+          />
+        </div>
       </CardHeader>
 
       <CardContent className="pt-0 space-y-2">

@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { UserRound, ArrowRightLeft } from "lucide-react";
 import { getPerspectiveLabels } from "@/lib/relationshipParticipants";
 
-export default function PerspectiveToggle({ value, onChange, options, labels = {}, participants = ["Tony", "Drew"] }) {
+export default function PerspectiveToggle({ value, onChange, options, labels = {}, participants = ["Person A", "Other Person"] }) {
   const resolvedLabels = { ...getPerspectiveLabels(participants), ...labels };
   return (
     <div className="flex flex-wrap gap-2">

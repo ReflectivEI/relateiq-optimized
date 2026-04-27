@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import SendPartnerPill from "@/components/ui/SendPartnerPill";
 import { ChevronDown, ChevronUp, Target, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -64,6 +65,21 @@ export default function MilestoneCard({ milestone, isActive = false, onSelect, o
               ) : (
                 <ChevronDown className="w-5 h-5 text-muted-foreground mt-0.5" />
               )}
+            </div>
+            <div className="mt-3 flex justify-start">
+              <SendPartnerPill
+                content={{
+                  month: milestone.month,
+                  title: milestone.title,
+                  theme: milestone.theme,
+                  description: milestone.description,
+                  goals: milestone.goals,
+                  focus: milestone.focus,
+                }}
+                title={`Roadmap Month ${milestone.month}`}
+                sourceLabel="Growth Roadmap"
+                className="h-7 px-3 text-xs"
+              />
             </div>
           </CardHeader>
         </button>

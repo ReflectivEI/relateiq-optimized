@@ -12,8 +12,8 @@ import { getPartnerName } from "@/lib/relationshipParticipants";
 import { queueSharedMessageDraft } from "@/lib/messageShare";
 import { toast } from "sonner";
 
-export default function ResponseExportBar({ 
-  contentRef, 
+export default function ResponseExportBar({
+  contentRef,
   content = null,
   filename = "response.pdf",
   title = "Response",
@@ -109,7 +109,7 @@ export default function ResponseExportBar({
         <Button
           onClick={handleShare}
           disabled={exporting || !resolvedShareBody}
-          className="border-2 border-primary/35 bg-white hover:bg-primary/5 text-primary gap-2 text-sm font-semibold rounded-full"
+          className="gap-2 rounded-full border-2 border-[#0e6f72] bg-[#e8f7f6] text-[#0e6f72] hover:border-[#0b5c5e] hover:bg-[#d7f0ed] hover:text-[#0b5c5e]"
         >
           <Send className="w-4 h-4" />
           {`Share with ${partnerName || "Partner"}`}

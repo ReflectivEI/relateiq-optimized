@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import MetricExplainer from "@/components/ui/MetricExplainer";
 import ReferencePill from "@/components/ui/ReferencePill";
+import SendPartnerPill from "@/components/ui/SendPartnerPill";
 
 const STATUS_CONFIG = {
   healthy: {
@@ -177,6 +178,21 @@ export default function EarlyWarningCard({ riskSummary }) {
               </span>
             </button>
           </MetricExplainer>
+        </div>
+        <div className="pt-2">
+          <SendPartnerPill
+            content={{
+              status: riskSummary.status,
+              message: riskSummary.message,
+              riskScore: riskPercent,
+              timeline: riskSummary.timeline,
+              signals: riskSummary.signals || [],
+              repairs: riskSummary.repairs || [],
+            }}
+            title="Early Warning System"
+            sourceLabel="Early Warning"
+            className="h-7 px-3 text-xs"
+          />
         </div>
       </CardHeader>
 

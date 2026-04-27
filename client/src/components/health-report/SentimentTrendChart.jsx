@@ -3,6 +3,7 @@
  */
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import SendPartnerPill from "@/components/ui/SendPartnerPill";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { TrendingUp } from "lucide-react";
 
@@ -40,6 +41,14 @@ export default function SentimentTrendChart({ checkIns = [], participants = ["Pe
           Sentiment Trend
         </CardTitle>
         <p className="text-xs text-muted-foreground">Mood scores over recent check-ins (5 = great, 1 = difficult)</p>
+        <div className="pt-2">
+          <SendPartnerPill
+            content={data.map((row) => ({ ...row }))}
+            title="Sentiment Trend"
+            sourceLabel="Health Report"
+            className="h-7 px-3 text-xs"
+          />
+        </div>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={180}>

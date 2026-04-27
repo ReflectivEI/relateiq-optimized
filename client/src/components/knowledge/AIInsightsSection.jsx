@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import InsightCard from "./InsightCard";
+import ResponseExportBar from "@/components/export/ResponseExportBar";
 
 const BASE_TEMPLATES = {
   communication: {
@@ -157,6 +158,9 @@ export default function AIInsightsSection({ onRefresh, relationshipTerms, relati
         : relationshipTerms?.type === "family"
           ? "AI Family Insights"
           : `AI ${relationshipTerms?.typeLabel || "Connection"} Insights`;
+  const serializedInsights = insights
+    .map((insight) => `${insight.title}\n${insight.content}`)
+    .join("\n\n");
 
   // Generate insights on mount and when refresh is clicked
   useEffect(() => {
@@ -205,6 +209,15 @@ export default function AIInsightsSection({ onRefresh, relationshipTerms, relati
           <span className="text-base">Refresh</span>
         </Button>
       </div>
+
+      {insights.length > 0 && (
+        <ResponseExportBar
+          content={serializedInsights}
+          title={insightsTitle}
+          filename={`${insightsTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.pdf`}
+          shareSourceLabel={insightsTitle}
+        />
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <AnimatePresence mode="wait">

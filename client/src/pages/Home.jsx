@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/api/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import NotesPanel from "@/components/notes/NotesPanel";
 import {
   Sparkles,
   BarChart3,
@@ -15,9 +17,11 @@ import {
   ChevronDown,
   ChevronUp,
   MessagesSquare,
+  Bell,
   LibraryBig,
   NotebookPen,
   BrainCircuit,
+  Send,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AskAIButton from "@/components/askAI/AskAIButton";
@@ -96,13 +100,18 @@ const quickActions = [
 ];
 
 export default function Home() {
-  const { activeRelationshipId, activeRelationship, participants, primaryPerson, secondaryPerson, relationshipLabel } = useRelationshipAuth();
+  const navigate = useNavigate();
+  const { activeRelationshipId, activeRelationship, participants, primaryPerson, secondaryPerson, relationshipLabel, user } = useRelationshipAuth();
   const [repairSuggestion, setRepairSuggestion] = useState(null);
   const [repairLoading, setRepairLoading] = useState(false);
   const [repairDismissed, setRepairDismissed] = useState(false);
   const [riskSummary, setRiskSummary] = useState(null);
   const [expandedProfile, setExpandedProfile] = useState(null);
   const [expandedProfileCards, setExpandedProfileCards] = useState({});
+  const [messageDraft, setMessageDraft] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [messageConfirmation, setMessageConfirmation] = useState("");
+  const queryClient = useQueryClient();
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-home", activeRelationshipId],
@@ -138,7 +147,27 @@ export default function Home() {
     queryKey: ["triggers-home", activeRelationshipId],
     queryFn: () => api.entities.TriggerEntry.list(),
   });
+  const { data: notes = [] } = useQuery({
+    queryKey: ["home-notes", activeRelationshipId],
+    queryFn: () => api.entities.Note.filter({}),
+    enabled: Boolean(activeRelationshipId),
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+  });
   const terms = getRelationshipTerms(activeRelationship);
+  const currentUserName = user?.name || primaryPerson;
+  const currentPersonName = activeRelationship?.current_person_name || currentUserName || primaryPerson;
+  const partnerName = participants.find((name) => name !== currentPersonName) || secondaryPerson;
+  const sharedScope = `${participants[0]}_${participants[1]}`;
+  const inboxMessages = notes
+    .filter((note) => note.related_section === "messages")
+    .filter((note) => note.recipient_name === currentPersonName)
+    .sort((left, right) => new Date(right.updated_date || right.created_date) - new Date(left.updated_date || left.created_date));
+  const sentMessages = notes
+    .filter((note) => note.related_section === "messages")
+    .filter((note) => note.person_name === currentPersonName)
+    .sort((left, right) => new Date(right.updated_date || right.created_date) - new Date(left.updated_date || left.created_date));
+  const unreadMessages = inboxMessages.filter((note) => !note.read_by_recipient);
 
   const tonyProfile = profiles.find((p) => p.person_name === primaryPerson);
   const drewProfile = profiles.find((p) => p.person_name === secondaryPerson);
@@ -180,7 +209,7 @@ export default function Home() {
     }).then((result) => {
       if (result) setRepairSuggestion(result);
     }).finally(() => setRepairLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkIns.length, repairEntries.length, sessions.length]);
 
   const handleRepairRefresh = () => {
@@ -200,6 +229,36 @@ export default function Home() {
       ...current,
       [name]: !current[name],
     }));
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageDraft.trim()) return;
+    setSendingMessage(true);
+    try {
+      await api.entities.Note.create({
+        person_name: currentPersonName,
+        recipient_name: partnerName,
+        content: messageDraft.trim(),
+        related_section: "messages",
+        related_item_id: activeRelationshipId,
+        relationship_id: activeRelationshipId,
+        shared_with_partner: true,
+        read_by_recipient: false,
+        message_type: "manual_message",
+      });
+      setMessageDraft("");
+      setMessageConfirmation(`Message queued for ${partnerName}. They will see it in Connection Inbox and the notification bell.`);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["home-notes", activeRelationshipId] }),
+        queryClient.invalidateQueries({ queryKey: ["topbar-notes", activeRelationshipId] }),
+        queryClient.invalidateQueries({ queryKey: ["tester-inbox-messages", activeRelationshipId] }),
+      ]);
+      toast.success(`Message sent to ${partnerName}.`);
+    } catch {
+      toast.error("Unable to send message right now.");
+    } finally {
+      setSendingMessage(false);
+    }
   };
 
   return (
@@ -396,6 +455,99 @@ export default function Home() {
           ))}
         </div>
       </div>
+
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <Card className="border border-border/70 bg-card/90">
+          <CardContent className="space-y-4 p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="font-display text-2xl font-semibold text-foreground">Send Message</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Send a direct note to {partnerName}. They will see it in their Connection Inbox and notification bell.
+                </p>
+              </div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                <Send className="h-5 w-5" />
+              </div>
+            </div>
+            <Textarea
+              value={messageDraft}
+              onChange={(event) => {
+                setMessageDraft(event.target.value);
+                if (messageConfirmation) setMessageConfirmation("");
+              }}
+              placeholder={`Write a message for ${partnerName}...`}
+              className="min-h-[130px] resize-none bg-background"
+            />
+            {messageConfirmation ? (
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
+                {messageConfirmation}
+              </div>
+            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button onClick={handleSendMessage} disabled={sendingMessage || !messageDraft.trim()} className="gap-2">
+                <Send className="h-4 w-4" />
+                {sendingMessage ? "Sending..." : `Send to ${partnerName}`}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => navigate("/tester-inbox")}>
+                Open Inbox
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-border/70 bg-card/90">
+          <CardContent className="space-y-4 p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="font-display text-2xl font-semibold text-foreground">Connection Inbox</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Messages sent inside this pairing. Unread count: {unreadMessages.length}
+                </p>
+              </div>
+              <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                <Bell className="h-5 w-5" />
+                {unreadMessages.length > 0 ? (
+                  <span className="absolute -right-1 -top-1 inline-flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-white">
+                    {unreadMessages.length}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <div className="space-y-3">
+              {inboxMessages.length > 0 ? (
+                inboxMessages.slice(0, 6).map((note) => (
+                  <div key={note.id} className="rounded-2xl border border-border/60 bg-muted/10 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-foreground">From {note.person_name}</p>
+                      {!note.read_by_recipient ? <span className="text-xs font-medium text-primary">Unread</span> : null}
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{note.content}</p>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-border/60 bg-muted/10 p-4 text-sm text-muted-foreground">
+                  No messages in this pairing yet.
+                </div>
+              )}
+              {sentMessages.length > 0 ? (
+                <div className="rounded-2xl border border-border/60 bg-card p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Recently Sent</p>
+                  <div className="mt-3 space-y-2">
+                    {sentMessages.slice(0, 3).map((note) => (
+                      <div key={note.id} className="text-sm text-muted-foreground">
+                        <span className="font-medium text-foreground">To {note.recipient_name || partnerName}:</span> {note.content}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <NotesPanel section="home" relatedItemId={activeRelationshipId} personName={sharedScope} />
 
       {/* Ask AI with Risk Context */}
       {riskSummary && (

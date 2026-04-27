@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import SendPartnerPill from "@/components/ui/SendPartnerPill";
 import { ChevronDown, ChevronUp, AlertTriangle, Brain, Eye, Zap, ShieldCheck, Route } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -113,6 +114,14 @@ export default function PredictionCard({ prediction }) {
         <p className="text-[10px] text-muted-foreground mt-1">
           Deterministic · No AI · {new Date(prediction.computed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </p>
+        <div className="pt-2">
+          <SendPartnerPill
+            content={prediction}
+            title={`Prediction: ${prediction.actor} to ${prediction.target}`}
+            sourceLabel="Analysis Prediction"
+            className="h-7 px-3 text-xs"
+          />
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-5">

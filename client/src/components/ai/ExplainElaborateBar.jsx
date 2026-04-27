@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sparkles, Loader2, X, Copy, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ResponseExportBar from "@/components/export/ResponseExportBar";
 import ReactMarkdown from "react-markdown";
 import { explainSection, elaborateSection, buildExportText } from "@/lib/aiCoachService";
 import { cn } from "@/lib/utils";
@@ -143,6 +144,12 @@ export default function ExplainElaborateBar({ ctx, className }) {
               <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-strong:text-foreground [&>*:first-child]:mt-0">
                 <ReactMarkdown>{result}</ReactMarkdown>
               </div>
+              <ResponseExportBar
+                content={result}
+                title={mode === "explain" ? `${ctx.sectionTitle || "AI Insight"} Explanation` : `${ctx.sectionTitle || "AI Insight"} Deep Dive`}
+                filename={`${ctx.sectionTitle?.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "ai-insight"}-${mode || "detail"}.pdf`}
+                shareSourceLabel={ctx.sectionTitle || "AI Insight"}
+              />
             </div>
           </motion.div>
         )}

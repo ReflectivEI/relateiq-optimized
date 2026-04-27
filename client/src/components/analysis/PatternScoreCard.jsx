@@ -4,6 +4,7 @@
  */
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import SendPartnerPill from "@/components/ui/SendPartnerPill";
 import { ChevronDown, ChevronUp, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -112,6 +113,18 @@ export default function PatternScoreCard({ profile, person }) {
         <p className="text-[11px] text-muted-foreground">
           Deterministic · 8 locked traits · rule-based · {profile.computed_at?.slice(0, 10)}
         </p>
+        <div className="pt-2">
+          <SendPartnerPill
+            content={{
+              person,
+              totalResponses: profile.total_responses,
+              traits: profile.traits,
+            }}
+            title={`${person} Pattern Scores`}
+            sourceLabel="Analysis Engine"
+            className="h-7 px-3 text-xs"
+          />
+        </div>
       </CardHeader>
       <CardContent className="pt-0">
         {Object.entries(profile.traits).map(([key, trait]) => (

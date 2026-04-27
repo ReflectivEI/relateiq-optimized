@@ -290,39 +290,41 @@ export default function ProactiveRepair() {
     });
 
     let result;
-    try { result = await safeInvokeLLM({
-      prompt,
-      model: "gpt_5_mini",
-      partnerLanguage: { personName: person, partnerName },
-      response_json_schema: {
-        type: "object",
-        properties: {
-          what_likely_happened: { type: "string" },
-          what_primary_needs_now: { type: "string" },
-          what_counterpart_needs_now: { type: "string" },
-          best_repair_move: { type: "string" },
-          repair_options: { type: "array", items: { type: "object", properties: { action: { type: "string" }, why: { type: "string" }, effort_level: { type: "string" } } } },
-          what_to_avoid: { type: "array", items: { type: "string" } },
-          repair_scripts: { type: "array", items: { type: "object", properties: { label: { type: "string" }, script: { type: "string" }, notes: { type: "string" } } } },
-          why_this_fits: { type: "string" },
-          timing_guidance: { type: "string" },
-          next_checkin: { type: "string" },
-          learned_from_history: { type: "string" },
+    try {
+      result = await safeInvokeLLM({
+        prompt,
+        model: "gpt_5_mini",
+        partnerLanguage: { personName: person, partnerName },
+        response_json_schema: {
+          type: "object",
+          properties: {
+            what_likely_happened: { type: "string" },
+            what_primary_needs_now: { type: "string" },
+            what_counterpart_needs_now: { type: "string" },
+            best_repair_move: { type: "string" },
+            repair_options: { type: "array", items: { type: "object", properties: { action: { type: "string" }, why: { type: "string" }, effort_level: { type: "string" } } } },
+            what_to_avoid: { type: "array", items: { type: "string" } },
+            repair_scripts: { type: "array", items: { type: "object", properties: { label: { type: "string" }, script: { type: "string" }, notes: { type: "string" } } } },
+            why_this_fits: { type: "string" },
+            timing_guidance: { type: "string" },
+            next_checkin: { type: "string" },
+            learned_from_history: { type: "string" },
+          },
         },
-      },
-    }, 20000, {
-      what_likely_happened: "We couldn't complete the full analysis right now. Please try again.",
-      what_primary_needs_now: "Please regenerate for a full result.",
-      what_counterpart_needs_now: "Please regenerate for a full result.",
-      best_repair_move: "Try again to get a personalized repair recommendation.",
-      repair_options: [],
-      what_to_avoid: [],
-      repair_scripts: [],
-      why_this_fits: "",
-      timing_guidance: "",
-      next_checkin: "",
-      learned_from_history: "",
-    }); } catch (err) {
+      }, 20000, {
+        what_likely_happened: "We couldn't complete the full analysis right now. Please try again.",
+        what_primary_needs_now: "Please regenerate for a full result.",
+        what_counterpart_needs_now: "Please regenerate for a full result.",
+        best_repair_move: "Try again to get a personalized repair recommendation.",
+        repair_options: [],
+        what_to_avoid: [],
+        repair_scripts: [],
+        why_this_fits: "",
+        timing_guidance: "",
+        next_checkin: "",
+        learned_from_history: "",
+      });
+    } catch (err) {
       if (err?.isCreditLimit) { setCreditError(true); setLoading(false); return; }
       throw err;
     }

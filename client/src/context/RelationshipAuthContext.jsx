@@ -25,8 +25,8 @@ export function RelationshipAuthProvider({ children }) {
       nextRelationships.some((relationship) => relationship.id === storedId)
         ? storedId
         : nextRelationships.find((relationship) => relationship.id === payload?.default_relationship_id)?.id ||
-          nextRelationships[0]?.id ||
-          "";
+        nextRelationships[0]?.id ||
+        "";
     api.session.setStoredRelationshipId(nextId);
     setActiveRelationshipId(nextId);
     setError("");

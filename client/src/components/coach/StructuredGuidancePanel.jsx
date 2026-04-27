@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SendPartnerPill from "@/components/ui/SendPartnerPill";
 import { ChevronDown, ChevronUp, Copy, Zap, Eye, AlertTriangle, CheckCircle2, XCircle, MessageCircle, Lightbulb } from "lucide-react";
 import { deriveOutputVariant } from "@/lib/aiCoachStructured";
 import FrameworksSection from "@/components/frameworks/FrameworksSection";
@@ -100,6 +101,25 @@ export default function StructuredGuidancePanel({ baseOutput, perspective }) {
             </TabsList>
           </Tabs>
           <p className="text-[11px] text-muted-foreground">{variant === "full" ? "Full guidance with all sections" : "Derived — no new AI call"}</p>
+          <div>
+            <SendPartnerPill
+              content={{
+                perspective,
+                variant,
+                toneRecommendation: baseOutput.tone_recommendation,
+                situation: displayOutput.situation_summary,
+                whatYouAreExperiencing: displayOutput.what_you_are_experiencing,
+                whatTheyAreExperiencing: displayOutput.what_they_are_experiencing,
+                whatIsAtRisk: displayOutput.what_is_at_risk || [],
+                whatToDo: displayOutput.what_to_do || [],
+                whatNotToDo: displayOutput.what_not_to_do || [],
+                whatToSay: displayOutput.what_to_say || [],
+              }}
+              title="Structured Guidance"
+              sourceLabel="AI Coach"
+              className="h-7 px-3 text-xs"
+            />
+          </div>
         </div>
       </CardHeader>
 

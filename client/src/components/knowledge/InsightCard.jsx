@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import SendPartnerPill from "@/components/ui/SendPartnerPill";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,18 @@ export default function InsightCard({ insight }) {
           <Icon className="w-6 h-6 flex-shrink-0" />
           <span>{insight.title}</span>
         </CardTitle>
+        <div className="pt-3">
+          <SendPartnerPill
+            content={{
+              title: insight.title,
+              insight: insight.content,
+              examples: insight.examples || [],
+            }}
+            title={insight.title}
+            sourceLabel="AI Insights"
+            className="h-7 px-3 text-xs"
+          />
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-4">

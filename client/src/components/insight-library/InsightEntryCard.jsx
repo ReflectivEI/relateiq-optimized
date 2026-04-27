@@ -2,7 +2,7 @@
  * InsightEntryCard — compact card for a single InsightEntry record.
  * Shows perspective, date, core insight, patterns/risks, and a note editor.
  */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import MetricExplainer from "@/components/ui/MetricExplainer";
+import PersistentSaveBar from "@/components/ui/PersistentSaveBar";
+import useAutosave from "@/hooks/useAutosave";
+import useLocalDraft from "@/hooks/useLocalDraft";
 import { getDisplayPerspective, presentRelationshipText } from "@/lib/relationshipParticipants";
 
 function getPerspectiveColor(value, participants = ["Person A", "Other Person"]) {
@@ -26,8 +29,12 @@ function getPerspectiveColor(value, participants = ["Person A", "Other Person"])
 export default function InsightEntryCard({ entry, participants = ["Person A", "Other Person"], activeRelationship, onNoteUpdate, onDelete }) {
   const [expanded, setExpanded] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
-  const [note, setNote] = useState(entry.note || "");
-  const [saving, setSaving] = useState(false);
+  const draftKey = `relateiq:draft:insight-note:${entry.id}`;
+  const { value: note, setValue: setNote, resetFromSource: resetNoteDraft } = useLocalDraft(draftKey, entry.note || "");
+
+  useEffect(() => {
+    resetNoteDraft(entry.note || "");
+  }, [entry.id, entry.note, resetNoteDraft]);
 
   const confPct = entry.confidence_score != null ? Math.round(entry.confidence_score * 100) : null;
   const dateLabel = entry.created_date
@@ -40,12 +47,19 @@ export default function InsightEntryCard({ entry, participants = ["Person A", "O
   const visibleStrengths = (entry.strengths || []).map((strength) => presentRelationshipText(strength, participants, activeRelationship));
   const visibleNote = presentRelationshipText(note, participants, activeRelationship);
 
-  const handleSaveNote = async () => {
-    setSaving(true);
-    await onNoteUpdate(entry.id, note);
-    setSaving(false);
+  const handleSaveNote = async (nextNote = note) => {
+    await onNoteUpdate(entry.id, nextNote);
     setEditingNote(false);
   };
+
+  const { status: saveStatus, saveNow } = useAutosave({
+    value: note,
+    saveValue: async (nextNote) => {
+      await onNoteUpdate(entry.id, nextNote);
+    },
+    canSave: true,
+    debounceMs: 900,
+  });
 
   return (
     <Card className="border border-[#0e6f72]/30 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#0e6f72]/50 hover:shadow-lg">
@@ -176,8 +190,14 @@ export default function InsightEntryCard({ entry, participants = ["Person A", "O
                     className="min-h-[60px] text-xs resize-none bg-background/50"
                     placeholder="Add a personal note…"
                   />
-                  <Button size="sm" className="h-7 text-xs gap-1.5" onClick={handleSaveNote} disabled={saving}>
-                    <Check className="w-3 h-3" /> {saving ? "Saving…" : "Save"}
+                  <PersistentSaveBar
+                    status={saveStatus}
+                    onSave={() => void saveNow()}
+                    saveLabel="Save Note"
+                    className="rounded-xl px-3 py-2"
+                  />
+                  <Button size="sm" className="h-7 text-xs gap-1.5" onClick={() => void handleSaveNote()} disabled={saveStatus === "saving"}>
+                    <Check className="w-3 h-3" /> {saveStatus === "saving" ? "Saving…" : "Save"}
                   </Button>
                 </div>
               ) : (

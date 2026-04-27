@@ -1,4 +1,4 @@
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
@@ -30,6 +30,7 @@ import VisionBoard from './pages/VisionBoard.jsx';
 import HealthReport from './pages/HealthReport.jsx';
 import ReferenceAppendix from './pages/ReferenceAppendix.jsx';
 import RestoreCenter from './pages/RestoreCenter.jsx';
+import TesterInbox from './pages/TesterInbox.jsx';
 import InviteAcceptPage from './pages/InviteAcceptPage.jsx';
 import { RelationshipAuthProvider, useRelationshipAuth } from './context/RelationshipAuthContext';
 import { Button } from "@/components/ui/button";
@@ -210,6 +211,7 @@ const ApplicationRoutes = () => {
         <Route path="/vision" element={<VisionBoard />} />
         <Route path="/health-report" element={<HealthReport />} />
         <Route path="/restore-center" element={<RestoreCenter />} />
+        <Route path="/tester-inbox" element={<TesterInbox />} />
         <Route path="/appendix" element={<ReferenceAppendix />} />
       </Route>
       <Route path="/invite/:token" element={<InviteAcceptPage />} />

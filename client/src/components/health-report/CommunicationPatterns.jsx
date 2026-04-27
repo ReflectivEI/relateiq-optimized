@@ -3,6 +3,7 @@
  */
 import React, { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import SendPartnerPill from "@/components/ui/SendPartnerPill";
 import { MessageCircle, UserRound } from "lucide-react";
 
 const MOOD_SCORE = { great: 5, good: 4, okay: 3, tough: 2, difficult: 1 };
@@ -49,6 +50,17 @@ export default function CommunicationPatterns({ checkIns = [], coachSessions = [
           <MessageCircle className="w-4 h-4 text-primary" />
           Communication Patterns
         </CardTitle>
+        <div className="pt-2">
+          <SendPartnerPill
+            content={{
+              moodByPerson: stats.personStats,
+              coachTopics: stats.sortedTopics.map(([topic, count]) => ({ topic, count })),
+            }}
+            title="Communication Patterns"
+            sourceLabel="Health Report"
+            className="h-7 px-3 text-xs"
+          />
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Per-person mood */}

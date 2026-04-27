@@ -270,11 +270,11 @@ export default function RelationshipRoadmap() {
     roadmap?.milestones.find((milestone) => milestone.month === selectedMonth) || roadmap?.milestones?.[0];
   const monthResourceGuide = selectedMilestone
     ? buildMonthResources(
-        selectedMilestone,
-        tonyProfile?.person_name || participants[0] || "Person A",
-        drewProfile?.person_name || participants[1] || "Person B",
-        terms,
-      )
+      selectedMilestone,
+      tonyProfile?.person_name || participants[0] || "Person A",
+      drewProfile?.person_name || participants[1] || "Person B",
+      terms,
+    )
     : null;
 
   const handleViewResources = (month) => {
@@ -324,169 +324,169 @@ export default function RelationshipRoadmap() {
       </motion.div>
 
       <div ref={roadmapRef} className="space-y-8">
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="enterprise-panel border-2">
-          <CardContent className="p-5">
-            <p className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">Primary Focus</p>
-            <p className="text-lg text-foreground font-bold mt-1 capitalize">
-              {roadmap.primaryFocus.replace(/_/g, " ")}
-            </p>
-          </CardContent>
-        </Card>
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card className="enterprise-panel border-2">
+            <CardContent className="p-5">
+              <p className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">Primary Focus</p>
+              <p className="text-lg text-foreground font-bold mt-1 capitalize">
+                {roadmap.primaryFocus.replace(/_/g, " ")}
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="enterprise-panel border-2">
-          <CardContent className="p-5">
-            <p className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">Key Strength</p>
-            <p className="text-lg text-foreground font-bold mt-1 capitalize">
-              {roadmap.competentAreas[0]?.replace(/_/g, " ") || "Connection"}
-            </p>
-          </CardContent>
-        </Card>
+          <Card className="enterprise-panel border-2">
+            <CardContent className="p-5">
+              <p className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">Key Strength</p>
+              <p className="text-lg text-foreground font-bold mt-1 capitalize">
+                {roadmap.competentAreas[0]?.replace(/_/g, " ") || "Connection"}
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="enterprise-panel border-2">
-          <CardContent className="p-5">
-            <p className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">Duration</p>
-            <p className="text-lg text-foreground font-bold mt-1">
-              {roadmap.estimatedDuration}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Personalization Notice */}
-      <Card className="border-2 border-teal-300 bg-teal-50">
-        <CardContent className="p-5">
-          <p className="text-sm text-teal-900 font-semibold uppercase tracking-wider mb-2">
-            Tailored to Your Styles
-          </p>
-          <p className="text-base text-teal-950 leading-relaxed">
-            <span className="font-semibold">{tonyProfile?.person_name || participants[0] || "Person A"}</span> tends toward{" "}
-            <span className="font-medium">{roadmap.personalization.tonyStyle} communication</span>, while{" "}
-            <span className="font-semibold">{drewProfile?.person_name || participants[1] || "Person B"}</span> is more{" "}
-            <span className="font-medium">{roadmap.personalization.drewStyle}</span>. This roadmap accounts for both of you.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Timeline */}
-      <div className="space-y-4">
-        <h2 className="font-display text-2xl font-bold text-foreground">
-          6-Month Growth Timeline
-        </h2>
-        <div className="space-y-3">
-          {roadmap.milestones.map((milestone) => (
-            <MilestoneCard
-              key={milestone.month}
-              milestone={milestone}
-              isActive={selectedMonth === milestone.month}
-              onSelect={setSelectedMonth}
-              onViewResources={handleViewResources}
-            />
-          ))}
+          <Card className="enterprise-panel border-2">
+            <CardContent className="p-5">
+              <p className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">Duration</p>
+              <p className="text-lg text-foreground font-bold mt-1">
+                {roadmap.estimatedDuration}
+              </p>
+            </CardContent>
+          </Card>
         </div>
-      </div>
 
-      {selectedMilestone && monthResourceGuide && (
-        <Card ref={resourcesRef} className="enterprise-panel border-2 scroll-mt-24">
-          <CardHeader className="pb-4">
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div>
-                <p className="enterprise-section-label">Month {selectedMilestone.month}</p>
-                <CardTitle className="mt-2 text-2xl">
-                  {monthResourceGuide.title}
-                </CardTitle>
-                <p className="mt-2.5 max-w-3xl text-[15px] leading-6 text-muted-foreground">
-                  {monthResourceGuide.summary}
-                </p>
-              </div>
-              <div className="rounded-full bg-[#0e6f72] px-4 py-2 text-sm font-semibold text-white">
-                Focus: {selectedMilestone.focus}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid gap-4 lg:grid-cols-3">
-              {monthResourceGuide.resources.map((resource) => (
-                <Card key={resource.title} className="enterprise-panel-muted border">
-                  <CardContent className="p-5 space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/20 bg-white">
-                        <resource.icon className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-base font-semibold text-foreground">{resource.title}</p>
-                        <p className="text-sm leading-6 text-muted-foreground">{resource.description}</p>
-                      </div>
-                    </div>
-                    <Button asChild variant="outline" className="w-full">
-                      <Link to={resource.path}>
-                        {resource.cta}
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+        {/* Personalization Notice */}
+        <Card className="border-2 border-teal-300 bg-teal-50">
+          <CardContent className="p-5">
+            <p className="text-sm text-teal-900 font-semibold uppercase tracking-wider mb-2">
+              Tailored to Your Styles
+            </p>
+            <p className="text-base text-teal-950 leading-relaxed">
+              <span className="font-semibold">{tonyProfile?.person_name || participants[0] || "Person A"}</span> tends toward{" "}
+              <span className="font-medium">{roadmap.personalization.tonyStyle} communication</span>, while{" "}
+              <span className="font-semibold">{drewProfile?.person_name || participants[1] || "Person B"}</span> is more{" "}
+              <span className="font-medium">{roadmap.personalization.drewStyle}</span>. This roadmap accounts for both of you.
+            </p>
+          </CardContent>
+        </Card>
 
-            <div className="rounded-[1.2rem] border border-primary/15 bg-white p-5">
-              <p className="enterprise-section-label">This Month's Working Goals</p>
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                {selectedMilestone.goals.map((goal) => (
-                  <div key={goal} className="flex gap-2 rounded-2xl border border-primary/10 bg-[#eef4fb] p-4 text-sm leading-6 text-foreground">
-                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                    <span>{goal}</span>
-                  </div>
+        {/* Timeline */}
+        <div className="space-y-4">
+          <h2 className="font-display text-2xl font-bold text-foreground">
+            6-Month Growth Timeline
+          </h2>
+          <div className="space-y-3">
+            {roadmap.milestones.map((milestone) => (
+              <MilestoneCard
+                key={milestone.month}
+                milestone={milestone}
+                isActive={selectedMonth === milestone.month}
+                onSelect={setSelectedMonth}
+                onViewResources={handleViewResources}
+              />
+            ))}
+          </div>
+        </div>
+
+        {selectedMilestone && monthResourceGuide && (
+          <Card ref={resourcesRef} className="enterprise-panel border-2 scroll-mt-24">
+            <CardHeader className="pb-4">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <p className="enterprise-section-label">Month {selectedMilestone.month}</p>
+                  <CardTitle className="mt-2 text-2xl">
+                    {monthResourceGuide.title}
+                  </CardTitle>
+                  <p className="mt-2.5 max-w-3xl text-[15px] leading-6 text-muted-foreground">
+                    {monthResourceGuide.summary}
+                  </p>
+                </div>
+                <div className="rounded-full bg-[#0e6f72] px-4 py-2 text-sm font-semibold text-white">
+                  Focus: {selectedMilestone.focus}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-4 lg:grid-cols-3">
+                {monthResourceGuide.resources.map((resource) => (
+                  <Card key={resource.title} className="enterprise-panel-muted border">
+                    <CardContent className="p-5 space-y-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/20 bg-white">
+                          <resource.icon className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-base font-semibold text-foreground">{resource.title}</p>
+                          <p className="text-sm leading-6 text-muted-foreground">{resource.description}</p>
+                        </div>
+                      </div>
+                      <Button asChild variant="outline" className="w-full">
+                        <Link to={resource.path}>
+                          {resource.cta}
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
+
+              <div className="rounded-[1.2rem] border border-primary/15 bg-white p-5">
+                <p className="enterprise-section-label">This Month's Working Goals</p>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  {selectedMilestone.goals.map((goal) => (
+                    <div key={goal} className="flex gap-2 rounded-2xl border border-primary/10 bg-[#eef4fb] p-4 text-sm leading-6 text-foreground">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>{goal}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* CTA */}
+        <Card className="border-2 border-primary/30 bg-primary/5">
+          <CardContent className="p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <Heart className="w-6 h-6 text-primary" />
+              <p className="text-lg font-bold text-foreground">Ready to get started?</p>
+            </div>
+            <p className="text-base text-muted-foreground">
+              Your roadmap is personalized based on your communication styles, patterns, and growth areas. Each month builds on the last.
+            </p>
+            <div className="flex gap-3 flex-wrap">
+              <Button
+                type="button"
+                onClick={() => handleViewResources(1)}
+                className="border-2 border-primary text-base gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Start Month 1 Today
+              </Button>
+              <ResponseExportBar
+                contentRef={roadmapRef}
+                content={{
+                  activeMonth: selectedMilestone?.month,
+                  monthTitle: selectedMilestone?.title,
+                  monthSubtitle: selectedMilestone?.subtitle,
+                  monthlyGoals: selectedMilestone?.goals || [],
+                  resources: (selectedMilestone?.resources || []).map((item) => `${item.title}: ${item.description}`),
+                }}
+                filename="relationship-roadmap.pdf"
+                title={`${relationshipLabel} Growth Roadmap`}
+              />
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* CTA */}
-      <Card className="border-2 border-primary/30 bg-primary/5">
-        <CardContent className="p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <Heart className="w-6 h-6 text-primary" />
-            <p className="text-lg font-bold text-foreground">Ready to get started?</p>
-          </div>
-          <p className="text-base text-muted-foreground">
-            Your roadmap is personalized based on your communication styles, patterns, and growth areas. Each month builds on the last.
+        {/* Disclaimer */}
+        <div className="text-center text-xs text-muted-foreground/60">
+          <p>
+            This roadmap is generated from your questionnaire responses and {terms.bond} patterns.
+            Adjust timing and focus based on your actual progress and needs.
           </p>
-          <div className="flex gap-3 flex-wrap">
-            <Button
-              type="button"
-              onClick={() => handleViewResources(1)}
-              className="border-2 border-primary text-base gap-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              Start Month 1 Today
-            </Button>
-            <ResponseExportBar
-              contentRef={roadmapRef}
-              content={{
-                activeMonth: selectedMilestone?.month,
-                monthTitle: selectedMilestone?.title,
-                monthSubtitle: selectedMilestone?.subtitle,
-                monthlyGoals: selectedMilestone?.goals || [],
-                resources: (selectedMilestone?.resources || []).map((item) => `${item.title}: ${item.description}`),
-              }}
-              filename="relationship-roadmap.pdf"
-              title={`${relationshipLabel} Growth Roadmap`}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Disclaimer */}
-      <div className="text-center text-xs text-muted-foreground/60">
-        <p>
-          This roadmap is generated from your questionnaire responses and {terms.bond} patterns.
-          Adjust timing and focus based on your actual progress and needs.
-        </p>
-      </div>
+        </div>
       </div>
     </div>
   );

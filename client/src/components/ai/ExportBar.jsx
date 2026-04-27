@@ -3,14 +3,22 @@
  * Reusable across Coach, Profiles, Insights, CheckIn, SmartTools, etc.
  */
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Download, Copy, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { buildExportText } from "@/lib/aiCoachService";
 import { exportTextToPDF } from "@/lib/pdfExportService";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import { getPartnerName } from "@/lib/relationshipParticipants";
+import { queueSharedMessageDraft } from "@/lib/messageShare";
 import { toast } from "sonner";
 
 export default function ExportBar({ ctx, content, className }) {
   const [pdfLoading, setPdfLoading] = useState(false);
+  const navigate = useNavigate();
+  const { user, activeRelationshipId, activeRelationship } = useRelationshipAuth();
+  const currentPersonName = activeRelationship?.current_person_name || user?.name || "";
+  const partnerName = getPartnerName(currentPersonName, activeRelationship?.participant_names || []);
 
   const plainText = buildExportText(ctx, content);
 
@@ -45,6 +53,29 @@ export default function ExportBar({ ctx, content, className }) {
       toast.error("PDF export failed");
     }
     setPdfLoading(false);
+  };
+
+  const handleShare = () => {
+    if (!plainText.trim()) {
+      toast.error("Content not found");
+      return;
+    }
+
+    if (!activeRelationshipId || !partnerName) {
+      toast.error("Connection partner not found");
+      return;
+    }
+
+    queueSharedMessageDraft({
+      relationshipId: activeRelationshipId,
+      sourceLabel: ctx.sectionTitle || "RelateIQ",
+      title: ctx.sectionTitle || "RelateIQ",
+      body: plainText,
+      recipientName: partnerName,
+    });
+
+    navigate("/tester-inbox");
+    toast.success(`Draft loaded for ${partnerName}.`);
   };
 
   return (
@@ -85,6 +116,15 @@ export default function ExportBar({ ctx, content, className }) {
         >
           <Copy className="w-3 h-3" />
           Copy
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-10 rounded-full border-2 border-[#0e6f72] bg-[#e8f7f6] px-4 text-sm font-semibold text-[#0e6f72] gap-1.5 hover:border-[#0b5c5e] hover:bg-[#d7f0ed] hover:text-[#0b5c5e]"
+          onClick={handleShare}
+        >
+          Share with {partnerName || "Partner"}
         </Button>
       </div>
     </div>

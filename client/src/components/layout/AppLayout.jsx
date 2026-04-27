@@ -37,6 +37,7 @@ import {
   RefreshCw,
   Copy,
   SlidersHorizontal,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -144,6 +145,7 @@ export default function AppLayout() {
   const [relationshipError, setRelationshipError] = useState("");
   const [messageDraft, setMessageDraft] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [messageConfirmation, setMessageConfirmation] = useState("");
   const [managementLoading, setManagementLoading] = useState(false);
   const [openGroups, setOpenGroups] = useState({
     core: true,
@@ -159,6 +161,8 @@ export default function AppLayout() {
   const currentUserName = user?.name || "";
   const currentPersonName = activeRelationship?.current_person_name || currentUserName || "";
   const partnerName = getPartnerName(currentPersonName, activeRelationship?.participant_names || []);
+  const sendTargetLabel = partnerName || activeRelationshipTerms.counterpart || "Connection Partner";
+  const canDirectMessage = Boolean(activeRelationshipId && sendTargetLabel);
   const showPlayLabII = true;
   const visibleNavGroups = useMemo(
     () =>
@@ -217,6 +221,7 @@ export default function AppLayout() {
       });
       setMessageDraft("");
       setSendMessageOpen(false);
+      setMessageConfirmation(`Message queued for ${sendTargetLabel}. They will see it in Connection Inbox and the notification bell.`);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["topbar-notes", activeRelationshipId] }),
         queryClient.invalidateQueries({ queryKey: ["home-notes", activeRelationshipId] }),
@@ -228,6 +233,18 @@ export default function AppLayout() {
     } finally {
       setSendingMessage(false);
     }
+  };
+
+  const openSendComposer = () => {
+    if (!canDirectMessage) {
+      toast.error("Connection partner not found");
+      return;
+    }
+    setSendMessageOpen(true);
+  };
+
+  const openInbox = () => {
+    navigate("/tester-inbox");
   };
   const toggleGroup = (groupId) => {
     setOpenGroups((current) => ({
@@ -344,10 +361,10 @@ export default function AppLayout() {
         setProvisionedAccount(
           inviteResult.provisional_user
             ? {
-                name: inviteResult.provisional_user.name,
-                email: inviteResult.provisional_user.email,
-                password: nextPassword,
-              }
+              name: inviteResult.provisional_user.name,
+              email: inviteResult.provisional_user.email,
+              password: nextPassword,
+            }
             : null,
         );
       } else {
@@ -379,11 +396,11 @@ export default function AppLayout() {
       setProvisionedAccount(
         result.provisional_user
           ? {
-              name: result.provisional_user.name,
-              email: result.provisional_user.email,
-              password: nextPassword,
+            name: result.provisional_user.name,
+            email: result.provisional_user.email,
+            password: nextPassword,
           }
-        : null,
+          : null,
       );
       await loadManagedRows();
       toast.success("Invite link and assigned login saved for this connection.");
@@ -760,6 +777,10 @@ export default function AppLayout() {
                 </div>
               );
             })}
+            <Button variant="outline" className="w-full" onClick={() => logout()}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </Button>
           </nav>
         )}
       </div>
@@ -772,8 +793,8 @@ export default function AppLayout() {
             <Button variant="outline" size="sm" onClick={() => setNotesOpen(true)}>
               Shared Notes
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setSendMessageOpen(true)}>
-              Send Message
+            <Button variant="outline" size="sm" onClick={openSendComposer} disabled={!canDirectMessage}>
+              Send to {sendTargetLabel}
             </Button>
             <Button
               variant="outline"
@@ -793,7 +814,11 @@ export default function AppLayout() {
               ) : null}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setOnboardingOpen(true)}>
-            Onboarding
+              Onboarding
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => logout()}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
             </Button>
           </div>
           <div className="ml-4">
@@ -802,6 +827,29 @@ export default function AppLayout() {
         </div>
         <div className="mx-auto w-full max-w-[1640px] px-5 sm:px-7 lg:px-10 py-6">
           <PageBanner />
+          <div className="mb-6 flex flex-col gap-3 rounded-3xl border border-border/70 bg-card/80 px-4 py-4 shadow-sm backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Connection Actions</p>
+              <p className="mt-1 text-sm text-foreground">
+                Send a direct note to {sendTargetLabel} from anywhere in this {activeRelationshipTerms.bond}.
+              </p>
+              {messageConfirmation ? (
+                <p className="mt-2 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-foreground">
+                  {messageConfirmation}
+                </p>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button onClick={openSendComposer} disabled={!canDirectMessage} className="gap-2 rounded-full px-4">
+                <Send className="h-4 w-4" />
+                Send to {sendTargetLabel}
+              </Button>
+              <Button type="button" variant="outline" onClick={openInbox} className="gap-2 rounded-full px-4">
+                <Bell className="h-4 w-4" />
+                Open Inbox
+              </Button>
+            </div>
+          </div>
           <Outlet />
         </div>
       </main>
@@ -829,13 +877,16 @@ export default function AppLayout() {
           <div className="space-y-4">
             <Textarea
               value={messageDraft}
-              onChange={(event) => setMessageDraft(event.target.value)}
+              onChange={(event) => {
+                setMessageDraft(event.target.value);
+                if (messageConfirmation) setMessageConfirmation("");
+              }}
               placeholder={`Write a message to ${partnerName || activeRelationshipTerms.counterpart}...`}
               className="min-h-[180px] resize-none bg-background"
             />
             <div className="flex justify-end">
               <Button onClick={handleSendTopbarMessage} disabled={sendingMessage || !messageDraft.trim()}>
-                {sendingMessage ? "Sending..." : `Send to ${partnerName || activeRelationshipTerms.counterpart}`}
+                {sendingMessage ? "Sending..." : `Send to ${sendTargetLabel}`}
               </Button>
             </div>
           </div>
@@ -1000,123 +1051,123 @@ export default function AppLayout() {
             </div>
             <div className="overflow-x-auto">
               <div className="grid min-w-[980px] gap-4 lg:grid-cols-[1.3fr_1fr]">
-              <div className="overflow-hidden rounded-2xl border border-border/70">
-                <div className="hidden grid-cols-[1.1fr_1.2fr_1fr_0.9fr] gap-3 border-b border-border/70 bg-muted/20 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground md:grid">
-                  <div>User</div>
-                  <div>Email</div>
-                  <div>Temporary Password</div>
-                  <div>Actions</div>
-                </div>
-                <div className="divide-y divide-border/60">
-                  {managementLoading ? (
-                    <div className="px-4 py-6 text-sm text-muted-foreground">Loading managed connections…</div>
-                  ) : managedRows.length === 0 ? (
-                    <div className="px-4 py-6 text-sm text-muted-foreground">No managed connections yet.</div>
-                  ) : (
-                    managedRows.map((row) => (
-                      <div key={row.relationship_id} className="grid gap-3 px-4 py-4 md:grid-cols-[1.1fr_1.2fr_1fr_0.9fr] md:items-center">
-                        <div>
-                          <p className="font-medium text-foreground">{row.user_name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {row.relationship_name} · {formatRelationshipTypeLabel(row.relationship_type)}
-                          </p>
-                        </div>
-                        <div className="break-all text-sm text-foreground">{row.email || "No email yet"}</div>
-                        <div className="flex items-center gap-2">
-                          <code className="rounded-xl bg-muted/40 px-2 py-1 text-xs text-foreground">{row.temporary_password || "Not set"}</code>
-                          {row.temporary_password ? (
+                <div className="overflow-hidden rounded-2xl border border-border/70">
+                  <div className="hidden grid-cols-[1.1fr_1.2fr_1fr_0.9fr] gap-3 border-b border-border/70 bg-muted/20 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground md:grid">
+                    <div>User</div>
+                    <div>Email</div>
+                    <div>Temporary Password</div>
+                    <div>Actions</div>
+                  </div>
+                  <div className="divide-y divide-border/60">
+                    {managementLoading ? (
+                      <div className="px-4 py-6 text-sm text-muted-foreground">Loading managed connections…</div>
+                    ) : managedRows.length === 0 ? (
+                      <div className="px-4 py-6 text-sm text-muted-foreground">No managed connections yet.</div>
+                    ) : (
+                      managedRows.map((row) => (
+                        <div key={row.relationship_id} className="grid gap-3 px-4 py-4 md:grid-cols-[1.1fr_1.2fr_1fr_0.9fr] md:items-center">
+                          <div>
+                            <p className="font-medium text-foreground">{row.user_name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {row.relationship_name} · {formatRelationshipTypeLabel(row.relationship_type)}
+                            </p>
+                          </div>
+                          <div className="break-all text-sm text-foreground">{row.email || "No email yet"}</div>
+                          <div className="flex items-center gap-2">
+                            <code className="rounded-xl bg-muted/40 px-2 py-1 text-xs text-foreground">{row.temporary_password || "Not set"}</code>
+                            {row.temporary_password ? (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => navigator.clipboard.writeText(row.temporary_password)}
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                              </Button>
+                            ) : null}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button type="button" variant="outline" size="sm" onClick={() => startEditingRow(row)}>
+                              <Pencil className="mr-2 h-3.5 w-3.5" />
+                              Edit
+                            </Button>
                             <Button
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
-                              onClick={() => navigator.clipboard.writeText(row.temporary_password)}
+                              className="h-9 w-9 text-red-600 hover:bg-red-50 hover:text-red-700"
+                              onClick={() => void handleDeleteManagedRow(row.relationship_id)}
                             >
-                              <Copy className="h-3.5 w-3.5" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
-                          ) : null}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button type="button" variant="outline" size="sm" onClick={() => startEditingRow(row)}>
-                            <Pencil className="mr-2 h-3.5 w-3.5" />
-                            Edit
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            onClick={() => void handleDeleteManagedRow(row.relationship_id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  )}
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-4 rounded-2xl border border-border/70 bg-background p-4">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    {editingRelationshipId ? "Edit managed connection" : "Select a row to edit"}
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Update the connection label, invited user, email, or temporary password. Password changes are re-hashed on the backend and remain scoped to this connection only.
-                  </p>
-                </div>
-                <input
-                  value={relationshipName}
-                  onChange={(event) => setRelationshipName(event.target.value)}
-                  placeholder="Connection name"
-                  className="w-full rounded-2xl border border-border px-4 py-3"
-                />
-                <select
-                  value={relationshipType}
-                  onChange={(event) => setRelationshipType(event.target.value)}
-                  className="w-full rounded-2xl border border-border px-4 py-3"
-                >
-                  <option value="romantic">Partners</option>
-                  <option value="friendship">Friendship</option>
-                  <option value="family">Family</option>
-                  <option value="other">Other</option>
-                </select>
-                <input
-                  value={inviteName}
-                  onChange={(event) => setInviteName(event.target.value)}
-                  placeholder="User name"
-                  className="w-full rounded-2xl border border-border px-4 py-3"
-                />
-                <input
-                  value={inviteEmail}
-                  onChange={(event) => setInviteEmail(event.target.value)}
-                  placeholder="Email"
-                  className="w-full rounded-2xl border border-border px-4 py-3"
-                />
-                <div className="flex gap-2">
+                <div className="space-y-4 rounded-2xl border border-border/70 bg-background p-4">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      {editingRelationshipId ? "Edit managed connection" : "Select a row to edit"}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Update the connection label, invited user, email, or temporary password. Password changes are re-hashed on the backend and remain scoped to this connection only.
+                    </p>
+                  </div>
                   <input
-                    value={invitePassword}
-                    onChange={(event) => setInvitePassword(event.target.value)}
-                    placeholder="Temporary password"
+                    value={relationshipName}
+                    onChange={(event) => setRelationshipName(event.target.value)}
+                    placeholder="Connection name"
                     className="w-full rounded-2xl border border-border px-4 py-3"
                   />
-                  <Button type="button" variant="outline" onClick={() => setInvitePassword(generateTemporaryPassword())}>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Generate
-                  </Button>
-                </div>
-                {relationshipError ? <p className="text-sm text-red-600">{relationshipError}</p> : null}
-                <div className="flex gap-2">
-                  <Button type="button" className="flex-1" disabled={!editingRelationshipId} onClick={() => void handleSaveManagedRow()}>
-                    Save Changes
-                  </Button>
-                  <Button type="button" variant="outline" onClick={resetConnectionForm}>
-                    Clear
-                  </Button>
+                  <select
+                    value={relationshipType}
+                    onChange={(event) => setRelationshipType(event.target.value)}
+                    className="w-full rounded-2xl border border-border px-4 py-3"
+                  >
+                    <option value="romantic">Partners</option>
+                    <option value="friendship">Friendship</option>
+                    <option value="family">Family</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <input
+                    value={inviteName}
+                    onChange={(event) => setInviteName(event.target.value)}
+                    placeholder="User name"
+                    className="w-full rounded-2xl border border-border px-4 py-3"
+                  />
+                  <input
+                    value={inviteEmail}
+                    onChange={(event) => setInviteEmail(event.target.value)}
+                    placeholder="Email"
+                    className="w-full rounded-2xl border border-border px-4 py-3"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      value={invitePassword}
+                      onChange={(event) => setInvitePassword(event.target.value)}
+                      placeholder="Temporary password"
+                      className="w-full rounded-2xl border border-border px-4 py-3"
+                    />
+                    <Button type="button" variant="outline" onClick={() => setInvitePassword(generateTemporaryPassword())}>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Generate
+                    </Button>
+                  </div>
+                  {relationshipError ? <p className="text-sm text-red-600">{relationshipError}</p> : null}
+                  <div className="flex gap-2">
+                    <Button type="button" className="flex-1" disabled={!editingRelationshipId} onClick={() => void handleSaveManagedRow()}>
+                      Save Changes
+                    </Button>
+                    <Button type="button" variant="outline" onClick={resetConnectionForm}>
+                      Clear
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
             </div>
           </div>
         </DialogContent>

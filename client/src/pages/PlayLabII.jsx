@@ -14,6 +14,7 @@ import {
   Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
+import SendPartnerPill from "@/components/ui/SendPartnerPill";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -747,7 +748,18 @@ export default function PlayLabII() {
               <div className="space-y-6">
                 <Card className="border border-[#0e6f72]/18 bg-white shadow-[0_18px_38px_rgba(15,23,42,0.06)]">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-2xl text-[#14263f]">How to play</CardTitle>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <CardTitle className="text-2xl text-[#14263f]">How to play</CardTitle>
+                      <SendPartnerPill
+                        content={{
+                          deck: selectedDeck.title,
+                          instructions,
+                        }}
+                        title="Play Lab II Instructions"
+                        sourceLabel="Play Lab II"
+                        className="h-8 px-3 text-xs"
+                      />
+                    </div>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="grid gap-3 md:grid-cols-2">
@@ -875,7 +887,15 @@ export default function PlayLabII() {
             <div className="grid gap-5 xl:grid-cols-3">
               <Card className="border border-[#0e6f72]/18 bg-white shadow-[0_18px_38px_rgba(15,23,42,0.06)]">
                 <CardHeader>
-                  <CardTitle className="text-2xl text-[#14263f]">Alignment Highlights</CardTitle>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <CardTitle className="text-2xl text-[#14263f]">Alignment Highlights</CardTitle>
+                    <SendPartnerPill
+                      content={alignedRounds.map((response) => ({ round: response.round, question: response.card.question }))}
+                      title="Play Lab II Alignment Highlights"
+                      sourceLabel="Play Lab II"
+                      className="h-8 px-3 text-xs"
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3 text-[15px] leading-6 text-[#4e6077]">
                   {alignedRounds.length ? alignedRounds.map((response) => (
@@ -891,7 +911,15 @@ export default function PlayLabII() {
 
               <Card className="border border-[#0e6f72]/18 bg-white shadow-[0_18px_38px_rgba(15,23,42,0.06)]">
                 <CardHeader>
-                  <CardTitle className="text-2xl text-[#14263f]">Differences Observed</CardTitle>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <CardTitle className="text-2xl text-[#14263f]">Differences Observed</CardTitle>
+                    <SendPartnerPill
+                      content={learningRounds.map((response) => ({ round: response.round, question: response.card.question }))}
+                      title="Play Lab II Differences Observed"
+                      sourceLabel="Play Lab II"
+                      className="h-8 px-3 text-xs"
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3 text-[15px] leading-6 text-[#4e6077]">
                   {learningRounds.length ? learningRounds.map((response) => (
@@ -907,7 +935,15 @@ export default function PlayLabII() {
 
               <Card className="border border-[#0e6f72]/18 bg-white shadow-[0_18px_38px_rgba(15,23,42,0.06)]">
                 <CardHeader>
-                  <CardTitle className="text-2xl text-[#14263f]">Suggested Next Step</CardTitle>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <CardTitle className="text-2xl text-[#14263f]">Suggested Next Step</CardTitle>
+                    <SendPartnerPill
+                      content={latestNextStep || "Pick one answer that surprised you and ask one warm follow-up question before ending the session."}
+                      title="Play Lab II Suggested Next Step"
+                      sourceLabel="Play Lab II"
+                      className="h-8 px-3 text-xs"
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3 text-[15px] leading-6 text-[#4e6077]">
                   <div className="rounded-2xl border border-[#0e6f72]/14 bg-[#eef8f7] p-4 text-[#22324a]">

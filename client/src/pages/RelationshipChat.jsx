@@ -23,88 +23,89 @@ import {
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
+import ResponseExportBar from "@/components/export/ResponseExportBar";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
-import { getRelationshipTerms } from "@/lib/relationshipParticipants";
+import { getRelationshipCoachLabel, getRelationshipTerms } from "@/lib/relationshipParticipants";
 
 function getCategoryLabels(relationshipTerms) {
   return {
-  surface: "Surface Pattern",
-  behavioral: "Behavioral Pattern",
-  communication: "Communication Style",
-  emotional_triggers: "Emotional Trigger",
-  conflict_style: "Conflict Style",
-  energy_social: "Energy and Social Needs",
-  deep_reflection: "Deep Reflection",
-  family_upbringing: "Family and Upbringing",
-  partner_perception:
-    relationshipTerms?.type === "romantic"
-      ? "Partner Perception"
-      : `${relationshipTerms?.typeLabel || "Connection"} Perception`,
-  needs_vulnerability: "Needs and Vulnerability",
-  then_vs_now: "Then vs. Now",
+    surface: "Surface Pattern",
+    behavioral: "Behavioral Pattern",
+    communication: "Communication Style",
+    emotional_triggers: "Emotional Trigger",
+    conflict_style: "Conflict Style",
+    energy_social: "Energy and Social Needs",
+    deep_reflection: "Deep Reflection",
+    family_upbringing: "Family and Upbringing",
+    partner_perception:
+      relationshipTerms?.type === "romantic"
+        ? "Partner Perception"
+        : `${relationshipTerms?.typeLabel || "Connection"} Perception`,
+    needs_vulnerability: "Needs and Vulnerability",
+    then_vs_now: "Then vs. Now",
   };
 }
 
 function buildSectionPrompts(primaryPerson, secondaryPerson, relationshipTerms, relationshipLabel) {
   const bond = relationshipTerms?.bond || "connection";
   return [
-  {
-    title: "Conflict Style",
-    description: "How each of you tends to enter, pace, and experience conflict.",
-    icon: Scale,
-    prompt: `How do ${primaryPerson} and ${secondaryPerson} each approach conflict, and where do their styles clash most?`,
-    summaryPrompt: `Summarize ${primaryPerson} and ${secondaryPerson}'s conflict style differences in 4 concise bullets.`,
-  },
-  {
-    title: "Triggers",
-    description: "What tends to activate each person emotionally during hard moments.",
-    icon: ShieldAlert,
-    prompt: `What triggers ${primaryPerson} most, what triggers ${secondaryPerson} most, and what usually happens next?`,
-    summaryPrompt: `Summarize ${primaryPerson} and ${secondaryPerson}'s biggest triggers and how to avoid escalating them.`,
-  },
-  {
-    title: "Communication",
-    description: "What tone, pacing, and communication style each person responds to best.",
-    icon: MessageSquareText,
-    prompt: `What communication style works best for ${primaryPerson} and what communication style works best for ${secondaryPerson}?`,
-    summaryPrompt: `Summarize the communication style that works best for ${primaryPerson} and ${secondaryPerson}.`,
-  },
-  {
-    title: "Emotional Processing",
-    description: "How each person handles hurt, overwhelm, and emotional intensity.",
-    icon: BrainCircuit,
-    prompt: `How do ${primaryPerson} and ${secondaryPerson} each process hurt, stress, and emotional overwhelm?`,
-    summaryPrompt: `Summarize how ${primaryPerson} and ${secondaryPerson} each process hurt and overwhelm.`,
-  },
-  {
-    title: "What Helps Repair",
-    description: "What tends to help each of you feel reconnected after distance or friction.",
-    icon: HeartHandshake,
-    prompt: `How can ${primaryPerson} and ${secondaryPerson} reconnect after a fight or tense moment in a way that actually lands?`,
-    summaryPrompt: `Summarize what helps ${primaryPerson} and ${secondaryPerson} repair and reconnect.`,
-  },
-  {
-    title: "Feeling Heard",
-    description: "What each person needs in order to feel understood and emotionally received.",
-    icon: Ear,
-    prompt: `What does ${primaryPerson} need to feel heard, and what does ${secondaryPerson} need to feel heard?`,
-    summaryPrompt: `Summarize what helps ${primaryPerson} and ${secondaryPerson} feel heard and emotionally understood.`,
-  },
-  {
-    title: "Stress Response",
-    description: "How outside stress tends to show up between the two of you.",
-    icon: Clock3,
-    prompt: `How should ${secondaryPerson} approach ${primaryPerson} when they're stressed, and how should ${primaryPerson} approach ${secondaryPerson} when they're stressed?`,
-    summaryPrompt: "Summarize how each person should be approached during stress.",
-  },
-  {
-    title: "What To Do Next",
-    description: `Actionable next-step coaching grounded in your actual questionnaire patterns for this ${bond}.`,
-    icon: Lightbulb,
-    prompt: `Given everything you know about ${primaryPerson} and ${secondaryPerson}, what are the 5 most useful next moves to focus on inside ${relationshipLabel}?`,
-    summaryPrompt: `Summarize the 5 highest-priority next steps for ${primaryPerson} and ${secondaryPerson} inside ${relationshipLabel}.`,
-  },
-];
+    {
+      title: "Conflict Style",
+      description: "How each of you tends to enter, pace, and experience conflict.",
+      icon: Scale,
+      prompt: `How do ${primaryPerson} and ${secondaryPerson} each approach conflict, and where do their styles clash most?`,
+      summaryPrompt: `Summarize ${primaryPerson} and ${secondaryPerson}'s conflict style differences in 4 concise bullets.`,
+    },
+    {
+      title: "Triggers",
+      description: "What tends to activate each person emotionally during hard moments.",
+      icon: ShieldAlert,
+      prompt: `What triggers ${primaryPerson} most, what triggers ${secondaryPerson} most, and what usually happens next?`,
+      summaryPrompt: `Summarize ${primaryPerson} and ${secondaryPerson}'s biggest triggers and how to avoid escalating them.`,
+    },
+    {
+      title: "Communication",
+      description: "What tone, pacing, and communication style each person responds to best.",
+      icon: MessageSquareText,
+      prompt: `What communication style works best for ${primaryPerson} and what communication style works best for ${secondaryPerson}?`,
+      summaryPrompt: `Summarize the communication style that works best for ${primaryPerson} and ${secondaryPerson}.`,
+    },
+    {
+      title: "Emotional Processing",
+      description: "How each person handles hurt, overwhelm, and emotional intensity.",
+      icon: BrainCircuit,
+      prompt: `How do ${primaryPerson} and ${secondaryPerson} each process hurt, stress, and emotional overwhelm?`,
+      summaryPrompt: `Summarize how ${primaryPerson} and ${secondaryPerson} each process hurt and overwhelm.`,
+    },
+    {
+      title: "What Helps Repair",
+      description: "What tends to help each of you feel reconnected after distance or friction.",
+      icon: HeartHandshake,
+      prompt: `How can ${primaryPerson} and ${secondaryPerson} reconnect after a fight or tense moment in a way that actually lands?`,
+      summaryPrompt: `Summarize what helps ${primaryPerson} and ${secondaryPerson} repair and reconnect.`,
+    },
+    {
+      title: "Feeling Heard",
+      description: "What each person needs in order to feel understood and emotionally received.",
+      icon: Ear,
+      prompt: `What does ${primaryPerson} need to feel heard, and what does ${secondaryPerson} need to feel heard?`,
+      summaryPrompt: `Summarize what helps ${primaryPerson} and ${secondaryPerson} feel heard and emotionally understood.`,
+    },
+    {
+      title: "Stress Response",
+      description: "How outside stress tends to show up between the two of you.",
+      icon: Clock3,
+      prompt: `How should ${secondaryPerson} approach ${primaryPerson} when they're stressed, and how should ${primaryPerson} approach ${secondaryPerson} when they're stressed?`,
+      summaryPrompt: "Summarize how each person should be approached during stress.",
+    },
+    {
+      title: "What To Do Next",
+      description: `Actionable next-step coaching grounded in your actual questionnaire patterns for this ${bond}.`,
+      icon: Lightbulb,
+      prompt: `Given everything you know about ${primaryPerson} and ${secondaryPerson}, what are the 5 most useful next moves to focus on inside ${relationshipLabel}?`,
+      summaryPrompt: `Summarize the 5 highest-priority next steps for ${primaryPerson} and ${secondaryPerson} inside ${relationshipLabel}.`,
+    },
+  ];
 }
 
 function formatCategoryName(value, relationshipTerms) {
@@ -116,7 +117,7 @@ function buildSystemPrompt(scope, participants, primaryResponses, secondaryRespo
   const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   const labels = getCategoryLabels(relationshipTerms);
   const bond = relationshipTerms?.bond || "connection";
-  const coachLabel = relationshipTerms?.type === "romantic" ? "Relationship Coach" : "Connection Coach";
+  const coachLabel = getRelationshipCoachLabel(relationshipTerms);
   const primaryContext = primaryResponses
     .map((q) => `Category: ${labels[q.category] || formatCategoryName(q.category || "", relationshipTerms)}\nQuestion: ${q.question_text || q.question || ""}\n${primaryPerson}: ${q.answer_text || q.answer || q.response_value || ""}`)
     .join("\n\n");
@@ -160,6 +161,7 @@ export default function RelationshipChat() {
   const { activeRelationshipId, participants, relationshipLabel, activeRelationship } = useRelationshipAuth();
   const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   const relationshipTerms = getRelationshipTerms(activeRelationship);
+  const coachLabel = getRelationshipCoachLabel(relationshipTerms);
   const sectionPrompts = React.useMemo(
     () => buildSectionPrompts(primaryPerson, secondaryPerson, relationshipTerms, relationshipLabel),
     [primaryPerson, secondaryPerson, relationshipTerms, relationshipLabel],
@@ -212,7 +214,7 @@ export default function RelationshipChat() {
 CONVERSATION SO FAR:
 ${conversationHistory}
 
-Respond as the Relationship Coach. Use clean headers and human-readable section names.`;
+Respond as the ${coachLabel}. Use clean headers and human-readable section names.`;
 
     try {
       const result = await api.integrations.Core.InvokeLLM({ prompt, model: "claude_sonnet_4_6" });
@@ -251,9 +253,9 @@ Respond as the Relationship Coach. Use clean headers and human-readable section 
           </div>
           <div>
             <h1 className="font-display text-xl font-bold text-foreground">
-              {relationshipTerms.type === "romantic" ? "Relationship Coach" : "Connection Coach"}
+              {coachLabel}
             </h1>
-              <p className="text-xs text-muted-foreground">Powered by {relationshipLabel}&apos;s questionnaire data</p>
+            <p className="text-xs text-muted-foreground">Powered by {relationshipLabel}&apos;s questionnaire data</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -298,7 +300,7 @@ Respond as the Relationship Coach. Use clean headers and human-readable section 
               {sectionPrompts.map((section) => (
                 <div
                   key={section.title}
-                  className="enterprise-hover-raise rounded-2xl border border-[#0e6f72]/20 bg-white p-4 shadow-sm"
+                  className="enterprise-hover-raise flex h-full flex-col rounded-2xl border border-[#0e6f72]/20 bg-white p-4 shadow-sm"
                 >
                   <div className="mb-3 flex items-start justify-between gap-2">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-[#eef8f7]">
@@ -313,7 +315,7 @@ Respond as the Relationship Coach. Use clean headers and human-readable section 
                     </button>
                   </div>
                   <h3 className="text-base font-semibold text-[#14263f]">{section.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-[#4e6077]">{section.description}</p>
+                  <p className="mt-2 flex-1 text-sm leading-6 text-[#4e6077]">{section.description}</p>
                   <button
                     type="button"
                     onClick={() => sendMessage(section.prompt)}
@@ -343,8 +345,16 @@ Respond as the Relationship Coach. Use clean headers and human-readable section 
               )}
             >
               {message.role === "assistant" ? (
-                <div className="prose prose-sm max-w-none text-foreground prose-headings:text-[#14263f] prose-strong:text-[#14263f] [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                <div className="space-y-3">
+                  <div className="prose prose-sm max-w-none text-foreground prose-headings:text-[#14263f] prose-strong:text-[#14263f] [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                  </div>
+                  <ResponseExportBar
+                    content={message.content}
+                    title={`${coachLabel} Response`}
+                    filename={`relationship-chat-${index + 1}.pdf`}
+                    shareSourceLabel={coachLabel}
+                  />
                 </div>
               ) : (
                 <p>{message.content}</p>

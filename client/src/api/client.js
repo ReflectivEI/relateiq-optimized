@@ -1,3 +1,7 @@
+import { detectRiskSignals } from "@/lib/earlyWarningEngine";
+import { globalState } from "@/lib/globalState";
+import { synthesizeRelationshipIntelligence } from "@/lib/relationshipIntelligenceEngine";
+
 const API_BASE =
   import.meta.env.VITE_WORKER_URL ||
   "https://relate-iq-growth-api.tonyabdelmalak.workers.dev";
@@ -5,6 +9,7 @@ const API_BASE =
 const AUTH_TOKEN_KEY = "relateiq.auth.token";
 const RELATIONSHIP_ID_KEY = "relateiq.active.relationship";
 const REQUEST_TIMEOUT_MS = 12000;
+const RELATIONSHIP_MEMORY_PREFIX = "relateiq.relationship.memory.v1";
 
 const LOCAL_QUESTIONNAIRE_FILES = {
   Tony: "/data/relateiq/tony.questionnaire.json",
@@ -20,6 +25,212 @@ function buildUrl(path, params) {
     });
   }
   return url.toString();
+}
+
+function normalizeText(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function canUseStorage() {
+  return typeof window !== "undefined" && Boolean(window.localStorage);
+}
+
+function relationshipMemoryKey(relationshipId) {
+  return `${RELATIONSHIP_MEMORY_PREFIX}:${relationshipId}`;
+}
+
+function readRelationshipMemorySnapshot(relationshipId) {
+  if (!relationshipId || !canUseStorage()) return null;
+  try {
+    const raw = window.localStorage.getItem(relationshipMemoryKey(relationshipId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeRelationshipMemorySnapshot(relationshipId, snapshot) {
+  if (!relationshipId || !canUseStorage()) return;
+  try {
+    window.localStorage.setItem(relationshipMemoryKey(relationshipId), JSON.stringify(snapshot));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function uniqueById(records = []) {
+  return [...new Map(records.filter(Boolean).map((record) => [record.id, record])).values()];
+}
+
+function upsertRecord(records = [], nextRecord) {
+  return uniqueById([nextRecord, ...records]);
+}
+
+function deriveParticipants(memory) {
+  const people = [
+    ...(memory.profiles || []).map((profile) => normalizeText(profile.person_name)),
+    ...(memory.questionnaireResponses || []).map((record) => normalizeText(record.person_name)),
+    ...(memory.checkIns || []).map((record) => normalizeText(record.person_name)),
+    ...(memory.dailyReflections || []).map((record) => normalizeText(record.person_name)),
+    ...(memory.journalEntries || []).map((record) => normalizeText(record.person_name)),
+    ...(memory.notes || []).map((record) => normalizeText(record.person_name)),
+    ...(memory.triggers || []).map((record) => normalizeText(record.owner)),
+    ...(memory.coachSessions || []).flatMap((record) => [normalizeText(record.speaker), normalizeText(record.speaking_to)]),
+  ].filter(Boolean);
+  return [...new Set(people)].slice(0, 2);
+}
+
+function mergeRecordIntoMemory(memory, entity, record) {
+  switch (entity) {
+    case "QuestionnaireResponse":
+      return { ...memory, questionnaireResponses: upsertRecord(memory.questionnaireResponses, record) };
+    case "CheckIn":
+      return { ...memory, checkIns: upsertRecord(memory.checkIns, record) };
+    case "CoachSession":
+      return { ...memory, coachSessions: upsertRecord(memory.coachSessions, record) };
+    case "Note":
+      return { ...memory, notes: upsertRecord(memory.notes, record) };
+    case "DailyReflection":
+      return { ...memory, dailyReflections: upsertRecord(memory.dailyReflections, record) };
+    case "JournalEntry":
+      return { ...memory, journalEntries: upsertRecord(memory.journalEntries, record) };
+    case "InsightEntry":
+      return { ...memory, insightEntries: upsertRecord(memory.insightEntries, record) };
+    case "VisionPin":
+      return { ...memory, visionPins: upsertRecord(memory.visionPins, record) };
+    case "TriggerEntry":
+      return { ...memory, triggers: upsertRecord(memory.triggers, record) };
+    case "RepairEntry":
+      return { ...memory, repairEntries: upsertRecord(memory.repairEntries, record) };
+    case "OutcomeLog":
+      return { ...memory, outcomeLogs: upsertRecord(memory.outcomeLogs, record) };
+    case "UserProfile":
+      return { ...memory, profiles: upsertRecord(memory.profiles, record) };
+    case "RelationshipDynamic":
+      return { ...memory, relationshipDynamics: record };
+    default:
+      return memory;
+  }
+}
+
+function buildEmptyRelationshipMemory() {
+  return {
+    events: [],
+    questionnaireResponses: [],
+    checkIns: [],
+    coachSessions: [],
+    notes: [],
+    dailyReflections: [],
+    journalEntries: [],
+    insightEntries: [],
+    visionPins: [],
+    triggers: [],
+    repairEntries: [],
+    outcomeLogs: [],
+    relationshipDynamics: null,
+    riskSignals: null,
+    participants: [],
+    profiles: [],
+    lastUpdated: null,
+  };
+}
+
+function inferScopedPerson(record = {}) {
+  if (normalizeText(record.person_name)) return normalizeText(record.person_name);
+  if (normalizeText(record.owner)) return normalizeText(record.owner);
+  if (normalizeText(record.speaker)) return normalizeText(record.speaker);
+  const pinnedBy = normalizeText(record.pinned_by);
+  if (pinnedBy && !pinnedBy.includes("_")) return pinnedBy;
+  const scope = normalizeText(record.scope);
+  if (scope && !scope.includes("_")) return scope;
+  return "shared";
+}
+
+function updateLegacyGlobalState(entity, record) {
+  const person = normalizeText(record.person_name || record.owner || record.speaker);
+  if (!person) return;
+  if (entity === "QuestionnaireResponse") {
+    const current = person === "Tony" ? globalState.getState().tonyResponses : person === "Drew" ? globalState.getState().drewResponses : [];
+    const next = upsertRecord(current, record);
+    globalState.setResponses(person, next);
+  }
+  if (entity === "UserProfile") {
+    globalState.setProfile(person, record);
+  }
+  if (entity === "CheckIn") {
+    const state = globalState.getState();
+    globalState.setState({ checkIns: upsertRecord(state.checkIns, record) });
+  }
+  if (entity === "TriggerEntry") {
+    const state = globalState.getState();
+    globalState.setTriggers(upsertRecord(state.triggers, record));
+  }
+  if (entity === "CoachSession") {
+    globalState.addCoachSession(record);
+  }
+  if (entity === "InsightEntry") {
+    globalState.addInsight(record);
+  }
+}
+
+async function recordLearningEvent(entity, action, record) {
+  const relationshipId = normalizeText(record?.relationship_id) || getStoredRelationshipId();
+  if (!entity || !record || !relationshipId) return record;
+
+  try {
+    const currentMemory = readRelationshipMemorySnapshot(relationshipId) || globalState.getState().relationshipMemory?.[relationshipId] || buildEmptyRelationshipMemory();
+    const mergedMemory = mergeRecordIntoMemory(currentMemory, entity, record);
+    const participants = deriveParticipants(mergedMemory);
+    const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
+    const primaryProfile = (mergedMemory.profiles || []).find((profile) => normalizeText(profile.person_name) === primaryPerson) || null;
+    const secondaryProfile = (mergedMemory.profiles || []).find((profile) => normalizeText(profile.person_name) === secondaryPerson) || null;
+
+    const riskSignals = detectRiskSignals({
+      checkIns: mergedMemory.checkIns || [],
+      tonyProfile: primaryProfile,
+      drewProfile: secondaryProfile,
+    });
+
+    const relationshipDynamics = synthesizeRelationshipIntelligence({
+      participants: participants.length ? participants : ["Person A", "Other Person"],
+      profiles: mergedMemory.profiles || [],
+      recentCoachSessions: mergedMemory.coachSessions || [],
+      recentCheckIns: mergedMemory.checkIns || [],
+      repairEntries: mergedMemory.repairEntries || [],
+      triggers: mergedMemory.triggers || [],
+      predictiveOutputs: {},
+    });
+
+    const nextMemory = {
+      ...mergedMemory,
+      participants,
+      relationshipDynamics,
+      riskSignals,
+      events: [
+        {
+          id: `${entity}:${record.id}:${Date.now()}`,
+          entity,
+          action,
+          relationship_id: relationshipId,
+          person: inferScopedPerson(record),
+          record_id: record.id,
+          created_date: new Date().toISOString(),
+        },
+        ...(mergedMemory.events || []),
+      ].slice(0, 500),
+      lastUpdated: new Date().toISOString(),
+    };
+
+    globalState.mergeRelationshipMemory(relationshipId, nextMemory);
+    globalState.setRiskSummary(riskSignals);
+    globalState.setState({ relationshipDynamics });
+    updateLegacyGlobalState(entity, record);
+    writeRelationshipMemorySnapshot(relationshipId, nextMemory);
+  } catch (error) {
+    console.error("[api] learning ingestion failed", error);
+  }
+
+  return record;
 }
 
 export function getStoredAuthToken() {
@@ -187,13 +398,13 @@ function entityClient(entity) {
       return request(`/api/data/${entity}`, {
         method: "POST",
         body: data,
-      });
+      }).then((record) => recordLearningEvent(entity, "create", record));
     },
     update(id, data) {
       return request(`/api/data/${entity}/${id}`, {
         method: "PUT",
         body: data,
-      });
+      }).then((record) => recordLearningEvent(entity, "update", record));
     },
     delete(id) {
       return request(`/api/data/${entity}/${id}`, {

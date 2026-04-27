@@ -5,6 +5,7 @@
  */
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import SendPartnerPill from "@/components/ui/SendPartnerPill";
 import { ChevronDown, ChevronUp, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +54,19 @@ export default function FrameworkCard({ framework }) {
               <ChevronDown className={cn("w-4 h-4", iconColorClass)} />
             )}
           </button>
+        </div>
+        <div className="pt-2">
+          <SendPartnerPill
+            content={{
+              framework: framework.framework,
+              whyApplied: framework.why_applied,
+              howItApplies: framework.how_it_applies,
+              explanation: framework.explanation,
+            }}
+            title={framework.framework}
+            sourceLabel="Framework"
+            className="h-7 px-3 text-xs"
+          />
         </div>
       </CardHeader>
 

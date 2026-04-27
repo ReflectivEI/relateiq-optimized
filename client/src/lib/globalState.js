@@ -42,6 +42,9 @@ class GlobalStateStore {
       lastUpdated: null,
       isLoading: false,
       error: null,
+
+      // Generic per-relationship continuous memory
+      relationshipMemory: {},
     };
 
     this.listeners = [];
@@ -160,6 +163,41 @@ class GlobalStateStore {
   }
 
   /**
+   * Merge generic continuous memory for any relationship pairing.
+   */
+  mergeRelationshipMemory(relationshipId, updates) {
+    if (!relationshipId) return;
+    const current = this.state.relationshipMemory[relationshipId] || {
+      events: [],
+      questionnaireResponses: [],
+      checkIns: [],
+      coachSessions: [],
+      notes: [],
+      dailyReflections: [],
+      journalEntries: [],
+      insightEntries: [],
+      visionPins: [],
+      triggers: [],
+      repairEntries: [],
+      outcomeLogs: [],
+      relationshipDynamics: null,
+      riskSignals: null,
+      participants: [],
+      profiles: [],
+      lastUpdated: null,
+    };
+    this.state.relationshipMemory = {
+      ...this.state.relationshipMemory,
+      [relationshipId]: {
+        ...current,
+        ...updates,
+        lastUpdated: new Date().toISOString(),
+      },
+    };
+    this.notify();
+  }
+
+  /**
    * Clear error
    */
   clearError() {
@@ -190,6 +228,7 @@ class GlobalStateStore {
       lastUpdated: null,
       isLoading: false,
       error: null,
+      relationshipMemory: {},
     };
     this.notify();
   }

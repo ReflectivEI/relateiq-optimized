@@ -7,6 +7,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X, Send, Loader2, ChevronDown, MessageSquare, ShieldCheck, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ResponseExportBar from "@/components/export/ResponseExportBar";
 import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
 import { askCoach } from "@/lib/aiCoachService";
@@ -189,8 +190,16 @@ export default function AskCoachDrawer({ ctx, defaultOpen = false }) {
                     )}
                   >
                     {msg.role === "ai" ? (
-                      <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-strong:text-foreground text-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      <div className="space-y-3">
+                        <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-strong:text-foreground text-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
+                        <ResponseExportBar
+                          content={msg.content}
+                          title={`Ask AI Coach Response ${i + 1}`}
+                          filename={`ask-ai-coach-${i + 1}.pdf`}
+                          shareSourceLabel="Ask AI Coach"
+                        />
                       </div>
                     ) : (
                       <p>{msg.content}</p>
