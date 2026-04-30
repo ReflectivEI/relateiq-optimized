@@ -54,23 +54,36 @@ import { toast } from "sonner";
 
 const navGroups = [
   {
-    id: "core",
-    label: "Core Workspace",
+    id: "main",
+    label: "Main Navigation",
+    items: [
+      { path: "/reflect", label: "Reflect", icon: Bot },
+      { path: "/repair", label: "Repair", icon: Wrench },
+      { path: "/grow", label: "Grow", icon: TrendingUp },
+      { path: "/inbox", label: "Inbox", icon: MessagesSquare },
+      { path: "/profile", label: "Profile", icon: Users },
+    ],
+  },
+  {
+    id: "actions",
+    label: "Quick Actions",
+    items: [
+      { path: "/check-in", label: "Check-In", icon: CalendarCheck2 },
+      { path: "/tools", label: "Smart Tools", icon: Wrench },
+      { path: "/download-data", label: "Export & Downloads", icon: BookMarked },
+    ],
+  },
+  {
+    id: "classic",
+    label: "Classic Pages",
     items: [
       { path: "/coach", label: "AI Coach", icon: Bot },
       { path: "/chat", label: "Relationship Chat", icon: MessagesSquare },
       { path: "/knowledge", label: "Knowledge Hub", icon: BookOpenText },
+      { path: "/analysis", label: "Analysis Engine", icon: BrainCircuit },
+      { path: "/insights", label: "Insights", icon: BarChart3 },
       { path: "/daily", label: "Daily Connections", icon: Handshake },
       { path: "/journal", label: "Journal", icon: NotebookPen },
-      { path: "/analysis", label: "Analysis Engine", icon: BrainCircuit },
-      { path: "/repair", label: "Proactive Repair", icon: ShieldAlert },
-      { path: "/insights", label: "Insights", icon: BarChart3 },
-    ],
-  },
-  {
-    id: "intelligence",
-    label: "Relationship Intelligence",
-    items: [
       { path: "/profiles", label: "Profiles", icon: Users },
       { path: "/questionnaire", label: "Questionnaire", icon: ClipboardList },
       { path: "/roadmap", label: "Growth Roadmap", icon: TrendingUp },
@@ -80,16 +93,8 @@ const navGroups = [
       { path: "/playbook", label: "Playbook", icon: BookOpenText },
       { path: "/play-lab-ii", label: "Play Lab II", icon: Layers3 },
       { path: "/play-lab", label: "Play Lab", icon: Gamepad2 },
-    ],
-  },
-  {
-    id: "support",
-    label: "Support Tools",
-    items: [
-      { path: "/check-in", label: "Check-In", icon: CalendarCheck2 },
-      { path: "/tester-inbox", label: "Connection Inbox", icon: MessagesSquare },
-      { path: "/tools", label: "Smart Tools", icon: Wrench },
       { path: "/triggers", label: "Triggers", icon: ShieldAlert },
+      { path: "/tester-inbox", label: "Connection Inbox", icon: MessagesSquare },
       { path: "/restore-center", label: "Restore Center", icon: History },
       { path: "/appendix", label: "Appendix", icon: BookMarked },
     ],
@@ -97,6 +102,30 @@ const navGroups = [
 ];
 
 const homeNavItem = { path: "/", label: "Home", icon: LayoutDashboard };
+
+const consolidatedRouteAliases = {
+  "/reflect": ["/coach", "/chat", "/daily", "/journal"],
+  "/repair": ["/proactive-repair", "/triggers"],
+  "/grow": [
+    "/analysis",
+    "/insights",
+    "/knowledge",
+    "/insight-library",
+    "/roadmap",
+    "/health-report",
+    "/vision",
+    "/playbook",
+    "/play-lab",
+    "/play-lab-ii",
+  ],
+  "/inbox": ["/tester-inbox"],
+  "/profile": ["/profiles", "/questionnaire"],
+};
+
+function isPathActive(navPath, currentPath) {
+  if (navPath === currentPath) return true;
+  return consolidatedRouteAliases[navPath]?.includes(currentPath) || false;
+}
 
 function generateTemporaryPassword() {
   const base = crypto.randomUUID().replace(/-/g, "");
@@ -148,14 +177,14 @@ export default function AppLayout() {
   const [messageConfirmation, setMessageConfirmation] = useState("");
   const [managementLoading, setManagementLoading] = useState(false);
   const [openGroups, setOpenGroups] = useState({
-    core: true,
-    intelligence: true,
-    support: true,
+    main: true,
+    actions: true,
+    classic: false,
   });
   const [mobileGroupOpen, setMobileGroupOpen] = useState({
-    core: false,
-    intelligence: false,
-    support: false,
+    main: true,
+    actions: false,
+    classic: false,
   });
   const isOwner = activeRelationship?.current_user_role === "owner";
   const currentUserName = user?.name || "";
@@ -586,16 +615,16 @@ export default function AppLayout() {
             className={cn(
               "flex items-center rounded-2xl border text-sm font-medium transition-all duration-200",
               sidebarCollapsed ? "justify-center px-3 py-3" : "gap-3 px-3 py-2.5",
-              location.pathname === homeNavItem.path
+              isPathActive(homeNavItem.path, location.pathname)
                 ? "border-primary/40 bg-primary/15 text-white shadow-sm"
-                : "border-transparent text-teal-200/85 hover:border-primary/20 hover:bg-sidebar-accent hover:text-white",
+                : "border-white/5 text-white/90 hover:border-primary/25 hover:bg-white/10 hover:text-white",
             )}
           >
             <homeNavItem.icon className="w-4.5 h-4.5 shrink-0" />
             {!sidebarCollapsed && homeNavItem.label}
           </Link>
           {visibleNavGroups.map((group) => {
-            const groupHasActiveItem = group.items.some((item) => location.pathname === item.path);
+            const groupHasActiveItem = group.items.some((item) => isPathActive(item.path, location.pathname));
             return (
               <div key={group.id} className="space-y-2">
                 {!sidebarCollapsed ? (
@@ -606,7 +635,7 @@ export default function AppLayout() {
                       "flex w-full items-center justify-between rounded-2xl border px-3 py-2 text-left transition-all",
                       groupHasActiveItem
                         ? "border-primary/20 bg-white/5 text-white"
-                        : "border-transparent text-teal-200/70 hover:bg-sidebar-accent hover:text-white"
+                        : "border-white/5 text-white/85 hover:bg-white/10 hover:text-white"
                     )}
                   >
                     <span className="text-[11px] font-semibold uppercase tracking-[0.22em]">{group.label}</span>
@@ -621,7 +650,7 @@ export default function AppLayout() {
                 {(sidebarCollapsed || openGroups[group.id]) && (
                   <div className="space-y-1">
                     {group.items.map((item) => {
-                      const active = location.pathname === item.path;
+                      const active = isPathActive(item.path, location.pathname);
                       return (
                         <Link
                           key={item.path}
@@ -634,7 +663,7 @@ export default function AppLayout() {
                               : "gap-3 px-3 py-2.5",
                             active
                               ? "border-primary/40 bg-primary/15 text-white shadow-sm"
-                              : "border-transparent text-teal-200/85 hover:border-primary/20 hover:bg-sidebar-accent hover:text-white"
+                              : "border-white/5 text-white/90 hover:border-primary/25 hover:bg-white/10 hover:text-white"
                           )}
                         >
                           <item.icon className="w-4.5 h-4.5 shrink-0" />
@@ -654,8 +683,8 @@ export default function AppLayout() {
             className={cn(
               "flex w-full items-center rounded-2xl text-xs transition-all mb-2",
               sidebarCollapsed
-                ? "justify-center px-3 py-3 text-teal-200/80 hover:text-white hover:bg-sidebar-accent"
-                : "gap-2 px-3 py-2 text-teal-200/80 hover:text-white hover:bg-sidebar-accent"
+                ? "justify-center px-3 py-3 text-white/80 hover:text-white hover:bg-white/10"
+                : "gap-2 px-3 py-2 text-white/80 hover:text-white hover:bg-white/10"
             )}
             title={sidebarCollapsed ? "Sign Out" : undefined}
           >
@@ -692,7 +721,7 @@ export default function AppLayout() {
                 onClick={() => setMobileOpen(false)}
                 className={cn(
                   "mb-3 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
-                  location.pathname === homeNavItem.path
+                  isPathActive(homeNavItem.path, location.pathname)
                     ? "border-primary/30 bg-primary/10 text-foreground"
                     : "border-transparent text-muted-foreground hover:bg-background hover:text-foreground"
                 )}
@@ -734,7 +763,7 @@ export default function AppLayout() {
               ) : null}
             </div>
             {visibleNavGroups.map((group) => {
-              const groupHasActiveItem = group.items.some((item) => location.pathname === item.path);
+              const groupHasActiveItem = group.items.some((item) => isPathActive(item.path, location.pathname));
               return (
                 <div key={group.id} className="rounded-2xl border border-border/60 bg-muted/20">
                   <button
@@ -754,7 +783,7 @@ export default function AppLayout() {
                   {mobileGroupOpen[group.id] && (
                     <div className="space-y-1 px-2 pb-2">
                       {group.items.map((item) => {
-                        const active = location.pathname === item.path;
+                        const active = isPathActive(item.path, location.pathname);
                         return (
                           <Link
                             key={item.path}

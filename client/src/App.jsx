@@ -6,7 +6,6 @@ import PageNotFound from './lib/PageNotFound';
 import { useState } from "react";
 
 import AppLayout from './components/layout/AppLayout';
-import MainNavigation from './components/layout/MainNavigation';
 import Home from './pages/Home';
 import Reflect from './pages/Reflect';
 import Repair from './pages/Repair';
