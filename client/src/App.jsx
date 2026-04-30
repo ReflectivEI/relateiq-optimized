@@ -6,7 +6,13 @@ import PageNotFound from './lib/PageNotFound';
 import { useState } from "react";
 
 import AppLayout from './components/layout/AppLayout';
+import MainNavigation from './components/layout/MainNavigation';
 import Home from './pages/Home';
+import Reflect from './pages/Reflect';
+import Repair from './pages/Repair';
+import Grow from './pages/Grow';
+import Inbox from './pages/Inbox';
+import Profile from './pages/Profile';
 import Profiles from './pages/Profiles.jsx';
 import Questionnaire from './pages/Questionnaire';
 import Coach from './pages/Coach.jsx';
@@ -189,6 +195,11 @@ const ApplicationRoutes = () => {
     <Routes>
       <Route element={<ProtectedLayout />}>
         <Route path="/" element={<Home />} />
+        <Route path="/reflect" element={<Reflect />} />
+        <Route path="/repair" element={<Repair />} />
+        <Route path="/grow" element={<Grow />} />
+        <Route path="/inbox" element={<Inbox />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/profiles" element={<Profiles />} />
         <Route path="/questionnaire" element={<Questionnaire />} />
         <Route path="/coach" element={<Coach />} />
@@ -196,7 +207,7 @@ const ApplicationRoutes = () => {
         <Route path="/check-in" element={<CheckIn />} />
         <Route path="/tools" element={<SmartTools />} />
         <Route path="/triggers" element={<TriggerLibrary />} />
-        <Route path="/repair" element={<ProactiveRepair />} />
+        <Route path="/proactive-repair" element={<ProactiveRepair />} />
         <Route path="/download-data" element={<DownloadData />} />
         <Route path="/chat" element={<RelationshipChat />} />
         <Route path="/analysis" element={<AnalysisEngine />} />

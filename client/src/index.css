@@ -67,32 +67,32 @@
   /* Keep dark as identical (it's already a dark theme) */
   /* Light theme override — activated via data-theme="light" on <html> */
   [data-theme="light"] {
-    --background: 210 24% 96%;
+    --background: 0 0% 100%;
     --foreground: 218 44% 14%;
-    --card: 0 0% 100%;
+    --card: 210 40% 96%;
     --card-foreground: 218 44% 14%;
     --popover: 0 0% 100%;
     --popover-foreground: 218 44% 14%;
-    --primary: 180 56% 37%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 218 47% 14%;
+    --primary-foreground: 180 56% 37%;
     --secondary: 208 24% 91%;
     --secondary-foreground: 218 34% 24%;
-    --muted: 204 22% 93%;
-    --muted-foreground: 218 20% 31%;
-    --accent: 201 34% 93%;
-    --accent-foreground: 218 44% 14%;
+    --muted: 210 38% 93%;
+    --muted-foreground: 218 20% 40%;
+    --accent: 180 56% 37%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 60% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 205 24% 82%;
-    --input: 205 24% 82%;
+    --border: 210 24% 82%;
+    --input: 210 24% 82%;
     --ring: 180 56% 37%;
     --sidebar-background: 218 47% 14%;
-    --sidebar-foreground: 180 42% 74%;
+    --sidebar-foreground: 218 44% 14%;
     --sidebar-primary: 180 56% 37%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 218 44% 20%;
-    --sidebar-accent-foreground: 188 58% 93%;
-    --sidebar-border: 218 35% 22%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 218 47% 14%;
+    --sidebar-border: 210 24% 82%;
     --sidebar-ring: 180 56% 37%;
   }
 
