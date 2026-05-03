@@ -480,6 +480,95 @@ STRICT RULES:
 - If data is missing, say the system does not yet have enough information for this connection.`;
 }
 
+const PERSON_NAME_STOPWORDS = new Set([
+  "This",
+  "That",
+  "These",
+  "Those",
+  "The",
+  "A",
+  "An",
+  "And",
+  "Or",
+  "But",
+  "If",
+  "When",
+  "While",
+  "Then",
+  "Now",
+  "You",
+  "Your",
+  "They",
+  "Their",
+  "Them",
+  "We",
+  "Our",
+  "Us",
+  "I",
+  "My",
+  "Me",
+  "It",
+  "Its",
+  "In",
+  "On",
+  "At",
+  "By",
+  "For",
+  "From",
+  "With",
+  "To",
+  "Of",
+  "Situation",
+  "Whats",
+  "Why",
+  "Recommended",
+  "Approach",
+  "Example",
+  "Language",
+  "Avoid",
+  "Data",
+  "Sources",
+  "Response",
+  "Please",
+  "Try",
+  "Again",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+]);
+
+function findPotentialPersonMentions(text = "") {
+  const mentions = new Set();
+  const contextualNamePattern = /\b(?:to|with|from|for|about|toward|towards|and)\s+([A-Z][a-z]{2,})\b/g;
+  const possessivePattern = /\b([A-Z][a-z]{2,})'s\b/g;
+
+  let match;
+  while ((match = contextualNamePattern.exec(text)) !== null) {
+    mentions.add(match[1]);
+  }
+  while ((match = possessivePattern.exec(text)) !== null) {
+    mentions.add(match[1]);
+  }
+
+  return [...mentions];
+}
+
 export function validateOutputScope(output, context = {}) {
   const text = String(output || "");
   const violations = [];
@@ -498,10 +587,13 @@ export function validateOutputScope(output, context = {}) {
 
   const allowedPeople = context.allowedPeople || [];
   if (allowedPeople.length) {
-    const capitalizedTokens = text.match(/\b[A-Z][a-z]{2,}\b/g) || [];
-    const unknownPeople = [...new Set(capitalizedTokens)].filter(
-      (name) => !allowedPeople.includes(name) && !(context.forbiddenPeople || []).includes(name),
+    const unknownPeople = findPotentialPersonMentions(text).filter(
+      (name) =>
+        !PERSON_NAME_STOPWORDS.has(name) &&
+        !allowedPeople.includes(name) &&
+        !(context.forbiddenPeople || []).includes(name),
     );
+
     if (unknownPeople.length > 0) {
       violations.push("unknown_people_referenced");
     }
