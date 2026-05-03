@@ -15,6 +15,7 @@ const RELATIONSHIP_MEMORY_PREFIX = "relateiq.relationship.memory.v1";
 const LOCAL_QUESTIONNAIRE_FILES = {
   Tony: "/data/relateiq/tony.questionnaire.json",
   Drew: "/data/relateiq/drew.questionnaire.json",
+  Desi: "/data/relateiq/desi.questionnaire.json",
 };
 
 const RELATIONSHIP_SCOPED_ENTITIES = new Set([

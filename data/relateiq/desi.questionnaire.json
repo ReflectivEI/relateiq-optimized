@@ -1,0 +1,861 @@
+[
+  {
+    "question_text": "When you're frustrated, what do you tend to do first?",
+    "mode": "individual",
+    "selected_options": [
+      "Try to talk through it"
+    ],
+    "answer": "Try to talk through it",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b1",
+    "tags": [
+      "frustration_response",
+      "communication_style",
+      "openness"
+    ],
+    "id": "69e51df01a2b4c3e5f8g9h0i",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you feel unheard in a conversation, how do you typically respond?",
+    "mode": "individual",
+    "selected_options": [
+      "Speak up more clearly"
+    ],
+    "answer": "Speak up more clearly",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b2",
+    "tags": [
+      "misunderstood_trigger",
+      "conflict_style",
+      "assertiveness"
+    ],
+    "id": "69e51e004a3c5d4f6g8h1i2j",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "What is your go-to coping mechanism when tension builds at home?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I tend to go for a walk or workout to clear my head, then come back ready to talk. Moving my body helps me regulate, and I find that physical activity gives me clarity on what I really want to express. I also talk to close friends for perspective, but ultimately I prefer to address things directly rather than let them sit.",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b3",
+    "tags": [
+      "stress_response",
+      "healthy_coping",
+      "self_regulation"
+    ],
+    "id": "69e51e102b4d6e5h7i9j2k3l",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you respond when you feel criticized — even mildly?",
+    "mode": "individual",
+    "selected_options": [
+      "Explain why I did it that way"
+    ],
+    "answer": "Explain why I did it that way",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b4",
+    "tags": [
+      "defensiveness",
+      "explanation_seeking",
+      "communication_response"
+    ],
+    "id": "69e51e203c5e7f6i8j0k3l4m",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "When something is wrong but you haven't said anything yet, what does that usually look like from the outside?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "People usually know something is off because I tend to be more quiet and direct in my responses. I don't hide it well — my energy shifts noticeably. I might be a bit shorter in my answers or less engaged in casual conversation. However, I typically bring it up fairly quickly rather than letting it linger, because I don't like the feeling of unresolved tension. It's not comfortable for me to sit with things unsaid.",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b5",
+    "tags": [
+      "emotional_expression",
+      "transparency",
+      "directness"
+    ],
+    "id": "69e51e304d6f8g7h9i1j4k5l",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you handle it when you've made a mistake or hurt someone?",
+    "mode": "individual",
+    "selected_options": [
+      "Apologize and try to make it right"
+    ],
+    "answer": "Apologize and try to make it right",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b6",
+    "tags": [
+      "accountability",
+      "repair_style",
+      "responsibility"
+    ],
+    "id": "69e51e404e7g9h8i0j2k5l6m",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "How often do you replay conversations or arguments after the fact?",
+    "mode": "individual",
+    "selected_options": [
+      "2"
+    ],
+    "answer": "2",
+    "weight": "medium",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b7",
+    "tags": [
+      "post_conflict_pattern",
+      "rumination",
+      "letting_go"
+    ],
+    "id": "69e51e504f8h0i9j1k3l6m7n",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you're overwhelmed, what do you do with your obligations?",
+    "mode": "individual",
+    "selected_options": [
+      "Communicate that I'm overwhelmed"
+    ],
+    "answer": "Communicate that I'm overwhelmed",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "behavioral",
+    "question_id": "b8",
+    "tags": [
+      "stress_response",
+      "help_seeking",
+      "communication"
+    ],
+    "id": "69e51e605g9i1j0k2l4m7n8o",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you prefer difficult conversations to start?",
+    "mode": "individual",
+    "selected_options": [
+      "Direct and to the point"
+    ],
+    "answer": "Direct and to the point",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c1",
+    "tags": [
+      "communication_preference",
+      "directness",
+      "efficiency"
+    ],
+    "id": "69e51e706h0j2k1l3m5n8o9p",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "Which communication approach do you respond best to from your partner?",
+    "mode": "individual",
+    "selected_options": [
+      "Honest and straightforward"
+    ],
+    "answer": "Honest and straightforward",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c2",
+    "tags": [
+      "communication_preference",
+      "honesty",
+      "trust"
+    ],
+    "id": "69e51e807i1k3l2m4n6o9p0q",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "What makes you feel truly heard by your partner?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I feel truly heard when someone makes eye contact, puts their phone away, and gives me their full attention. It matters that they engage with what I'm saying rather than just tolerating it. I appreciate when they ask clarifying questions if they don't understand something, and when they remember details from our conversations later. I feel heard when they validate my feelings, even if they see things differently. The tone is important — calm and respectful rather than dismissive. When someone truly listens without planning their response while I'm still talking, it makes a huge difference.",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c3",
+    "tags": [
+      "being_heard",
+      "validation",
+      "attention"
+    ],
+    "id": "69e51e908j2l4m3n5o7p0q1r",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "When something is bothering you, what do you usually do?",
+    "mode": "individual",
+    "selected_options": [
+      "Bring it up directly"
+    ],
+    "answer": "Bring it up directly",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c4",
+    "tags": [
+      "direct_communication",
+      "assertiveness",
+      "honesty"
+    ],
+    "id": "69e51ea09k3m5n4o6p8q1r2s",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you feel when someone raises an issue with you unexpectedly?",
+    "mode": "individual",
+    "selected_options": [
+      "Open to hearing it"
+    ],
+    "answer": "Open to hearing it",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c5",
+    "tags": [
+      "receptiveness",
+      "openness",
+      "constructive"
+    ],
+    "id": "69e51eb0al4n6o5p7q9r2s3t",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "How comfortable are you expressing disagreement with your partner?",
+    "mode": "individual",
+    "selected_options": [
+      "5"
+    ],
+    "answer": "5",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c6",
+    "tags": [
+      "conflict_comfort",
+      "directness",
+      "authenticity"
+    ],
+    "id": "69e51ec0bm5o7p6q8r0s3t4u",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you need something emotionally, how do you usually ask for it?",
+    "mode": "individual",
+    "selected_options": [
+      "Ask directly"
+    ],
+    "answer": "Ask directly",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c7",
+    "tags": [
+      "vulnerability",
+      "directness",
+      "needs_expression"
+    ],
+    "id": "69e51ed0cn6p8q7r9s1t4u5v",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you feel about silence during a tense moment?",
+    "mode": "individual",
+    "selected_options": [
+      "It gives me space to think"
+    ],
+    "answer": "It gives me space to think",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c8",
+    "tags": [
+      "silence_tolerance",
+      "processing_style",
+      "calm"
+    ],
+    "id": "69e51ee0do7q9r8s0t2u5v6w",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "How much of what you're actually feeling do you usually communicate out loud?",
+    "mode": "individual",
+    "selected_options": [
+      "4"
+    ],
+    "answer": "4",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "communication",
+    "question_id": "c9",
+    "tags": [
+      "emotional_expressiveness",
+      "vulnerability",
+      "openness"
+    ],
+    "id": "69e51ef0ep8r0s9t1u3v6w7x",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "During conflict, you tend to:",
+    "mode": "individual",
+    "selected_options": [
+      "Stay calm and focused"
+    ],
+    "answer": "Stay calm and focused",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf1",
+    "tags": [
+      "conflict_style",
+      "regulation",
+      "composure"
+    ],
+    "id": "69e51f00fq9s1t0u2v4w7x8y",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you need MOST during a conflict?",
+    "mode": "individual",
+    "selected_options": [
+      "To be heard without being interrupted",
+      "Honesty and directness"
+    ],
+    "answer": "To be heard without being interrupted, Honesty and directness",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf2",
+    "tags": [
+      "needs_in_conflict",
+      "safety",
+      "honesty"
+    ],
+    "id": "69e51f10gr0t2u1v3w5x8y9z",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "After an argument, how do you usually feel?",
+    "mode": "individual",
+    "selected_options": [
+      "Ready to move forward"
+    ],
+    "answer": "Ready to move forward",
+    "weight": "medium",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf3",
+    "tags": [
+      "post_conflict_pattern",
+      "resilience",
+      "closure"
+    ],
+    "id": "69e51f20hs1u3v2w4x6y9z0a",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "How do you feel when a conflict doesn't get resolved cleanly?",
+    "mode": "individual",
+    "selected_options": [
+      "Uncomfortable and motivated to resolve it"
+    ],
+    "answer": "Uncomfortable and motivated to resolve it",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf4",
+    "tags": [
+      "resolution_need",
+      "closure",
+      "motivation"
+    ],
+    "id": "69e51f30it2v4w3x5y7z0a1b",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "When conflict happens, who do you think typically initiates resolution?",
+    "mode": "individual",
+    "selected_options": [
+      "I usually do"
+    ],
+    "answer": "I usually do",
+    "weight": "medium",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf5",
+    "tags": [
+      "conflict_resolution",
+      "initiative",
+      "responsibility"
+    ],
+    "id": "69e51f40ju3w5x4y6z8a1b2c",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "How comfortable are you with confrontation in general?",
+    "mode": "individual",
+    "selected_options": [
+      "5"
+    ],
+    "answer": "5",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf6",
+    "tags": [
+      "conflict_comfort",
+      "directness",
+      "assertiveness"
+    ],
+    "id": "69e51f50kv4x6y5z7a9b2c3d",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "When you're in the middle of a heated moment, what helps you de-escalate?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "Taking a step back and breathing helps me stay grounded. I try to pause and remind myself that conflict is about finding solutions, not winning. Listening to the other person's perspective without interrupting actually helps me calm down because it keeps me focused and prevents me from escalating further. I also benefit from explicitly naming what I'm hearing and what I want to move toward, rather than staying stuck in the problem.",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf7",
+    "tags": [
+      "de_escalation",
+      "self_regulation",
+      "mindfulness"
+    ],
+    "id": "69e51f60lw5y7z6a8b0c3d4e",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "How quickly do you typically cool down after a flare-up?",
+    "mode": "individual",
+    "selected_options": [
+      "4"
+    ],
+    "answer": "4",
+    "weight": "medium",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf8",
+    "tags": [
+      "emotional_recovery",
+      "resilience",
+      "quick_recovery"
+    ],
+    "id": "69e51f70mx6z8a7b9c1d4e5f",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "After a disagreement, what helps you feel most \"repaired\" or reconnected?",
+    "mode": "individual",
+    "selected_options": [
+      "Clear communication about what we learned",
+      "Recommitment to the relationship"
+    ],
+    "answer": "Clear communication about what we learned, Recommitment to the relationship",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf9",
+    "tags": [
+      "repair_style",
+      "growth_focus",
+      "reconnection"
+    ],
+    "id": "69e51f80ny7a9b8c0d2e5f6g",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "After conflict, how quickly do you prefer to reconnect?",
+    "mode": "individual",
+    "selected_options": [
+      "Right away or as soon as it's resolved"
+    ],
+    "answer": "Right away or as soon as it's resolved",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "conflict_style",
+    "question_id": "cf10",
+    "tags": [
+      "repair_timeline",
+      "reconnection_need",
+      "intimacy"
+    ],
+    "id": "69e51f90oz8b0c9d1e3f6g7h",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "What patterns from your upbringing still show up in your relationships today?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I tend to be very solution-focused, sometimes at the expense of emotional processing. My family didn't sit with feelings much; we moved through things pragmatically. I can be impatient when others need more time to process. I also learned to be independent and self-reliant, which sometimes makes it hard for me to ask for help or admit when I'm struggling. I value directness because my family was fairly straightforward, but I've had to learn that not everyone processes conflict the same way. I also have a tendency to push for resolution quickly, which can feel abrupt to others.",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d1",
+    "tags": [
+      "childhood_patterns",
+      "family_influence",
+      "communication_style"
+    ],
+    "id": "69e51fa0pa9c1d0e2f4g7h8i",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "When something hurts you, what happens internally first?",
+    "mode": "individual",
+    "selected_options": [
+      "I assess the situation and figure out my response"
+    ],
+    "answer": "I assess the situation and figure out my response",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d10",
+    "tags": [
+      "hurt_response",
+      "processing",
+      "analytical"
+    ],
+    "id": "69e51fb0qb0d2e1f3g5h8i9j",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you need emotionally but find hard to ask for?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I find it hard to ask for vulnerability and emotional support when I'm struggling. I tend to project confidence and capability, so asking for help feels like admitting defeat. I also struggle to ask for patience when I need to process things in my own way, because I'm used to being the one who adapts to others. I need reassurance sometimes that I'm valued beyond what I accomplish or how I contribute, but I rarely ask for that directly.",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d2",
+    "tags": [
+      "unmet_needs",
+      "vulnerability",
+      "support_needs"
+    ],
+    "id": "69e51fc0rc1e3f2g4h6i9j0k",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "What is the hardest thing for you to express to your partner?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "The hardest thing to express is when I feel like I'm not enough, or when I'm uncertain about the future. I tend to overcompensate with more productivity or more giving, rather than sitting with the discomfort and being honest about my doubts or fears. It's also hard to express when I feel like someone is taking advantage of my helpfulness or patience, because I don't want to seem ungrateful or self-centered. I struggle to say no or set boundaries without feeling guilty.",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d3",
+    "tags": [
+      "vulnerability",
+      "doubt",
+      "boundaries"
+    ],
+    "id": "69e51fd0sd2f4g3h5i7j0k1l",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "What do you wish your partner understood about you that you've never fully said out loud?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "I wish they understood that my directness and efficiency isn't coldness; it's actually how I show care and respect. When I'm problem-solving or moving forward, I'm trying to help. I also wish they knew that I sometimes feel like I need to be the strong one, and that it gets tiring always being the person who has it together. I need to know that I'm valued for who I am, not just for what I do or how I support others. I haven't fully said that I sometimes feel like I'm managing others' emotions at the cost of my own, and that I need reciprocal support, not just the satisfaction of being helpful.",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d5",
+    "tags": [
+      "unspoken_needs",
+      "partner_perception",
+      "authenticity"
+    ],
+    "id": "69e51fe0te3g5h4i6j8k1l2m",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "What fear do you carry into this relationship — even unconsciously?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "My underlying fear is that if I'm not productive or helpful, people won't want me around. I'm afraid of being a burden or needing more than I can give back. There's also a fear that my directness will push people away, or that I'll say something that damages a relationship I care about. I fear that vulnerability will be seen as weakness and that people will lose respect for me. There's also a deeper fear that emotional intimacy is unsustainable, and that people will eventually find me too much or not enough.",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d6",
+    "tags": [
+      "attachment_fear",
+      "worth",
+      "vulnerability_fear"
+    ],
+    "id": "69e51ff0uf4h6i5j7k9l2m3n",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "How much do you believe you deserve to be fully loved as you are right now?",
+    "mode": "individual",
+    "selected_options": [
+      "3"
+    ],
+    "answer": "3",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "deep_reflection",
+    "question_id": "d7",
+    "tags": [
+      "self_worth",
+      "deserving",
+      "self_love"
+    ],
+    "id": "69e5200rvg5i7j6k8l0m3n4o",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "What makes you feel most misunderstood?",
+    "mode": "individual",
+    "selected_options": [
+      "When people interpret my efficiency as coldness",
+      "When my boundaries are seen as rejection"
+    ],
+    "answer": "When people interpret my efficiency as coldness, When my boundaries are seen as rejection",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e1",
+    "tags": [
+      "misunderstood_trigger",
+      "communication_style",
+      "boundaries"
+    ],
+    "id": "69e5201swh6j8k7l9m1n4o5p",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "What tone of voice instantly puts you on the defensive?",
+    "mode": "individual",
+    "selected_options": [],
+    "answer": "A tone that is accusatory or assumes I've done something wrong without asking first. Also, a whiny or victimizing tone can trigger defensiveness because it feels manipulative to me. When someone speaks to me in a condescending way, as if I can't understand, I shut down. I'm also sensitive to what feels like emotional manipulation or guilt-tripping.",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e2",
+    "tags": [
+      "tone_sensitivity",
+      "defensiveness",
+      "manipulation_trigger"
+    ],
+    "id": "69e5202txi7k9l8m0n2o5p6q",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "Which situations are most likely to frustrate you in the relationship?",
+    "mode": "individual",
+    "selected_options": [
+      "Inefficiency or lack of clarity",
+      "Feeling like my effort isn't recognized",
+      "Emotional avoidance"
+    ],
+    "answer": "Inefficiency or lack of clarity, Feeling like my effort isn't recognized, Emotional avoidance",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e3",
+    "tags": [
+      "frustration_trigger",
+      "recognition_need",
+      "clarity_need"
+    ],
+    "id": "69e5203uyj8l0m9n1o3p6q7r",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  },
+  {
+    "question_text": "How sensitive are you to your partner's tone and body language?",
+    "mode": "individual",
+    "selected_options": [
+      "3"
+    ],
+    "answer": "3",
+    "weight": "high",
+    "person_name": "Desi",
+    "ranking": [],
+    "category": "emotional_triggers",
+    "question_id": "e6",
+    "tags": [
+      "sensitivity",
+      "attunement",
+      "awareness"
+    ],
+    "id": "69e5204vzk9m1n0o2p4q7r8s",
+    "created_date": "2026-05-03T00:00:00.000000",
+    "updated_date": "2026-05-03T00:00:00.000000",
+    "created_by_id": "desi_user_id",
+    "is_sample": false
+  }
+]
