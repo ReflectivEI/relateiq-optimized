@@ -1,0 +1,25 @@
+{
+  "projectName": "relateiq-optimized",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "env": [
+    {
+      "key": "VITE_API_BASE_URL",
+      "value": "https://api.relateiq-optimized.app"
+    }
+  ],
+  "functions": {
+    "api/**/*.ts": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "redirects": [
+    {
+      "source": "/api/decisions/:pairId",
+      "destination": "https://relateiq-growth-worker.relay.app/api/decisions/:pairId",
+      "permanent": false
+    }
+  ]
+}

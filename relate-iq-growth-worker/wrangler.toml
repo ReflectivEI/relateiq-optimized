@@ -6,8 +6,13 @@ compatibility_date = "2026-04-20"
 binding = "QUESTIONNAIRES"
 id = "69297b2d249e42049de55a96eaefe783"
 
+[[kv_namespaces]]
+binding = "DECISION_CACHE"
+id = "decision-cache-storage"
+preview_id = "decision-cache-preview"
+
 [vars]
-CORS_ORIGINS = "http://localhost:5173,http://localhost:4173,http://127.0.0.1:4173,https://relateiq-growth.pages.dev"
+CORS_ORIGINS = "http://localhost:5173,http://localhost:4173,http://127.0.0.1:4173,https://relateiq-growth.pages.dev,https://relateiq-optimized.vercel.app"
 
 # Enable after Cloudflare Email Service domain onboarding is complete.
 # [[send_email]]
