@@ -31,6 +31,20 @@ function resolveCtxParticipants(ctx) {
   );
 }
 
+function buildQuickPrompts(ctx, scopeLabel) {
+  const page = String(ctx?.page || "this page");
+  const section = String(ctx?.sectionTitle || "this section");
+  const scope = String(scopeLabel || "this perspective");
+
+  return [
+    `What are the top 3 priorities for ${scope} based on ${section}?`,
+    `What should I say next to reduce tension without losing clarity?`,
+    `What is likely happening underneath this pattern on ${page}?`,
+    `Give me a 60-second action plan for the next conversation.`,
+    `What mistakes should I avoid right now, and what should I do instead?`,
+  ];
+}
+
 export default function AskCoachDrawer({ ctx, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   const [question, setQuestion] = useState("");
@@ -66,11 +80,7 @@ export default function AskCoachDrawer({ ctx, defaultOpen = false }) {
 
   const participants = resolveCtxParticipants(ctx);
   const scopeLabel = ctx?.scope ? getDisplayPerspective(ctx.scope, participants) : "You";
-  const quickPrompts = [
-    "What is the most grounded way to respond here?",
-    "What is this moment probably signaling underneath?",
-    "What should I avoid saying right now?",
-  ];
+  const quickPrompts = buildQuickPrompts(ctx, scopeLabel);
 
   return (
     <>
@@ -156,10 +166,10 @@ export default function AskCoachDrawer({ ctx, defaultOpen = false }) {
                   <div className="space-y-2">
                     <p className="text-base font-medium text-[#14263f]">Ask for help with this exact moment</p>
                     <p className="mx-auto max-w-sm text-sm leading-6 text-muted-foreground">
-                      Use a quick prompt below or ask your own question. The response will stay grounded in the page and section you’re viewing.
+                      Choose one of the high-impact prompts below, or ask your own question in the text field.
                     </p>
                   </div>
-                  <div className="grid gap-2 text-left sm:grid-cols-3">
+                  <div className="grid gap-2 text-left sm:grid-cols-2">
                     {quickPrompts.map((prompt) => (
                       <button
                         key={prompt}

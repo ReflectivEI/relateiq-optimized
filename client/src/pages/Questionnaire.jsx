@@ -409,7 +409,7 @@ export default function Questionnaire() {
         sourceInputs: { category: activeCategory, answeredCount: totalAnswered },
         tonyResponses: person === participants[0] ? responses : [],
         drewResponses: person === participants[1] ? responses : [],
-      })} defaultOpen />
+      })} />
 
       {/* Questions */}
       <AnimatePresence mode="wait">
