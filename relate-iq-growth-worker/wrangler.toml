@@ -12,7 +12,7 @@ id = "bfba61b8034d4a9891ae8353ccaed31c"
 preview_id = "decision-cache-preview"
 
 [vars]
-CORS_ORIGINS = "http://localhost:5173,http://localhost:4173,http://127.0.0.1:4173,https://relateiq-growth.pages.dev,https://relateiq-optimized.pages.dev,https://relateiq-optimized.vercel.app"
+CORS_ORIGINS = "http://localhost:5173,http://localhost:4173,http://127.0.0.1:4173,https://relateiq-growth.pages.dev,https://relateiq-optimized.pages.dev,https://b1d58dc7.relateiq-optimized.pages.dev,https://relateiq-optimized.vercel.app"
 
 # Enable after Cloudflare Email Service domain onboarding is complete.
 # [[send_email]]
