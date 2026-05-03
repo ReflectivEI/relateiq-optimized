@@ -230,14 +230,20 @@ export const RELATEIQ_USERS: User[] = [
   {
     id: "tony",
     email: "tony@relateiq.local",
-    password_hash: "76abba09c26cfdefadd7c46de0ad992a4521f94270964afc59db2e9def71d37d",
+    password_hash: "836e55c6fe74da1ed0b0221ceb8eede544f648765c71e837108e046094d29a21",
     name: "Tony",
   },
   {
     id: "drew",
     email: "drew@relateiq.local",
-    password_hash: "b09d0d91b793290b0047a42a5b8f5e3d47e30818112a3145a7a4ff889a520229",
+    password_hash: "c704bfa022649813d02e1495f25553a2a2ac956e0393bcd575ee48b650a60f5d",
     name: "Drew",
+  },
+  {
+    id: "desi",
+    email: "desi@relateiq.local",
+    password_hash: "cdf120fd56823afa4770fb9a630c23398667a18e98d494b098845e1816955a06",
+    name: "Desi",
   },
 ];
 
@@ -255,6 +261,22 @@ export const RELATEIQ_RELATIONSHIPS: Relationship[] = [
     name: "Tony & Drew — Friendship Lens",
     type: "friendship",
     participants: ["Tony", "Drew"],
+    created_at: CREATED_AT,
+    updated_at: CREATED_AT,
+  },
+  {
+    id: "relationship_tony_desi",
+    name: "Tony & Desi",
+    type: "colleague",
+    participants: ["Tony", "Desi"],
+    created_at: CREATED_AT,
+    updated_at: CREATED_AT,
+  },
+  {
+    id: "relationship_drew_desi",
+    name: "Drew & Desi",
+    type: "friend",
+    participants: ["Drew", "Desi"],
     created_at: CREATED_AT,
     updated_at: CREATED_AT,
   },
@@ -283,6 +305,30 @@ export const RELATEIQ_MEMBERSHIPS: RelationshipMembership[] = [
     id: "membership_drew_friendship",
     relationship_id: "relationship_tony_drew_friendship",
     user_id: "drew",
+    role: "participant",
+  },
+  {
+    id: "membership_tony_desi_colleague",
+    relationship_id: "relationship_tony_desi",
+    user_id: "tony",
+    role: "owner",
+  },
+  {
+    id: "membership_desi_colleague",
+    relationship_id: "relationship_tony_desi",
+    user_id: "desi",
+    role: "participant",
+  },
+  {
+    id: "membership_drew_desi_friend",
+    relationship_id: "relationship_drew_desi",
+    user_id: "drew",
+    role: "owner",
+  },
+  {
+    id: "membership_desi_friend",
+    relationship_id: "relationship_drew_desi",
+    user_id: "desi",
     role: "participant",
   },
 ];
