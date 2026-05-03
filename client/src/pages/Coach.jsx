@@ -72,6 +72,14 @@ const SUGGESTION_PILLS = [
   { id: "repeating_pattern", label: "We Keep Repeating This Pattern", icon: RefreshCw, description: "Name the cycle and interrupt it with a better response." },
 ];
 
+const COACH_FEEDBACK_OPTIONS = [
+  { id: "helpful", label: "Helpful" },
+  { id: "too_generic", label: "Too Generic" },
+  { id: "too_long", label: "Too Long" },
+  { id: "too_soft", label: "Too Soft" },
+  { id: "too_direct", label: "Too Direct" },
+];
+
 function cleanSituationText(value) {
   if (!value || typeof value !== "string") return "";
   return value
@@ -218,6 +226,7 @@ function getLearningSignals(relationshipId, speaker, target) {
   return store[getLearningProfileKey(relationshipId, speaker, target)] || {
     modeUsage: { full: 0, explain: 0, "60second": 0, action: 0, script: 0 },
     copiedByMode: { full: 0, explain: 0, "60second": 0, action: 0, script: 0 },
+    feedbackSignals: { helpful: 0, too_generic: 0, too_long: 0, too_soft: 0, too_direct: 0 },
     recentSituations: [],
     successfulOpenings: [],
     updatedAt: null,
@@ -254,6 +263,13 @@ function normalizeLearningSignalsShape(raw) {
   return {
     modeUsage: normalizeCounterMap(raw.modeUsage || raw.mode_usage),
     copiedByMode: normalizeCounterMap(raw.copiedByMode || raw.copied_by_mode),
+    feedbackSignals: {
+      helpful: Number(raw?.feedbackSignals?.helpful || raw?.feedback_signals?.helpful || 0) || 0,
+      too_generic: Number(raw?.feedbackSignals?.too_generic || raw?.feedback_signals?.too_generic || 0) || 0,
+      too_long: Number(raw?.feedbackSignals?.too_long || raw?.feedback_signals?.too_long || 0) || 0,
+      too_soft: Number(raw?.feedbackSignals?.too_soft || raw?.feedback_signals?.too_soft || 0) || 0,
+      too_direct: Number(raw?.feedbackSignals?.too_direct || raw?.feedback_signals?.too_direct || 0) || 0,
+    },
     recentSituations: Array.isArray(raw.recentSituations || raw.recent_situations)
       ? (raw.recentSituations || raw.recent_situations).filter(Boolean).slice(0, 8)
       : [],
@@ -278,9 +294,18 @@ function mergeLearningSignals(localSignals, remoteSignals) {
   const mergeList = (localList, remoteList, limit) =>
     [...new Set([...(remoteList || []), ...(localList || [])].filter(Boolean))].slice(0, limit);
 
+  const mergeFeedback = (localMap, remoteMap) => ({
+    helpful: Math.max(Number(localMap?.helpful || 0), Number(remoteMap?.helpful || 0)),
+    too_generic: Math.max(Number(localMap?.too_generic || 0), Number(remoteMap?.too_generic || 0)),
+    too_long: Math.max(Number(localMap?.too_long || 0), Number(remoteMap?.too_long || 0)),
+    too_soft: Math.max(Number(localMap?.too_soft || 0), Number(remoteMap?.too_soft || 0)),
+    too_direct: Math.max(Number(localMap?.too_direct || 0), Number(remoteMap?.too_direct || 0)),
+  });
+
   return {
     modeUsage: mergedCounter(localSignals?.modeUsage, remoteSignals?.modeUsage),
     copiedByMode: mergedCounter(localSignals?.copiedByMode, remoteSignals?.copiedByMode),
+    feedbackSignals: mergeFeedback(localSignals?.feedbackSignals, remoteSignals?.feedbackSignals),
     recentSituations: mergeList(localSignals?.recentSituations, remoteSignals?.recentSituations, 8),
     successfulOpenings: mergeList(localSignals?.successfulOpenings, remoteSignals?.successfulOpenings, 10),
     updatedAt: remoteSignals.updatedAt || localSignals?.updatedAt || null,
@@ -346,6 +371,8 @@ export default function Coach() {
   const [coachModes, setCoachModes] = useState(null);
   const [creditError, setCreditError] = useState(false);
   const [refreshingModes, setRefreshingModes] = useState(false);
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [selectedFeedback, setSelectedFeedback] = useState("");
   const [sessionId, setSessionId] = useState(null);
   const [predictiveOutput, setPredictiveOutput] = useState(null);
   const [selectedPill, setSelectedPill] = useState(null);
@@ -670,6 +697,7 @@ ${checkInEvidence || "None"}
 LEARNING SIGNALS FROM THIS CONNECTION
 - Mode usage counts: ${JSON.stringify(learningSignals.modeUsage || {})}
 - Copy/save preference counts: ${JSON.stringify(learningSignals.copiedByMode || {})}
+- Explicit feedback counts: ${JSON.stringify(learningSignals.feedbackSignals || {})}
 - Recent situations where coaching was requested: ${(learningSignals.recentSituations || []).join(" | ") || "None"}
 - Openings that were previously copied/saved most often: ${(learningSignals.successfulOpenings || []).join(" | ") || "None"}
 
@@ -765,6 +793,7 @@ Hard constraints:
     setBaseResponse(result);
     setCoachModes(fallbackModes);
     setResponse(fallbackModes.full);
+    setSelectedFeedback("");
     setOutputMode("full");
     setLoading(false);
     queryClient.invalidateQueries({ queryKey: ["coach-sessions", activeRelationshipId] });
@@ -896,6 +925,34 @@ Hard constraints:
       mode: outputMode,
     });
     toast.success("Response copied to clipboard");
+  };
+
+  const handleGuidanceFeedback = async (feedbackType) => {
+    if (!response || !activeRelationshipId || !currentSpeaker || !currentSpeakingTo || feedbackSubmitting) return;
+
+    setFeedbackSubmitting(true);
+    setSelectedFeedback(feedbackType);
+
+    updateLearningSignals(activeRelationshipId, currentSpeaker, currentSpeakingTo, (current) => ({
+      ...current,
+      feedbackSignals: {
+        ...(current.feedbackSignals || { helpful: 0, too_generic: 0, too_long: 0, too_soft: 0, too_direct: 0 }),
+        [feedbackType]: Number(current?.feedbackSignals?.[feedbackType] || 0) + 1,
+      },
+    }));
+
+    trackLearningEventServer({
+      relationship_id: activeRelationshipId,
+      speaker: currentSpeaker,
+      target: currentSpeakingTo,
+      eventType: "feedback",
+      feedbackType,
+      mode: outputMode,
+      relatedSessionId: sessionId,
+    });
+
+    setFeedbackSubmitting(false);
+    toast.success("Feedback captured. Guidance will adapt.");
   };
 
   const loadSessionIntoComposer = (session) => {
@@ -1080,6 +1137,25 @@ Hard constraints:
               <CardContent className="space-y-4">
                 <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary">
                   <ReactMarkdown>{response}</ReactMarkdown>
+                </div>
+
+                <div className="rounded-lg border border-border/50 bg-muted/20 p-3 space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Rate This Guidance</p>
+                  <div className="flex flex-wrap gap-2">
+                    {COACH_FEEDBACK_OPTIONS.map((option) => (
+                      <Button
+                        key={option.id}
+                        type="button"
+                        size="sm"
+                        variant={selectedFeedback === option.id ? "default" : "outline"}
+                        onClick={() => handleGuidanceFeedback(option.id)}
+                        disabled={feedbackSubmitting}
+                        className="text-xs"
+                      >
+                        {option.label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Data Source Badge */}

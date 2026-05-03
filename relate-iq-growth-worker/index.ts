@@ -2557,6 +2557,8 @@ function dedupeMetricStateRecords(entity: string, records: StoredRecord[]) {
 
 const COACH_MODE_KEYS = ["full", "explain", "60second", "action", "script"] as const;
 type CoachModeKey = (typeof COACH_MODE_KEYS)[number];
+const COACH_FEEDBACK_KEYS = ["helpful", "too_generic", "too_long", "too_soft", "too_direct"] as const;
+type CoachFeedbackKey = (typeof COACH_FEEDBACK_KEYS)[number];
 
 function normalizeCoachMode(value: unknown): CoachModeKey {
   const normalized = normalizeText(value).toLowerCase();
@@ -2577,6 +2579,25 @@ function normalizeCoachModeCounterMap(value: unknown) {
   }, {} as Record<CoachModeKey, number>);
 }
 
+function normalizeCoachFeedback(value: unknown): CoachFeedbackKey {
+  const normalized = normalizeText(value).toLowerCase().replace(/[\s-]+/g, "_");
+  if (normalized === "helpful") return "helpful";
+  if (normalized === "too_generic" || normalized === "generic") return "too_generic";
+  if (normalized === "too_long" || normalized === "long") return "too_long";
+  if (normalized === "too_soft" || normalized === "soft") return "too_soft";
+  if (normalized === "too_direct" || normalized === "direct") return "too_direct";
+  return "helpful";
+}
+
+function normalizeCoachFeedbackCounterMap(value: unknown) {
+  const input = isObject(value) ? value : {};
+  return COACH_FEEDBACK_KEYS.reduce((acc, key) => {
+    const raw = Number(input[key]);
+    acc[key] = Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
+    return acc;
+  }, {} as Record<CoachFeedbackKey, number>);
+}
+
 function mergeUniqueLimited(items: string[], nextItems: string[], limit: number) {
   const deduped = [...new Set([...nextItems, ...items].map((entry) => normalizeText(entry)).filter(Boolean))];
   return deduped.slice(0, limit);
@@ -2594,6 +2615,7 @@ function buildDefaultCoachLearningState(relationshipId: string, speaker: string,
     target,
     mode_usage: normalizeCoachModeCounterMap({}),
     copied_by_mode: normalizeCoachModeCounterMap({}),
+    feedback_signals: normalizeCoachFeedbackCounterMap({}),
     recent_situations: [],
     successful_openings: [],
     created_date: nowIso(),
@@ -2614,6 +2636,7 @@ function normalizeCoachLearningRecord(record: StoredRecord | null, relationshipI
     target,
     mode_usage: normalizeCoachModeCounterMap(record.mode_usage),
     copied_by_mode: normalizeCoachModeCounterMap(record.copied_by_mode),
+    feedback_signals: normalizeCoachFeedbackCounterMap(record.feedback_signals),
     recent_situations: toStringArray(record.recent_situations, []).slice(0, 8),
     successful_openings: toStringArray(record.successful_openings, []).slice(0, 10),
     created_date: normalizeText(record.created_date) || baseline.created_date,
@@ -2648,9 +2671,11 @@ async function upsertCoachLearningState(
   const current = normalizeCoachLearningRecord(currentRaw, relationshipId, speaker, target);
   const eventType = normalizeText(body.eventType).toLowerCase();
   const mode = normalizeCoachMode(body.mode);
+  const feedbackType = normalizeCoachFeedback(body.feedbackType || body.feedback_type);
 
   const nextModeUsage = normalizeCoachModeCounterMap(current.mode_usage);
   const nextCopied = normalizeCoachModeCounterMap(current.copied_by_mode);
+  const nextFeedback = normalizeCoachFeedbackCounterMap(current.feedback_signals);
   let nextSituations = toStringArray(current.recent_situations, []);
   let nextOpenings = toStringArray(current.successful_openings, []);
 
@@ -2660,6 +2685,10 @@ async function upsertCoachLearningState(
 
   if (eventType === "copy" || eventType === "copied") {
     nextCopied[mode] = Number(nextCopied[mode] || 0) + 1;
+  }
+
+  if (eventType === "feedback") {
+    nextFeedback[feedbackType] = Number(nextFeedback[feedbackType] || 0) + 1;
   }
 
   const situation = normalizeText(body.situation);
@@ -2680,6 +2709,7 @@ async function upsertCoachLearningState(
     target,
     mode_usage: nextModeUsage,
     copied_by_mode: nextCopied,
+    feedback_signals: nextFeedback,
     recent_situations: nextSituations,
     successful_openings: nextOpenings,
   };

@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Link2, Send, Inbox } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ChevronLeft, ChevronRight, Link2, Send, Inbox, ArrowUpRight } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Insights from "@/pages/Insights";
 import AnalysisEngine from "@/pages/AnalysisEngine";
 import KnowledgeHub from "@/pages/KnowledgeHub";
@@ -16,25 +16,28 @@ import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import { cn } from "@/lib/utils";
 
 const sidebarItems = [
-  { id: "overview", label: "Overview", section: "insights" },
-  { id: "insights", label: "Insights", section: "insights" },
-  { id: "patterns", label: "Patterns", section: "analysis" },
-  { id: "deep-analysis", label: "Deep Analysis", section: "analysis" },
-  { id: "analysis-engine", label: "Analysis Engine", section: "analysis" },
-  { id: "multi-perspective", label: "Multi-Perspective", section: "analysis" },
-  { id: "pattern-scores", label: "Pattern Scores", section: "analysis" },
-  { id: "predictive-layer", label: "Predictive Layer", section: "analysis" },
-  { id: "knowledge-hub", label: "Knowledge Hub", section: "knowledge" },
-  { id: "play-lab", label: "Play Lab", section: "knowledge" },
-  { id: "growth-roadmap", label: "Growth Roadmap", section: "knowledge" },
-  { id: "resources", label: "Resources", section: "knowledge" },
+  { id: "overview", label: "Overview", section: "insights", route: "/insights", description: "Connection-level executive summary and trendline." },
+  { id: "insights", label: "Insights", section: "insights", route: "/insights", description: "Compatibility, strengths, risk areas, and recommendations." },
+  { id: "patterns", label: "Patterns", section: "analysis", route: "/analysis", description: "Behavioral and communication loops extracted from signals." },
+  { id: "deep-analysis", label: "Deep Analysis", section: "analysis", route: "/analysis", description: "Extended analysis with health report detail." },
+  { id: "analysis-engine", label: "Analysis Engine", section: "analysis", route: "/analysis", description: "Multi-perspective analysis workspace." },
+  { id: "multi-perspective", label: "Multi-Perspective", section: "analysis", route: "/analysis", description: "Directional view by speaker and receiver." },
+  { id: "pattern-scores", label: "Pattern Scores", section: "analysis", route: "/playbook", description: "Score-informed view tied to playbook actions." },
+  { id: "predictive-layer", label: "Predictive Layer", section: "analysis", route: "/play-lab-ii", description: "Forward risk and outcome simulation layer." },
+  { id: "knowledge-hub", label: "Knowledge Hub", section: "knowledge", route: "/knowledge", description: "AI insights mapped to trusted resources." },
+  { id: "play-lab", label: "Play Lab", section: "knowledge", route: "/play-lab", description: "Interactive scenario and empathy training modules." },
+  { id: "growth-roadmap", label: "Growth Roadmap", section: "knowledge", route: "/roadmap", description: "Milestone plan and monthly execution focus." },
+  { id: "resources", label: "Resources", section: "knowledge", route: "/insight-library", description: "Curated resource library and reference materials." },
 ];
 
 export default function Grow() {
-  const { primaryPerson, secondaryPerson, activeRelationship, activeRelationshipId, relationshipLabel } = useRelationshipAuth();
+  const { secondaryPerson, activeRelationship, relationshipLabel } = useRelationshipAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeSidebarItem, setActiveSidebarItem] = useState("overview");
+  const requestedView = searchParams.get("view") || "overview";
+  const validIds = useMemo(() => new Set(sidebarItems.map((item) => item.id)), []);
+  const activeSidebarItem = validIds.has(requestedView) ? requestedView : "overview";
 
   const contentBySidebarItem = {
     overview: <Insights />,
@@ -59,10 +62,18 @@ export default function Grow() {
   };
 
   const handleSidebarSelect = (item) => {
-    setActiveSidebarItem(item.id);
+    const next = new URLSearchParams(searchParams);
+    next.set("view", item.id);
+    setSearchParams(next, { replace: true });
+  };
+
+  const handleOpenDedicatedPage = (item) => {
+    if (!item?.route) return;
+    navigate(item.route);
   };
 
   const currentSidebarContent = contentBySidebarItem[activeSidebarItem] || <Insights />;
+  const activeItemMeta = sidebarItems.find((item) => item.id === activeSidebarItem) || sidebarItems[0];
 
   const connectionName = activeRelationship?.name || relationshipLabel || "This Connection";
   const connectionSubtitle = activeRelationship?.description || activeRelationship?.goal || "Better Together";
@@ -97,6 +108,17 @@ export default function Grow() {
                 </button>
               ))}
             </nav>
+            <div className="px-3 py-3 border-t border-border/30">
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full gap-1.5"
+                onClick={() => handleOpenDedicatedPage(activeItemMeta)}
+              >
+                Open Full Page
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -173,6 +195,24 @@ export default function Grow() {
 
             {/* Page Content */}
             <div className="space-y-6">
+              <div className="rounded-xl border border-border/60 bg-card/50 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Active View</p>
+                    <h3 className="text-base font-semibold text-foreground">{activeItemMeta.label}</h3>
+                    <p className="text-sm text-muted-foreground">{activeItemMeta.description}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={() => handleOpenDedicatedPage(activeItemMeta)}
+                  >
+                    Open Full Page
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
               {currentSidebarContent}
               {activeSidebarItem === "deep-analysis" ? analysisExtendedViews["health-report"] : null}
               {activeSidebarItem === "multi-perspective" ? analysisExtendedViews.vision : null}
