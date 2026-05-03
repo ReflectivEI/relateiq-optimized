@@ -307,13 +307,13 @@ function ContextInsightsView({ insights, ctx, contentRef, insightId, participant
             <CardTitle className="text-sm font-medium text-muted-foreground">Early Signals — {participants[0]}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 pt-0">
-            {(insights.signals_tony || []).map((s, i) => (
+            {(insights.signals_person_a || insights.signals_tony || []).map((s, i) => (
               <div key={i} className="flex items-start gap-2 text-sm">
                 <span className="text-primary mt-0.5 shrink-0">✦</span>
                 <span className="text-foreground">{presentRelationshipText(s, participants, activeRelationship)}</span>
               </div>
             ))}
-            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle={`Early Signals — ${participants[0]}`} sectionContent={(insights.signals_tony || []).map((item) => presentRelationshipText(item, participants, activeRelationship)).join("\n")} className="mt-2" />}
+            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle={`Early Signals — ${participants[0]}`} sectionContent={(insights.signals_person_a || insights.signals_tony || []).map((item) => presentRelationshipText(item, participants, activeRelationship)).join("\n")} className="mt-2" />}
           </CardContent>
         </Card>
         <Card>
@@ -321,13 +321,13 @@ function ContextInsightsView({ insights, ctx, contentRef, insightId, participant
             <CardTitle className="text-sm font-medium text-muted-foreground">Early Signals — {participants[1]}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 pt-0">
-            {(insights.signals_drew || []).map((s, i) => (
+            {(insights.signals_person_b || insights.signals_drew || []).map((s, i) => (
               <div key={i} className="flex items-start gap-2 text-sm">
                 <span className="text-primary mt-0.5 shrink-0">✦</span>
                 <span className="text-foreground">{presentRelationshipText(s, participants, activeRelationship)}</span>
               </div>
             ))}
-            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle={`Early Signals — ${participants[1]}`} sectionContent={(insights.signals_drew || []).map((item) => presentRelationshipText(item, participants, activeRelationship)).join("\n")} className="mt-2" />}
+            {ctx && <AskAIFollowUp ctx={ctx} sectionTitle={`Early Signals — ${participants[1]}`} sectionContent={(insights.signals_person_b || insights.signals_drew || []).map((item) => presentRelationshipText(item, participants, activeRelationship)).join("\n")} className="mt-2" />}
           </CardContent>
         </Card>
       </div>
@@ -442,8 +442,8 @@ function ContextInsightsView({ insights, ctx, contentRef, insightId, participant
               whatSystemSees: presentRelationshipText(insights.what_system_sees, participants, activeRelationship),
               whatThisMeans: presentRelationshipText(insights.what_this_means, participants, activeRelationship),
               emergingPatterns: (insights.emerging_patterns || []).map((item) => `${presentRelationshipText(item.title, participants, activeRelationship)}: ${presentRelationshipText(item.description, participants, activeRelationship)}`),
-              signalsTony: (insights.signals_tony || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
-              signalsDrew: (insights.signals_drew || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
+              signalsTony: (insights.signals_person_a || insights.signals_tony || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
+              signalsDrew: (insights.signals_person_b || insights.signals_drew || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
               signalsTogether: (insights.signals_together || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
               whatSeemsToHelp: (insights.what_seems_to_help || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
               frictionSources: (insights.friction_sources || []).map((item) => presentRelationshipText(item, participants, activeRelationship)),
@@ -455,8 +455,8 @@ function ContextInsightsView({ insights, ctx, contentRef, insightId, participant
           <ExportBar ctx={ctx} content={[
             presentRelationshipText(insights.what_system_sees, participants, activeRelationship),
             presentRelationshipText(insights.what_this_means, participants, activeRelationship),
-            `\nEarly Signals — ${participants[0]}:\n${(insights.signals_tony || []).map(s => `• ${presentRelationshipText(s, participants, activeRelationship)}`).join("\n")}`,
-            `\nEarly Signals — ${participants[1]}:\n${(insights.signals_drew || []).map(s => `• ${presentRelationshipText(s, participants, activeRelationship)}`).join("\n")}`,
+            `\nEarly Signals — ${participants[0]}:\n${(insights.signals_person_a || insights.signals_tony || []).map(s => `• ${presentRelationshipText(s, participants, activeRelationship)}`).join("\n")}`,
+            `\nEarly Signals — ${participants[1]}:\n${(insights.signals_person_b || insights.signals_drew || []).map(s => `• ${presentRelationshipText(s, participants, activeRelationship)}`).join("\n")}`,
             `\nWhat to Try Next:\n${(insights.what_to_try_next || []).map((r, i) => `${i + 1}. ${presentRelationshipText(r, participants, activeRelationship)}`).join("\n")}`,
           ].join("\n\n")} />
         </>
@@ -579,8 +579,8 @@ function DeepInsightsView({ insights, ctx, contentRef, insightId, participants, 
                 {insights.comparison_table?.map((row, i) => (
                   <tr key={i} className="border-b border-border/50">
                     <td className="py-2.5 px-3 font-medium text-foreground">{row.category}</td>
-                    <td className="py-2.5 px-3 text-muted-foreground">{presentRelationshipText(row.tony, participants, activeRelationship)}</td>
-                    <td className="py-2.5 px-3 text-muted-foreground">{presentRelationshipText(row.drew, participants, activeRelationship)}</td>
+                    <td className="py-2.5 px-3 text-muted-foreground">{presentRelationshipText(row.person_a ?? row.tony, participants, activeRelationship)}</td>
+                    <td className="py-2.5 px-3 text-muted-foreground">{presentRelationshipText(row.person_b ?? row.drew, participants, activeRelationship)}</td>
                     <td className="py-2.5 px-3"><Badge variant="outline" className="text-xs font-normal">{presentRelationshipText(row.insight, participants, activeRelationship)}</Badge></td>
                   </tr>
                 ))}
@@ -595,8 +595,8 @@ function DeepInsightsView({ insights, ctx, contentRef, insightId, participants, 
                 .map((row) =>
                   [
                     row?.category,
-                    presentRelationshipText(row?.tony, participants, activeRelationship),
-                    presentRelationshipText(row?.drew, participants, activeRelationship),
+                    presentRelationshipText(row?.person_a ?? row?.tony, participants, activeRelationship),
+                    presentRelationshipText(row?.person_b ?? row?.drew, participants, activeRelationship),
                     presentRelationshipText(row?.insight, participants, activeRelationship),
                   ]
                     .filter(Boolean)
@@ -837,8 +837,8 @@ export default function Insights() {
         properties: {
           what_system_sees: { type: "string" },
           what_this_means: { type: "string" },
-          signals_tony: { type: "array", items: { type: "string" } },
-          signals_drew: { type: "array", items: { type: "string" } },
+          signals_person_a: { type: "array", items: { type: "string" } },
+          signals_person_b: { type: "array", items: { type: "string" } },
           signals_together: { type: "array", items: { type: "string" } },
           what_seems_to_help: { type: "array", items: { type: "string" } },
           friction_sources: { type: "array", items: { type: "string" } },
@@ -964,7 +964,7 @@ export default function Insights() {
             risk_areas: { type: "array", items: { type: "string" } },
             conflict_loops: { type: "array", items: { type: "string" } },
             shared_strengths: { type: "array", items: { type: "string" } },
-            comparison_table: { type: "array", items: { type: "object", properties: { category: { type: "string" }, tony: { type: "string" }, drew: { type: "string" }, insight: { type: "string" } } } },
+            comparison_table: { type: "array", items: { type: "object", properties: { category: { type: "string" }, person_a: { type: "string" }, person_b: { type: "string" }, insight: { type: "string" } } } },
             predictions: { type: "array", items: { type: "string" } },
             recommendations: { type: "array", items: { type: "string" } },
             growth_summary: { type: "string" },

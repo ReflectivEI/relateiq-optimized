@@ -37,7 +37,7 @@ const Textarea = React.forwardRef(({ className, onChange, style, value, ...props
     (<textarea
       className={cn(
         className,
-        "flex min-h-[60px] w-full resize-none overflow-hidden !border-0 !bg-transparent px-0 py-0 text-base !shadow-none placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+        "flex min-h-[72px] w-full resize-none overflow-hidden !border-0 !bg-transparent px-0 py-2 text-[15px] leading-6 !shadow-none placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50"
       )}
       ref={setRefs}
       onChange={handleChange}

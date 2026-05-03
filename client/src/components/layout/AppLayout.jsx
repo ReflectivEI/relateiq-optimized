@@ -102,7 +102,7 @@ const topNavItems = [
   { path: "/profiles", label: "Profile" },
 ];
 
-const SHELL_WIDTH_CLASS = "mx-auto w-full max-w-[1640px] px-5 sm:px-7 lg:px-10";
+const SHELL_WIDTH_CLASS = "w-full px-3 sm:px-4 lg:px-6 xl:px-8";
 
 const consolidatedRouteAliases = {
   "/reflect": ["/coach", "/chat", "/daily", "/journal"],
@@ -992,7 +992,9 @@ export default function AppLayout() {
                 </Button>
               </div>
             </div>
-            <Outlet />
+            <div className="app-content-frame">
+              <Outlet />
+            </div>
           </div>
         </div>
       </main>

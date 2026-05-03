@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Link2, Send, Inbox } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Insights from "@/pages/Insights";
 import AnalysisEngine from "@/pages/AnalysisEngine";
 import KnowledgeHub from "@/pages/KnowledgeHub";
@@ -12,6 +12,7 @@ import InsightLibrary from "@/pages/InsightLibrary";
 import HealthReport from "@/pages/HealthReport";
 import VisionBoard from "@/pages/VisionBoard";
 import RelationshipPlaybook from "@/pages/RelationshipPlaybook";
+import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import { cn } from "@/lib/utils";
 
 const sidebarItems = [
@@ -30,8 +31,9 @@ const sidebarItems = [
 ];
 
 export default function Grow() {
+  const { primaryPerson, secondaryPerson, activeRelationship, activeRelationshipId, relationshipLabel } = useRelationshipAuth();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState("insights");
   const [activeSidebarItem, setActiveSidebarItem] = useState("overview");
 
   const contentBySidebarItem = {
@@ -57,11 +59,13 @@ export default function Grow() {
   };
 
   const handleSidebarSelect = (item) => {
-    setActiveTab(item.section);
     setActiveSidebarItem(item.id);
   };
 
   const currentSidebarContent = contentBySidebarItem[activeSidebarItem] || <Insights />;
+
+  const connectionName = activeRelationship?.name || relationshipLabel || "This Connection";
+  const connectionSubtitle = activeRelationship?.description || activeRelationship?.goal || "Better Together";
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -123,34 +127,59 @@ export default function Grow() {
 
         {/* Content Area */}
         <div className="flex-1 overflow-auto">
-          <div className="px-4 md:px-8 py-6 max-w-7xl mx-auto">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              {/* Tabs List */}
-              <TabsList className="grid w-full max-w-lg grid-cols-3 mb-8 bg-card/50">
-                <TabsTrigger value="insights">Insights</TabsTrigger>
-                <TabsTrigger value="analysis">Deep Analysis</TabsTrigger>
-                <TabsTrigger value="knowledge">Knowledge Hub</TabsTrigger>
-              </TabsList>
+          <div className="px-4 md:px-8 py-6 max-w-7xl mx-auto space-y-6">
 
-              {/* Insights Tab */}
-              <TabsContent value="insights" className="space-y-6">
-                {currentSidebarContent}
-              </TabsContent>
+            {/* Active Connection Context Banner */}
+            <div className="rounded-xl bg-gradient-to-r from-[#0a2a3f] to-[#0e6f72] p-5 text-white flex items-start justify-between gap-4">
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">Context</p>
+                <h2 className="text-lg font-semibold leading-snug">{connectionName}</h2>
+                {connectionSubtitle && (
+                  <p className="text-sm text-white/70">{connectionSubtitle}</p>
+                )}
+              </div>
+              <Link2 className="w-5 h-5 text-white/40 shrink-0 mt-1" />
+            </div>
 
-              {/* Analysis Tab */}
-              <TabsContent value="analysis" className="space-y-6">
-                {currentSidebarContent}
-                {activeSidebarItem === "deep-analysis" ? analysisExtendedViews["health-report"] : null}
-                {activeSidebarItem === "multi-perspective" ? analysisExtendedViews.vision : null}
-                {activeSidebarItem === "pattern-scores" ? analysisExtendedViews.playbook : null}
-                {activeSidebarItem === "predictive-layer" ? analysisExtendedViews["play-lab-ii"] : null}
-              </TabsContent>
+            {/* Connection Actions */}
+            {secondaryPerson && (
+              <div className="rounded-xl border border-border/50 bg-card/60 p-4 space-y-3">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Connection Actions</p>
+                <p className="text-sm text-muted-foreground">
+                  Send a direct note to {secondaryPerson} from anywhere in this relationship.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => navigate("/tester-inbox")}
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    Send to {secondaryPerson}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="gap-2"
+                    onClick={() => navigate("/tester-inbox")}
+                  >
+                    <Inbox className="w-3.5 h-3.5" />
+                    Open Inbox
+                  </Button>
+                </div>
+              </div>
+            )}
 
-              {/* Knowledge Hub Tab */}
-              <TabsContent value="knowledge" className="space-y-6">
-                {currentSidebarContent}
-              </TabsContent>
-            </Tabs>
+            {/* Page Content */}
+            <div className="space-y-6">
+              {currentSidebarContent}
+              {activeSidebarItem === "deep-analysis" ? analysisExtendedViews["health-report"] : null}
+              {activeSidebarItem === "multi-perspective" ? analysisExtendedViews.vision : null}
+              {activeSidebarItem === "pattern-scores" ? analysisExtendedViews.playbook : null}
+              {activeSidebarItem === "predictive-layer" ? analysisExtendedViews["play-lab-ii"] : null}
+            </div>
+
           </div>
         </div>
       </div>

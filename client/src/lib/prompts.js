@@ -692,7 +692,7 @@ Generate valid JSON with these exact fields:
 - compatibility_label: string (e.g., "Deeply Bonded with Growth Edge")
 - strengths: array of 5–7 specific relationship strengths (named, not generic)
 - risk_areas: array of 4–6 specific risk dynamics (named patterns, not topics)
-- comparison_table: array of objects {category, tony, drew, insight} — 6–8 rows covering key dynamic differences
+- comparison_table: array of objects {category, person_a, person_b, insight} — 6–8 rows covering key dynamic differences. person_a represents ${primaryPerson}, person_b represents ${secondaryPerson}.
 - predictions: array of 4–6 specific behavioral predictions ("When X happens, Y is likely because...")
 - recommendations: array of 5–7 specific, actionable recommendations for this connection
 - growth_summary: 4–5 sentence relationship portrait that feels uniquely like ${primaryPerson} and ${secondaryPerson}
@@ -813,8 +813,8 @@ ANALYSIS INSTRUCTIONS:
 Generate a JSON object with these exact fields:
 - what_system_sees: string — 4–6 sentences describing what the data reveals. MUST name the dynamic explicitly (e.g., "You have a classic mismatch in stress and closeness rhythms"), quote actual answer language, and reference both people by name with specific observed behaviors. Do NOT hedge or speak in generalities.
 - what_this_means: string — 3–4 sentences interpreting WHY this dynamic exists and what it means for ${primaryPerson} and ${secondaryPerson} specifically. Name the underlying mechanism (e.g., "Neither is malicious — both are meeting their needs in the ways they know — but each interprets the other's coping as rejection or pressure.").
-- signals_tony: array of 5–7 strings — ${primaryPerson}'s specific needs, triggers, blind spots, and strengths. MUST quote or paraphrase actual answer language. Format each as: "[Category label]: [specific observation from data]".
-- signals_drew: array of 5–7 strings — ${secondaryPerson}'s specific needs, triggers, blind spots, and strengths in the same format. MUST quote or paraphrase actual answer language.
+- signals_person_a: array of 5–7 strings — ${primaryPerson}'s specific needs, triggers, blind spots, and strengths. MUST quote or paraphrase actual answer language. Format each as: "[Category label]: [specific observation from data]".
+- signals_person_b: array of 5–7 strings — ${secondaryPerson}'s specific needs, triggers, blind spots, and strengths in the same format. MUST quote or paraphrase actual answer language.
 - signals_together: array of 4–6 strings — named connection dynamic patterns, mismatch points, and opportunities unique to ${primaryPerson} and ${secondaryPerson}. Each must name the dynamic (e.g., pursuer-distancer, processing tempo mismatch).
 - what_seems_to_help: array of 3–5 strings — specific strategies grounded in their history
 - friction_sources: array of 3–5 strings — named causes of recurring friction with framework references

@@ -239,4 +239,22 @@
   .enterprise-hover-raise {
     @apply transition-all duration-200 hover:-translate-y-1 hover:shadow-md;
   }
+
+  /* Ensure routed pages inherit the same content width as top navigation shell. */
+  .app-content-frame > .min-h-screen {
+    min-height: auto;
+    background: transparent;
+  }
+
+  .app-content-frame > .min-h-screen > div {
+    width: 100%;
+  }
+
+  .app-content-frame > .min-h-screen > div[class*="max-w-"] {
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
 }
