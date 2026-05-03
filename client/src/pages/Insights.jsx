@@ -158,7 +158,7 @@ function DataAvailableBar({ tonyResponses, drewResponses, sessions, checkIns }) 
     <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
       <span className="font-medium uppercase tracking-wide text-[10px]">Data available:</span>
       {total === 0 ? (
-        <span className="text-muted-foreground/60 italic">No data yet — start with AI Coach or a Check-In</span>
+        <span className="text-muted-foreground italic">No data yet — start with AI Coach or a Check-In</span>
       ) : (
         items.filter((i) => i.count > 0).map((item) => {
           const def = SOURCE_ITEMS.find((s) => s.key === item.key);
@@ -177,15 +177,15 @@ function DataAvailableBar({ tonyResponses, drewResponses, sessions, checkIns }) 
 function ModeCard({ icon: Icon, title, badge, description, sources, locked, onClick, loading, active }) {
   const colorway = title === "Context Insights"
     ? {
-        card: "border-[#14263f]/25 bg-[#eef4fb]",
-        iconWrap: "bg-white border-[#14263f]/20",
-        icon: "text-[#14263f]",
-      }
+      card: "border-[#14263f]/25 bg-[#eef4fb] dark:border-primary/35 dark:bg-card",
+      iconWrap: "bg-white border-[#14263f]/20 dark:bg-background dark:border-primary/30",
+      icon: "text-[#14263f] dark:text-primary",
+    }
     : {
-        card: "border-[#0e6f72]/25 bg-[#e8f7f6]",
-        iconWrap: "bg-white border-[#0e6f72]/20",
-        icon: "text-[#0e6f72]",
-      };
+      card: "border-[#0e6f72]/25 bg-[#e8f7f6] dark:border-primary/35 dark:bg-card",
+      iconWrap: "bg-white border-[#0e6f72]/20 dark:bg-background dark:border-primary/30",
+      icon: "text-[#0e6f72] dark:text-primary",
+    };
 
   return (
     <Card
@@ -198,7 +198,7 @@ function ModeCard({ icon: Icon, title, badge, description, sources, locked, onCl
             <Icon className={`w-4 h-4 ${locked ? "text-muted-foreground" : colorway.icon}`} />
           </div>
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="font-semibold text-sm text-[#14263f]">{title}</span>
+            <span className="font-semibold text-sm text-[#14263f] dark:text-foreground">{title}</span>
             {badge && <Badge variant="outline" className="text-[10px] shrink-0">{badge}</Badge>}
           </div>
         </div>
@@ -214,7 +214,7 @@ function ModeCard({ icon: Icon, title, badge, description, sources, locked, onCl
           </div>
         )}
         {locked && (
-          <p className="text-xs text-muted-foreground/60 italic">
+          <p className="text-xs text-muted-foreground italic">
             Head to Profiles → generate profiles for both people to unlock this mode.
           </p>
         )}
@@ -284,9 +284,9 @@ function ContextInsightsView({ insights, ctx, contentRef, insightId, participant
           </CardHeader>
           <CardContent className="space-y-3 pt-0">
             {insights.emerging_patterns.map((p, i) => (
-              <div key={i} className="p-3 rounded-lg bg-orange-50 border border-orange-100">
+              <div key={i} className="p-3 rounded-lg bg-orange-50 border border-orange-100 dark:bg-orange-950/25 dark:border-orange-800/70">
                 <p className="text-sm font-semibold text-foreground">{presentRelationshipText(p.title, participants, activeRelationship)}</p>
-                <p className="text-sm text-muted-foreground mt-0.5 leading-relaxed">{presentRelationshipText(p.description, participants, activeRelationship)}</p>
+                <p className="text-sm text-foreground/85 mt-0.5 leading-relaxed">{presentRelationshipText(p.description, participants, activeRelationship)}</p>
               </div>
             ))}
             {ctx && (
@@ -551,8 +551,8 @@ function DeepInsightsView({ insights, ctx, contentRef, insightId, participants, 
           </CardHeader>
           <CardContent className="space-y-2 pt-0">
             {insights.conflict_loops.map((loop, i) => (
-                <div key={i} className="px-3 py-2 rounded-lg bg-orange-50 border border-orange-100 text-sm text-foreground">{presentRelationshipText(loop, participants, activeRelationship)}</div>
-              ))}
+              <div key={i} className="px-3 py-2 rounded-lg bg-orange-50 border border-orange-100 text-sm text-foreground">{presentRelationshipText(loop, participants, activeRelationship)}</div>
+            ))}
             {ctx && <AskAIFollowUp ctx={ctx} sectionTitle="Recurring Conflict Loops" sectionContent={insights.conflict_loops.map((item) => presentRelationshipText(item, participants, activeRelationship)).join("\n")} className="mt-2" />}
           </CardContent>
         </Card>
@@ -823,35 +823,35 @@ export default function Insights() {
     let result;
     try {
       result = await safeInvokeLLM({
-      prompt: buildContextInsightsPrompt({
-        tonyProfile, drewProfile, tonyResponses, drewResponses,
-        sessions: recentSessions, checkIns: recentCheckIns,
-        relationshipDynamic: existingDynamic,
-        relationshipTerms: terms,
-        relationshipLabel,
-      }),
-      model: "claude_sonnet_4_6",
-      partnerLanguage: { personName: participants[0], partnerName: participants[1], replacePronouns: false },
-      response_json_schema: {
-        type: "object",
-        properties: {
-          what_system_sees: { type: "string" },
-          what_this_means: { type: "string" },
-          signals_person_a: { type: "array", items: { type: "string" } },
-          signals_person_b: { type: "array", items: { type: "string" } },
-          signals_together: { type: "array", items: { type: "string" } },
-          what_seems_to_help: { type: "array", items: { type: "string" } },
-          friction_sources: { type: "array", items: { type: "string" } },
-          what_to_try_next: { type: "array", items: { type: "string" } },
-          emerging_patterns: {
-            type: "array",
-            items: { type: "object", properties: { title: { type: "string" }, description: { type: "string" } } },
+        prompt: buildContextInsightsPrompt({
+          tonyProfile, drewProfile, tonyResponses, drewResponses,
+          sessions: recentSessions, checkIns: recentCheckIns,
+          relationshipDynamic: existingDynamic,
+          relationshipTerms: terms,
+          relationshipLabel,
+        }),
+        model: "claude_sonnet_4_6",
+        partnerLanguage: { personName: participants[0], partnerName: participants[1], replacePronouns: false },
+        response_json_schema: {
+          type: "object",
+          properties: {
+            what_system_sees: { type: "string" },
+            what_this_means: { type: "string" },
+            signals_person_a: { type: "array", items: { type: "string" } },
+            signals_person_b: { type: "array", items: { type: "string" } },
+            signals_together: { type: "array", items: { type: "string" } },
+            what_seems_to_help: { type: "array", items: { type: "string" } },
+            friction_sources: { type: "array", items: { type: "string" } },
+            what_to_try_next: { type: "array", items: { type: "string" } },
+            emerging_patterns: {
+              type: "array",
+              items: { type: "object", properties: { title: { type: "string" }, description: { type: "string" } } },
+            },
+            confidence_level: { type: "string" },
+            confidence_explanation: { type: "string" },
+            how_to_strengthen: { type: "array", items: { type: "string" } },
           },
-          confidence_level: { type: "string" },
-          confidence_explanation: { type: "string" },
-          how_to_strengthen: { type: "array", items: { type: "string" } },
         },
-      },
       }, 35000, null, validateContextInsightsOutput);
     } catch (err) {
       if (err instanceof CreditLimitError) { setCreditError(true); setLoading(false); setLoadingMode(null); return; }
@@ -943,59 +943,59 @@ export default function Insights() {
     let insightResult, dynamicResult;
     try {
       [insightResult, dynamicResult] = await Promise.all([
-      safeInvokeLLM({
-        prompt: buildInsightsPrompt({
-          tonyProfile,
-          drewProfile,
-          tonyResponses,
-          drewResponses,
-          relationshipDynamic: existingDynamic,
-          relationshipTerms: terms,
-          relationshipLabel,
-        }),
-        model: "claude_sonnet_4_6",
-        partnerLanguage: { personName: participants[0], partnerName: participants[1], replacePronouns: false },
-        response_json_schema: {
-          type: "object",
-          properties: {
-            compatibility_score: { type: "number" },
-            compatibility_label: { type: "string" },
-            strengths: { type: "array", items: { type: "string" } },
-            risk_areas: { type: "array", items: { type: "string" } },
-            conflict_loops: { type: "array", items: { type: "string" } },
-            shared_strengths: { type: "array", items: { type: "string" } },
-            comparison_table: { type: "array", items: { type: "object", properties: { category: { type: "string" }, person_a: { type: "string" }, person_b: { type: "string" }, insight: { type: "string" } } } },
-            predictions: { type: "array", items: { type: "string" } },
-            recommendations: { type: "array", items: { type: "string" } },
-            growth_summary: { type: "string" },
+        safeInvokeLLM({
+          prompt: buildInsightsPrompt({
+            tonyProfile,
+            drewProfile,
+            tonyResponses,
+            drewResponses,
+            relationshipDynamic: existingDynamic,
+            relationshipTerms: terms,
+            relationshipLabel,
+          }),
+          model: "claude_sonnet_4_6",
+          partnerLanguage: { personName: participants[0], partnerName: participants[1], replacePronouns: false },
+          response_json_schema: {
+            type: "object",
+            properties: {
+              compatibility_score: { type: "number" },
+              compatibility_label: { type: "string" },
+              strengths: { type: "array", items: { type: "string" } },
+              risk_areas: { type: "array", items: { type: "string" } },
+              conflict_loops: { type: "array", items: { type: "string" } },
+              shared_strengths: { type: "array", items: { type: "string" } },
+              comparison_table: { type: "array", items: { type: "object", properties: { category: { type: "string" }, person_a: { type: "string" }, person_b: { type: "string" }, insight: { type: "string" } } } },
+              predictions: { type: "array", items: { type: "string" } },
+              recommendations: { type: "array", items: { type: "string" } },
+              growth_summary: { type: "string" },
+            },
           },
-        },
-      }, 40000, deepFallback, validateDeepInsightsOutput),
-      safeInvokeLLM({
-        prompt: buildDynamicUpdatePrompt({
-          tonyProfile,
-          drewProfile,
-          recentSessions,
-          recentCheckIns,
-          relationshipTerms: terms,
-          relationshipLabel,
-        }),
-        model: "gpt_5_mini",
-        partnerLanguage: { personName: participants[0], partnerName: participants[1], replacePronouns: false },
-        response_json_schema: {
-          type: "object",
-          properties: {
-            compatibility_patterns: { type: "array", items: { type: "string" } },
-            mismatch_patterns: { type: "array", items: { type: "string" } },
-            conflict_loops: { type: "array", items: { type: "string" } },
-            shared_strengths: { type: "array", items: { type: "string" } },
-            risk_areas: { type: "array", items: { type: "string" } },
-            improvements_over_time: { type: "array", items: { type: "string" } },
-            ai_dynamic_summary: { type: "string" },
+        }, 40000, deepFallback, validateDeepInsightsOutput),
+        safeInvokeLLM({
+          prompt: buildDynamicUpdatePrompt({
+            tonyProfile,
+            drewProfile,
+            recentSessions,
+            recentCheckIns,
+            relationshipTerms: terms,
+            relationshipLabel,
+          }),
+          model: "gpt_5_mini",
+          partnerLanguage: { personName: participants[0], partnerName: participants[1], replacePronouns: false },
+          response_json_schema: {
+            type: "object",
+            properties: {
+              compatibility_patterns: { type: "array", items: { type: "string" } },
+              mismatch_patterns: { type: "array", items: { type: "string" } },
+              conflict_loops: { type: "array", items: { type: "string" } },
+              shared_strengths: { type: "array", items: { type: "string" } },
+              risk_areas: { type: "array", items: { type: "string" } },
+              improvements_over_time: { type: "array", items: { type: "string" } },
+              ai_dynamic_summary: { type: "string" },
+            },
           },
-        },
-      }, 20000, dynamicFallback),
-    ]);
+        }, 20000, dynamicFallback),
+      ]);
     } catch (err) {
       if (err instanceof CreditLimitError) { setCreditError(true); setLoading(false); setLoadingMode(null); return; }
       throw err;
@@ -1031,12 +1031,12 @@ export default function Insights() {
           {terms.type === "romantic" ? "Relationship" : "Connection"} intelligence generated for {relationshipLabel} from everything the system knows — sessions, check-ins, questionnaire answers, and lived situations.
         </p>
         {lastUpdated && (
-          <p className="text-xs text-muted-foreground/60 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Last updated: {lastUpdated.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}, {lastUpdated.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </p>
         )}
         {existingDynamic?.last_analyzed && !lastUpdated && (
-          <p className="text-xs text-muted-foreground/60 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Last updated: {new Date(existingDynamic.last_analyzed).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
           </p>
         )}
@@ -1096,25 +1096,25 @@ export default function Insights() {
       {dataLoaded && (
         <div className="space-y-4">
           <RelationshipStateCard intelligence={relationshipIntelligence} trend={trend} />
-          
+
           {/* Top risks and strengths */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {relationshipIntelligence.top_3_risks.length > 0 && (
-              <Card className="border-2 border-[#14263f]/20 bg-[#eef4fb]">
+              <Card className="border-2 border-[#14263f]/20 bg-[#eef4fb] dark:border-primary/35 dark:bg-card">
                 <CardContent className="p-4 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#14263f]">Top Risks</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#14263f] dark:text-foreground">Top Risks</p>
                   {relationshipIntelligence.top_3_risks.map((risk, i) => (
-                    <p key={i} className="text-sm text-[#14263f]">• {risk}</p>
+                    <p key={i} className="text-sm text-[#14263f] dark:text-foreground">• {risk}</p>
                   ))}
                 </CardContent>
               </Card>
             )}
             {relationshipIntelligence.top_3_strengths.length > 0 && (
-              <Card className="border-2 border-[#0e6f72]/20 bg-[#e8f7f6]">
+              <Card className="border-2 border-[#0e6f72]/20 bg-[#e8f7f6] dark:border-primary/35 dark:bg-card">
                 <CardContent className="p-4 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#0e6f72]">Top Strengths</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#0e6f72] dark:text-primary">Top Strengths</p>
                   {relationshipIntelligence.top_3_strengths.map((strength, i) => (
-                    <p key={i} className="text-sm text-[#14263f]">• {strength}</p>
+                    <p key={i} className="text-sm text-[#14263f] dark:text-foreground">• {strength}</p>
                   ))}
                 </CardContent>
               </Card>
@@ -1137,7 +1137,7 @@ export default function Insights() {
 
       {/* Empty hero state */}
       {!contextInsights && !deepInsights && !loading && (
-        <Card className="border-2 border-primary/15 bg-white">
+        <Card className="border-2 border-primary/15 bg-white dark:bg-card">
           <CardContent className="p-8 text-center space-y-4">
             <div className="w-16 h-16 rounded-2xl bg-primary/8 border border-primary/15 flex items-center justify-center mx-auto">
               <Sparkles className="w-7 h-7 text-primary" />
@@ -1147,7 +1147,7 @@ export default function Insights() {
               <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
                 RelateIQ can generate meaningful insights at any time — from AI Coach conversations, Smart Tool sessions, Weekly Check-Ins, and any questionnaire answers already provided.
               </p>
-              <p className="text-xs text-muted-foreground/70">
+              <p className="text-xs text-muted-foreground">
                 Complete questionnaire data deepens and sharpens insights over time, but it is not required to begin.
               </p>
             </div>

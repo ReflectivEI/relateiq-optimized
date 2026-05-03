@@ -270,7 +270,7 @@ ${transcriptSeed}`,
           )}
 
           {instructions && (
-            <div className="rounded-xl border border-[#0e6f72]/20 bg-[#f3fbfb] p-3">
+            <div className="rounded-xl border border-[#0e6f72]/20 bg-[#f3fbfb] dark:border-primary/30 dark:bg-card p-3">
               <div className="flex items-center gap-2">
                 <Info className="h-4 w-4 text-[#0e6f72]" />
                 <p className="text-sm font-semibold text-foreground">{instructions.title}</p>
@@ -292,7 +292,7 @@ ${transcriptSeed}`,
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="space-y-4 rounded-[1.25rem] border-2 border-blue-200 bg-blue-50 p-4"
+            className="space-y-4 rounded-[1.25rem] border-2 border-blue-200 bg-blue-50 dark:border-blue-800/70 dark:bg-blue-950/25 p-4"
           >
             <div className="flex items-start justify-between">
               <div>
@@ -302,7 +302,7 @@ ${transcriptSeed}`,
                     Transcript Ready
                   </span>
                 </p>
-                <p className="mt-1 text-xs leading-5 text-blue-800/80">
+                <p className="mt-1 text-xs leading-5 text-blue-800/80 dark:text-blue-200/90">
                   Review the transcript, make edits if needed, then save it to {saveDestinationLabel}.
                 </p>
               </div>
@@ -334,7 +334,7 @@ ${transcriptSeed}`,
                   setEditableTranscript(event.target.value);
                   setSaved(false);
                 }}
-                className="min-h-[140px] rounded-[1rem] border-blue-200 bg-white px-4 py-3 text-sm leading-6 text-blue-950"
+                className="min-h-[140px] rounded-[1rem] border-blue-200 bg-white px-4 py-3 text-sm leading-6 text-blue-950 dark:border-blue-800/70 dark:bg-background dark:text-foreground"
               />
             </div>
 
@@ -345,7 +345,7 @@ ${transcriptSeed}`,
                   {emotion}
                 </span>
                 {topics.map((topic) => (
-                  <span key={topic} className="rounded-full bg-white px-2 py-0.5 text-blue-800">
+                  <span key={topic} className="rounded-full bg-white px-2 py-0.5 text-blue-800 dark:bg-background dark:text-blue-300">
                     {topic}
                   </span>
                 ))}
@@ -353,7 +353,7 @@ ${transcriptSeed}`,
             )}
 
             {summary ? (
-              <p className="rounded-xl border border-blue-200/80 bg-white/80 px-3 py-2 text-xs leading-5 text-blue-900">
+              <p className="rounded-xl border border-blue-200/80 bg-white/80 px-3 py-2 text-xs leading-5 text-blue-900 dark:border-blue-800/70 dark:bg-background/80 dark:text-blue-200">
                 <span className="font-semibold">Summary:</span> {summary}
               </p>
             ) : null}
@@ -364,7 +364,7 @@ ${transcriptSeed}`,
                 Save Transcript
               </Button>
               {saved ? (
-                <span className="inline-flex items-center gap-2 rounded-full border border-[#0e6f72]/20 bg-white px-3 py-2 text-xs font-medium text-[#0e6f72]">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[#0e6f72]/20 bg-white px-3 py-2 text-xs font-medium text-[#0e6f72] dark:border-primary/30 dark:bg-background dark:text-primary">
                   <Check className="h-3.5 w-3.5" />
                   Saved to {saveDestinationLabel}
                 </span>

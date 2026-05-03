@@ -231,9 +231,9 @@ Respond as the ${coachLabel}. Use clean headers and practical guidance.`;
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="enterprise-panel flex shrink-0 items-center justify-between border-2 border-[#0e6f72]/20 bg-[#f4fbfa] px-4 py-4">
+      <div className="enterprise-panel flex shrink-0 items-center justify-between border-2 border-[#0e6f72]/20 bg-[#f4fbfa] dark:border-primary/35 dark:bg-card px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-white dark:border-primary/30 dark:bg-background">
             <Heart className="h-5 w-5 text-[#0e6f72]" />
           </div>
           <div>
@@ -245,7 +245,7 @@ Respond as the ${coachLabel}. Use clean headers and practical guidance.`;
         </div>
         <div className="flex items-center gap-2">
           <Select value={scope} onValueChange={setScope}>
-            <SelectTrigger className="h-9 w-40 rounded-full border-[#0e6f72]/20 bg-white text-xs">
+            <SelectTrigger className="h-9 w-40 rounded-full border-[#0e6f72]/20 bg-white text-xs dark:border-primary/30 dark:bg-background">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -264,8 +264,8 @@ Respond as the ${coachLabel}. Use clean headers and practical guidance.`;
       )}
 
       <div className="space-y-6">
-        <div className="enterprise-panel border-2 border-[#0e6f72]/15 bg-[#f8fbfd] py-8 text-center space-y-2">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-white">
+        <div className="enterprise-panel border-2 border-[#0e6f72]/15 bg-[#f8fbfd] dark:border-primary/30 dark:bg-card py-8 text-center space-y-2">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-white dark:border-primary/30 dark:bg-background">
             <Sparkles className="h-7 w-7 text-[#0e6f72]" />
           </div>
           <h2 className="font-display text-lg font-semibold text-foreground">Structured Reflection Mirror</h2>
@@ -284,29 +284,29 @@ Respond as the ${coachLabel}. Use clean headers and practical guidance.`;
                 setAnalysisTitle(section.title);
                 runMirrorAnalysis(section.prompt, section.title);
               }}
-              className="enterprise-hover-raise flex h-full flex-col rounded-2xl border border-[#0e6f72]/20 bg-white p-4 text-left shadow-sm"
+              className="enterprise-hover-raise flex h-full flex-col rounded-2xl border border-[#0e6f72]/20 bg-white p-4 text-left shadow-sm dark:border-primary/30 dark:bg-card"
               disabled={loading}
             >
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-[#eef8f7]">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-[#eef8f7] dark:border-primary/30 dark:bg-background">
                 <section.icon className="h-4 w-4 text-[#0e6f72]" />
               </div>
-              <h3 className="text-base font-semibold text-[#14263f]">{section.title}</h3>
-              <p className="mt-2 flex-1 text-sm leading-6 text-[#4e6077]">{section.description}</p>
-              <p className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#0e6f72]">
+              <h3 className="text-base font-semibold text-[#14263f] dark:text-foreground">{section.title}</h3>
+              <p className="mt-2 flex-1 text-sm leading-6 text-[#4e6077] dark:text-muted-foreground">{section.description}</p>
+              <p className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#0e6f72] dark:text-primary">
                 <Search className="h-3.5 w-3.5" /> Run analysis
               </p>
             </button>
           ))}
         </div>
 
-        <div className="enterprise-panel shrink-0 border-2 border-[#0e6f72]/15 bg-[#f8fbfd] p-4">
+        <div className="enterprise-panel shrink-0 border-2 border-[#0e6f72]/15 bg-[#f8fbfd] dark:border-primary/30 dark:bg-card p-4">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0e6f72]">Situation Details</p>
             <Textarea
               placeholder={`Describe the specific situation between ${primaryPerson} and ${secondaryPerson}...`}
               value={situation}
               onChange={(event) => setSituation(event.target.value)}
-              className="min-h-[120px] resize-y rounded-2xl border-2 bg-white text-sm py-3"
+              className="min-h-[120px] resize-y rounded-2xl border-2 bg-white text-sm py-3 dark:bg-background"
               disabled={loading}
             />
             <p className="text-[11px] text-muted-foreground">Include exact wording, emotional tone, and what outcome you want next.</p>
@@ -318,7 +318,7 @@ Respond as the ${coachLabel}. Use clean headers and practical guidance.`;
               <Textarea
                 value={focusPrompt}
                 onChange={(event) => setFocusPrompt(event.target.value)}
-                className="min-h-[72px] rounded-2xl border-2 bg-white text-sm"
+                className="min-h-[72px] rounded-2xl border-2 bg-white text-sm dark:bg-background"
                 disabled={loading}
               />
             </div>
@@ -334,12 +334,12 @@ Respond as the ${coachLabel}. Use clean headers and practical guidance.`;
         </div>
 
         {analysisResult ? (
-          <div className="enterprise-panel rounded-2xl border border-[#0e6f72]/15 bg-white p-5">
-            <div className="mb-3 flex items-center gap-2 text-[#14263f]">
+          <div className="enterprise-panel rounded-2xl border border-[#0e6f72]/15 bg-white dark:border-primary/30 dark:bg-card p-5">
+            <div className="mb-3 flex items-center gap-2 text-[#14263f] dark:text-foreground">
               <MessageSquareText className="h-4 w-4 text-[#0e6f72]" />
               <h3 className="text-sm font-semibold uppercase tracking-[0.12em]">{analysisTitle}</h3>
             </div>
-            <div className="prose prose-sm max-w-none text-foreground prose-headings:text-[#14263f] prose-strong:text-[#14263f] [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+            <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-strong:text-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
               <ReactMarkdown>{analysisResult}</ReactMarkdown>
             </div>
             <div className="mt-4">

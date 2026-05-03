@@ -29,14 +29,14 @@ const ICON_MAP = {
 
 const CARD_STYLES = [
   {
-    card: "border-[#14263f]/25 bg-[#eef4fb]",
-    iconWrap: "border-[#14263f]/20 bg-white",
-    icon: "text-[#14263f]",
+    card: "border-[#14263f]/25 bg-[#eef4fb] dark:border-primary/35 dark:bg-card",
+    iconWrap: "border-[#14263f]/20 bg-white dark:border-primary/30 dark:bg-background",
+    icon: "text-[#14263f] dark:text-primary",
   },
   {
-    card: "border-[#0e6f72]/25 bg-[#e8f7f6]",
-    iconWrap: "border-[#0e6f72]/20 bg-white",
-    icon: "text-[#0e6f72]",
+    card: "border-[#0e6f72]/25 bg-[#e8f7f6] dark:border-primary/35 dark:bg-card",
+    iconWrap: "border-[#0e6f72]/20 bg-white dark:border-primary/30 dark:bg-background",
+    icon: "text-[#0e6f72] dark:text-primary",
   },
 ];
 
@@ -160,22 +160,22 @@ function SectionCard({ section }) {
   const summary = summarizeSection(section);
 
   return (
-    <div className="rounded-2xl border border-primary/15 bg-white/85 p-4 space-y-3">
+    <div className="rounded-2xl border border-primary/15 bg-white/85 dark:border-border/60 dark:bg-card/95 p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/75">
           {section.title}
         </p>
         <button
           type="button"
           onClick={() => setShowSummary((value) => !value)}
-          className="shrink-0 rounded-full border border-primary/20 bg-[#eef4fb] px-3 py-1 text-[11px] font-semibold text-primary transition-colors hover:border-primary/35 hover:bg-[#e8f0fa]"
+          className="shrink-0 rounded-full border border-primary/20 bg-[#eef4fb] px-3 py-1 text-[11px] font-semibold text-primary transition-colors hover:border-primary/35 hover:bg-[#e8f0fa] dark:bg-background dark:border-primary/30"
         >
           Summarize
         </button>
       </div>
 
       {showSummary && (
-        <div className="rounded-xl border border-primary/10 bg-[#eef4fb] px-3 py-2 text-sm leading-6 text-[#14263f]">
+        <div className="rounded-xl border border-primary/10 bg-[#eef4fb] px-3 py-2 text-sm leading-6 text-[#14263f] dark:bg-background dark:border-primary/30 dark:text-foreground">
           {summary}
         </div>
       )}
@@ -317,9 +317,9 @@ function TimelineEventCard({ event, index, participants, activeRelationship }) {
                 <p className="font-semibold text-sm text-foreground">{details.title}</p>
                 <p className="text-xs text-muted-foreground">{metaLabel}</p>
               </div>
-              <p className="mt-1 text-sm text-[#14263f]">{details.summary}</p>
+              <p className="mt-1 text-sm text-[#14263f] dark:text-foreground/90">{details.summary}</p>
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                <p className="inline-flex items-center gap-1 text-xs text-muted-foreground/80">
+                <p className="inline-flex items-center gap-1 text-xs text-foreground/70">
                   <Clock3 className="h-3 w-3" />
                   {format(event.date, "MMM d, h:mm a")}
                 </p>
@@ -328,7 +328,7 @@ function TimelineEventCard({ event, index, participants, activeRelationship }) {
                 )}
               </div>
             </div>
-            <div className="mt-1 shrink-0 rounded-full border border-primary/10 bg-white/70 p-1.5 text-muted-foreground">
+            <div className="mt-1 shrink-0 rounded-full border border-primary/10 bg-white/70 dark:bg-background/80 dark:border-primary/30 p-1.5 text-muted-foreground">
               {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </div>
           </button>

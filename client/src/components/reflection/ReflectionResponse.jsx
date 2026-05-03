@@ -15,7 +15,7 @@ export default function ReflectionResponse({ response, partner, isOwn = false })
           <p className="text-lg text-muted-foreground">
             {isOwn ? "You haven't answered yet" : `${partner} hasn't answered yet`}
           </p>
-          <p className="text-sm text-muted-foreground/60">
+          <p className="text-sm text-muted-foreground">
             {isOwn ? "Your response will appear here" : "Their response will appear here once they answer"}
           </p>
         </CardContent>

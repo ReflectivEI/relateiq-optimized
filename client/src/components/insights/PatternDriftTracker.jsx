@@ -51,13 +51,13 @@ export default function PatternDriftTracker({ recentSessions = [], patternScores
             increasing.map((item) => (
               <div key={item.keyword} className="flex items-center justify-between text-sm">
                 <span className="capitalize text-foreground">{item.keyword}</span>
-                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium">
+                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium dark:bg-orange-950/30 dark:text-orange-300">
                   {item.count}x
                 </span>
               </div>
             ))
           ) : (
-            <p className="text-xs text-muted-foreground/60">No clear increase pattern</p>
+            <p className="text-xs text-muted-foreground">No clear increase pattern</p>
           )}
         </CardContent>
       </Card>
@@ -75,13 +75,13 @@ export default function PatternDriftTracker({ recentSessions = [], patternScores
             decreasing.slice(0, 3).map((item) => (
               <div key={item.keyword} className="flex items-center justify-between text-sm">
                 <span className="capitalize text-foreground">{item.keyword}</span>
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-medium">
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-medium dark:bg-green-950/30 dark:text-green-300">
                   {item.count}x
                 </span>
               </div>
             ))
           ) : (
-            <p className="text-xs text-muted-foreground/60">No clear decrease pattern</p>
+            <p className="text-xs text-muted-foreground">No clear decrease pattern</p>
           )}
         </CardContent>
       </Card>
