@@ -18,7 +18,7 @@ export default function DataSourceBadge({ sources = [], className }) {
   }).join(active.length > 2 ? ", " : " ");
 
   return (
-    <div className={cn("rounded-2xl border border-border/50 bg-white px-4 py-3", className)}>
+    <div className={cn("rounded-2xl border border-border/50 bg-card px-4 py-3", className)}>
       <div className="flex items-start gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-full border border-primary/15 bg-primary/5">
           <Database className="h-3.5 w-3.5 text-primary shrink-0" />

@@ -102,6 +102,8 @@ const topNavItems = [
   { path: "/profiles", label: "Profile" },
 ];
 
+const SHELL_WIDTH_CLASS = "mx-auto w-full max-w-[1640px] px-5 sm:px-7 lg:px-10";
+
 const consolidatedRouteAliases = {
   "/reflect": ["/coach", "/chat", "/daily", "/journal"],
   "/repair": ["/proactive-repair", "/triggers"],
@@ -883,112 +885,115 @@ export default function AppLayout() {
 
       {/* Main Content */}
       <main className={cn("flex-1 pt-14 lg:pt-0 transition-all duration-300", sidebarCollapsed ? "lg:ml-[92px]" : "lg:ml-72")}>
-        {/* Top bar with theme toggle */}
-        <div className="hidden lg:flex items-center gap-4 px-8 pt-4 pb-0">
-          <div className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card/70 px-3 py-2">
-            <Avatar className="h-9 w-9 border border-primary/20">
-              {currentAvatar ? <AvatarImage src={currentAvatar} alt={`${currentPersonName} avatar`} /> : null}
-              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                {initialsFromName(currentPersonName)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="text-sm leading-tight">
-              <p className="font-semibold text-foreground">{currentPersonName}</p>
-              <p className="text-xs text-muted-foreground">{activeRelationshipTerms.bond}</p>
+        <div className={SHELL_WIDTH_CLASS}>
+          {/* Top bar with theme toggle */}
+          <div className="hidden lg:flex items-center gap-4 pt-4 pb-0">
+            <div className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card/70 px-3 py-2">
+              <Avatar className="h-9 w-9 border border-primary/20">
+                {currentAvatar ? <AvatarImage src={currentAvatar} alt={`${currentPersonName} avatar`} /> : null}
+                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                  {initialsFromName(currentPersonName)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="text-sm leading-tight">
+                <p className="font-semibold text-foreground">{currentPersonName}</p>
+                <p className="text-xs text-muted-foreground">{activeRelationshipTerms.bond}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <Avatar className="h-9 w-9 border border-primary/20">
+                {partnerAvatar ? <AvatarImage src={partnerAvatar} alt={`${sendTargetLabel} avatar`} /> : null}
+                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                  {initialsFromName(sendTargetLabel)}
+                </AvatarFallback>
+              </Avatar>
+              <p className="text-sm font-semibold text-foreground">{sendTargetLabel}</p>
             </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            <Avatar className="h-9 w-9 border border-primary/20">
-              {partnerAvatar ? <AvatarImage src={partnerAvatar} alt={`${sendTargetLabel} avatar`} /> : null}
-              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                {initialsFromName(sendTargetLabel)}
-              </AvatarFallback>
-            </Avatar>
-            <p className="text-sm font-semibold text-foreground">{sendTargetLabel}</p>
-          </div>
 
-          <nav className="flex items-center gap-1 rounded-2xl border border-border/70 bg-card/70 px-2 py-1.5">
-            {topNavItems.map((item) => {
-              const navPath = getPathWithoutQuery(item.path);
-              const active = isPathActive(navPath, location.pathname);
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={cn(
-                    "rounded-xl px-3 py-1.5 text-sm font-semibold transition-colors",
-                    active
-                      ? "bg-primary/15 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+            <nav className="flex items-center gap-1 rounded-2xl border border-border/70 bg-card/70 px-2 py-1.5">
+              {topNavItems.map((item) => {
+                const navPath = getPathWithoutQuery(item.path);
+                const active = isPathActive(navPath, location.pathname);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={cn(
+                      "rounded-xl px-3 py-1.5 text-sm font-semibold transition-colors",
+                      active
+                        ? "bg-primary/15 text-primary"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
 
-          <div className="ml-auto flex items-center gap-6">
-            <Button variant="outline" size="sm" onClick={() => setNotesOpen(true)}>
-              Shared Notes
-            </Button>
-            <Button variant="outline" size="sm" onClick={openSendComposer} disabled={!canDirectMessage}>
-              Message Builder
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="relative"
-              onClick={() => {
-                void handleOpenNotifications();
-                navigate("/tester-inbox");
-              }}
-              aria-label="Notifications"
-            >
-              <Bell className="h-4 w-4" />
-              {unreadInboxCount > 0 ? (
-                <span className="absolute -right-2 -top-2 inline-flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-white">
-                  {unreadInboxCount}
-                </span>
-              ) : null}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setOnboardingOpen(true)}>
-              Onboarding
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => logout()}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </Button>
-          </div>
-          <div className="ml-4">
-            <ThemeToggle />
-          </div>
-        </div>
-        <div className="mx-auto w-full max-w-[1640px] px-5 sm:px-7 lg:px-10 py-6">
-          <PageBanner />
-          <div className="mb-6 flex flex-col gap-3 rounded-3xl border border-border/70 bg-card/80 px-4 py-4 shadow-sm backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Connection Actions</p>
-              <p className="mt-1 text-sm text-foreground">
-                Send a direct note to {sendTargetLabel} from anywhere in this {activeRelationshipTerms.bond}.
-              </p>
-              {messageConfirmation ? (
-                <p className="mt-2 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-foreground">
-                  {messageConfirmation}
-                </p>
-              ) : null}
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={openSendComposer} disabled={!canDirectMessage} className="gap-2 rounded-full px-4">
-                <Send className="h-4 w-4" />
-                Send to {sendTargetLabel}
+            <div className="ml-auto flex items-center gap-6">
+              <Button variant="outline" size="sm" onClick={() => setNotesOpen(true)}>
+                Shared Notes
               </Button>
-              <Button type="button" variant="outline" onClick={openInbox} className="gap-2 rounded-full px-4">
+              <Button variant="outline" size="sm" onClick={openSendComposer} disabled={!canDirectMessage}>
+                Message Builder
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="relative"
+                onClick={() => {
+                  void handleOpenNotifications();
+                  navigate("/tester-inbox");
+                }}
+                aria-label="Notifications"
+              >
                 <Bell className="h-4 w-4" />
-                Open Inbox
+                {unreadInboxCount > 0 ? (
+                  <span className="absolute -right-2 -top-2 inline-flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-white">
+                    {unreadInboxCount}
+                  </span>
+                ) : null}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setOnboardingOpen(true)}>
+                Onboarding
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => logout()}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
               </Button>
             </div>
+            <div className="ml-4">
+              <ThemeToggle />
+            </div>
           </div>
-          <Outlet />
+
+          <div className="py-6">
+            <PageBanner />
+            <div className="mb-6 flex flex-col gap-3 rounded-3xl border border-border/70 bg-card/80 px-4 py-4 shadow-sm backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Connection Actions</p>
+                <p className="mt-1 text-sm text-foreground">
+                  Send a direct note to {sendTargetLabel} from anywhere in this {activeRelationshipTerms.bond}.
+                </p>
+                {messageConfirmation ? (
+                  <p className="mt-2 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-foreground">
+                    {messageConfirmation}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button onClick={openSendComposer} disabled={!canDirectMessage} className="gap-2 rounded-full px-4">
+                  <Send className="h-4 w-4" />
+                  Send to {sendTargetLabel}
+                </Button>
+                <Button type="button" variant="outline" onClick={openInbox} className="gap-2 rounded-full px-4">
+                  <Bell className="h-4 w-4" />
+                  Open Inbox
+                </Button>
+              </div>
+            </div>
+            <Outlet />
+          </div>
         </div>
       </main>
 

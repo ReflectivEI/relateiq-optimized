@@ -54,7 +54,7 @@ export default function SendPartnerPill({
       onClick={handleShare}
       disabled={!serializedBody || !partnerName}
       className={cn(
-        "gap-2 rounded-full border-2 border-[#0e6f72] bg-[#e8f7f6] text-[#0e6f72] hover:border-[#0b5c5e] hover:bg-[#d7f0ed] hover:text-[#0b5c5e]",
+        "gap-2 rounded-full border border-primary/35 bg-primary/10 text-primary hover:border-primary/50 hover:bg-primary/15",
         className,
       )}
     >
