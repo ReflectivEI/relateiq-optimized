@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -32,7 +32,7 @@ import EarlyWarningCard from "@/components/dashboard/EarlyWarningCard";
 import { getRiskSummary } from "@/lib/earlyWarningEngine";
 import { buildFallbackProfile, normalizeProfileOutput } from "@/lib/aiSafe";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
-import { getRelationshipTerms } from "@/lib/relationshipParticipants";
+import { getRelationshipTerms, replaceParticipantNames } from "@/lib/relationshipParticipants";
 import {
   Dialog,
   DialogContent,
@@ -128,6 +128,52 @@ function formatInboxTimestamp(note) {
   });
 }
 
+function sanitizeRepairSuggestionToParticipants(suggestion, participantA, participantB) {
+  if (!suggestion) return suggestion;
+  const participants = [participantA, participantB].filter(Boolean);
+  if (participants.length < 2) return suggestion;
+
+  const allowed = new Set(participants);
+  const scores = suggestion?.likelihood_scores && typeof suggestion.likelihood_scores === "object"
+    ? suggestion.likelihood_scores
+    : {};
+
+  let normalizedInitiator = suggestion.suggested_initiator;
+  if (!allowed.has(normalizedInitiator)) {
+    const scoreCandidates = participants
+      .map((name) => ({ name, score: Number(scores?.[name]) }))
+      .filter((entry) => Number.isFinite(entry.score));
+    if (scoreCandidates.length > 0) {
+      scoreCandidates.sort((a, b) => a.score - b.score);
+      normalizedInitiator = scoreCandidates[0].name;
+    } else {
+      normalizedInitiator = participantA;
+    }
+  }
+
+  const normalizeTextField = (value) =>
+    typeof value === "string" ? replaceParticipantNames(value, participants) : value;
+
+  return {
+    ...suggestion,
+    suggested_initiator: normalizedInitiator,
+    friction_summary: normalizeTextField(suggestion.friction_summary),
+    initiator_reasoning: normalizeTextField(suggestion.initiator_reasoning),
+    what_to_avoid: normalizeTextField(suggestion.what_to_avoid),
+    friction_signals: Array.isArray(suggestion.friction_signals)
+      ? suggestion.friction_signals.map((item) => normalizeTextField(item))
+      : [],
+    repair_bids: Array.isArray(suggestion.repair_bids)
+      ? suggestion.repair_bids.map((bid) => ({
+          ...bid,
+          bid: normalizeTextField(bid?.bid),
+          why: normalizeTextField(bid?.why),
+          gottman_principle: normalizeTextField(bid?.gottman_principle),
+        }))
+      : [],
+  };
+}
+
 export default function Home() {
   const navigate = useNavigate();
   const { activeRelationshipId, activeRelationship, participants, primaryPerson, secondaryPerson, relationshipLabel, user } = useRelationshipAuth();
@@ -142,6 +188,7 @@ export default function Home() {
   const [generatingMessage, setGeneratingMessage] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [messageConfirmation, setMessageConfirmation] = useState("");
+  const repairRequestRef = useRef(0);
   const queryClient = useQueryClient();
 
   const { data: profiles = [] } = useQuery({
@@ -233,6 +280,8 @@ export default function Home() {
     const friction = detectFriction({ checkIns, repairEntries, sessions });
     if (!friction.friction_detected) return;
 
+    const requestId = Date.now();
+    repairRequestRef.current = requestId;
     setRepairLoading(true);
     generateRepairSuggestion({
       tonyResponses: responsesA,
@@ -246,14 +295,29 @@ export default function Home() {
       sessions,
       triggers,
     }).then((result) => {
-      if (result) setRepairSuggestion(result);
-    }).finally(() => setRepairLoading(false));
+      if (repairRequestRef.current !== requestId) return;
+      if (!result) return;
+      setRepairSuggestion(sanitizeRepairSuggestionToParticipants(result, primaryPerson, secondaryPerson));
+    }).finally(() => {
+      if (repairRequestRef.current === requestId) {
+        setRepairLoading(false);
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkIns.length, repairEntries.length, sessions.length]);
+
+  useEffect(() => {
+    repairRequestRef.current += 1;
+    setRepairLoading(false);
+    setRepairSuggestion(null);
+    setRepairDismissed(false);
+  }, [activeRelationshipId, primaryPerson, secondaryPerson]);
 
   const handleRepairRefresh = () => {
     setRepairSuggestion(null);
     setRepairDismissed(false);
+    const requestId = Date.now();
+    repairRequestRef.current = requestId;
     setRepairLoading(true);
     generateRepairSuggestion({
       tonyResponses: responsesA, drewResponses: responsesB,
@@ -261,8 +325,14 @@ export default function Home() {
       participantA: primaryPerson, participantB: secondaryPerson,
       checkIns, repairEntries, sessions, triggers,
     }).then((result) => {
-      if (result) setRepairSuggestion(result);
-    }).finally(() => setRepairLoading(false));
+      if (repairRequestRef.current !== requestId) return;
+      if (!result) return;
+      setRepairSuggestion(sanitizeRepairSuggestionToParticipants(result, primaryPerson, secondaryPerson));
+    }).finally(() => {
+      if (repairRequestRef.current === requestId) {
+        setRepairLoading(false);
+      }
+    });
   };
 
   const toggleProfileCard = (name) => {
