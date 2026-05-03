@@ -1,7 +1,6 @@
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React from "react";
 import ProactiveRepair from "@/pages/ProactiveRepair";
+import RelationshipChat from "@/pages/RelationshipChat";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Repair() {
@@ -30,21 +29,12 @@ export default function Repair() {
 
           {/* Message Builder Tab */}
           <TabsContent value="message">
-            <Card className="border border-border/50 bg-card/50">
-              <CardHeader>
-                <CardTitle className="text-2xl">Message Builder</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
-                  <p className="text-sm text-muted-foreground">
-                    Message Builder combines Proactive Repair guidance with tone options and preview before sending.
-                  </p>
-                </div>
-                <p className="text-sm text-muted-foreground italic">
-                  Full Message Builder UI coming soon. Use Proactive Repair for current guidance and scripts.
-                </p>
-              </CardContent>
-            </Card>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Build and refine repair language using full relationship context, then move finalized messages into Inbox.
+              </p>
+              <RelationshipChat />
+            </div>
           </TabsContent>
         </Tabs>
       </div>

@@ -117,69 +117,164 @@ export function normalizeRelationshipType(activeRelationshipOrType) {
     typeof activeRelationshipOrType === "string"
       ? activeRelationshipOrType
       : activeRelationshipOrType?.type || "romantic";
-  const normalized = String(raw || "romantic").toLowerCase();
-  if (["romantic", "friendship", "family", "other"].includes(normalized)) return normalized;
+  const normalized = String(raw || "romantic")
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  const aliases = {
+    partner: "romantic",
+    partners: "romantic",
+    committed: "committed_relationship",
+    committed_relationship: "committed_relationship",
+    commitment: "committed_relationship",
+    married: "marriage",
+    marriage: "marriage",
+    friendship: "friendship",
+    friends: "friendship",
+    family: "family",
+    colleague: "colleague",
+    colleagues: "colleague",
+    coworker: "colleague",
+    coworkers: "colleague",
+    co_worker: "colleague",
+    co_workers: "colleague",
+    other: "other",
+    romantic: "romantic",
+  };
+
+  const mapped = aliases[normalized] || normalized;
+  if (["romantic", "committed_relationship", "marriage", "friendship", "family", "colleague", "other"].includes(mapped)) {
+    return mapped;
+  }
   return "other";
 }
 
 export function getRelationshipTerms(activeRelationshipOrType) {
   const type = normalizeRelationshipType(activeRelationshipOrType);
-  switch (type) {
-    case "friendship":
-      return {
-        type,
-        typeLabel: "Friendship",
-        bond: "friendship",
-        bondPlural: "friendships",
-        counterpart: "friend",
-        counterpartPlural: "friends",
-        closeness: "closeness",
-        connectionSummary: "shared understanding",
-      };
-    case "family":
-      return {
-        type,
-        typeLabel: "Family",
-        bond: "family connection",
-        bondPlural: "family connections",
-        counterpart: "family member",
-        counterpartPlural: "family members",
-        closeness: "trust and closeness",
-        connectionSummary: "clearer support",
-      };
-    case "other":
-      return {
-        type,
-        typeLabel: "Other",
-        bond: "connection",
-        bondPlural: "connections",
-        counterpart: "other person",
-        counterpartPlural: "other people",
-        closeness: "trust and connection",
-        connectionSummary: "clearer understanding",
-      };
-    case "romantic":
-    default:
-      return {
-        type,
-        typeLabel: "Partners",
-        bond: "relationship",
-        bondPlural: "relationships",
-        counterpart: "partner",
-        counterpartPlural: "partners",
-        closeness: "intimacy",
-        connectionSummary: "relationship intelligence",
-      };
-  }
+  const byType = {
+    romantic: {
+      type,
+      typeLabel: "Partners",
+      bond: "relationship",
+      bondPlural: "relationships",
+      counterpart: "partner",
+      counterpartPlural: "partners",
+      closeness: "intimacy",
+      connectionSummary: "relationship intelligence",
+      guidanceFocus: "strengthen emotional attunement, repair speed, and secure bonding habits",
+      sourceReferences: [
+        { title: "The Gottman Institute", url: "https://www.gottman.com" },
+        { title: "APA: Relationships", url: "https://www.apa.org/topics/relationships" },
+      ],
+    },
+    committed_relationship: {
+      type,
+      typeLabel: "Committed Relationship",
+      bond: "committed relationship",
+      bondPlural: "committed relationships",
+      counterpart: "partner",
+      counterpartPlural: "partners",
+      closeness: "emotional closeness",
+      connectionSummary: "commitment intelligence",
+      guidanceFocus: "protect trust, shared goals, and healthy conflict recovery in long-term partnership",
+      sourceReferences: [
+        { title: "The Gottman Institute", url: "https://www.gottman.com" },
+        { title: "APA: Relationships", url: "https://www.apa.org/topics/relationships" },
+      ],
+    },
+    marriage: {
+      type,
+      typeLabel: "Marriage",
+      bond: "marriage",
+      bondPlural: "marriages",
+      counterpart: "spouse",
+      counterpartPlural: "spouses",
+      closeness: "marital closeness",
+      connectionSummary: "marriage intelligence",
+      guidanceFocus: "maintain shared meaning, emotional safety, and resilient repair under long-term stress",
+      sourceReferences: [
+        { title: "The Gottman Institute", url: "https://www.gottman.com" },
+        { title: "APA: Relationships", url: "https://www.apa.org/topics/relationships" },
+      ],
+    },
+    friendship: {
+      type,
+      typeLabel: "Friendship",
+      bond: "friendship",
+      bondPlural: "friendships",
+      counterpart: "friend",
+      counterpartPlural: "friends",
+      closeness: "closeness",
+      connectionSummary: "shared understanding",
+      guidanceFocus: "increase reciprocity, responsiveness, and clear expectations to prevent drift and resentment",
+      sourceReferences: [
+        { title: "APA: Science Of Friendship", url: "https://www.apa.org/monitor/2023/06/cover-story-science-of-friendship" },
+        { title: "Mayo Clinic: Friendships", url: "https://www.mayoclinic.org/healthy-lifestyle/adult-health/in-depth/friendships/art-20044860" },
+      ],
+    },
+    family: {
+      type,
+      typeLabel: "Family",
+      bond: "family connection",
+      bondPlural: "family connections",
+      counterpart: "family member",
+      counterpartPlural: "family members",
+      closeness: "trust and closeness",
+      connectionSummary: "clearer support",
+      guidanceFocus: "balance boundaries and closeness while reducing escalation loops in recurring family stress",
+      sourceReferences: [
+        { title: "APA: Families", url: "https://www.apa.org/topics/families" },
+        { title: "AAMFT: Family Therapy", url: "https://www.aamft.org" },
+      ],
+    },
+    colleague: {
+      type,
+      typeLabel: "Colleague",
+      bond: "working relationship",
+      bondPlural: "working relationships",
+      counterpart: "colleague",
+      counterpartPlural: "colleagues",
+      closeness: "professional trust",
+      connectionSummary: "collaboration intelligence",
+      guidanceFocus: "improve role clarity, psychological safety, and feedback quality to protect collaboration under pressure",
+      sourceReferences: [
+        { title: "CDC NIOSH: Stress At Work", url: "https://www.cdc.gov/niosh/topics/stress" },
+        { title: "APA: Healthy Workplaces", url: "https://www.apa.org/topics/healthy-workplaces" },
+      ],
+    },
+    other: {
+      type,
+      typeLabel: "Other",
+      bond: "connection",
+      bondPlural: "connections",
+      counterpart: "other person",
+      counterpartPlural: "other people",
+      closeness: "trust and connection",
+      connectionSummary: "clearer understanding",
+      guidanceFocus: "build explicit expectations, communication norms, and psychological safety for this unique connection",
+      sourceReferences: [
+        { title: "CDC: Social Connectedness", url: "https://www.cdc.gov/violenceprevention/about/social-connectedness.html" },
+        { title: "APA: Relationships", url: "https://www.apa.org/topics/relationships" },
+      ],
+    },
+  };
+
+  return byType[type] || byType.other;
 }
 
 export function getRelationshipCoachLabel(activeRelationshipOrType) {
   const terms = getRelationshipTerms(activeRelationshipOrType);
   switch (terms.type) {
+    case "committed_relationship":
+      return "Committed Relationship Coach";
+    case "marriage":
+      return "Marriage Coach";
     case "friendship":
       return "Friendship Coach";
     case "family":
       return "Family Coach";
+    case "colleague":
+      return "Collaboration Coach";
     case "other":
       return "Connection Coach";
     case "romantic":
@@ -291,9 +386,8 @@ export function containsForeignParticipantNames(text, foreignNames = []) {
 export function containsRelationshipTypeLeakage(text, activeRelationshipOrType) {
   if (!text) return false;
   const type = normalizeRelationshipType(activeRelationshipOrType);
-  if (type === "romantic") return false;
-
-  const romanticOnlyPatterns = [
+  const normalizedText = String(text);
+  const romanticPatterns = [
     /\bhusband(?:s)?\b/i,
     /\bwife|wives\b/i,
     /\bboyfriend(?:s)?\b/i,
@@ -301,15 +395,36 @@ export function containsRelationshipTypeLeakage(text, activeRelationshipOrType) 
     /\bspouse(?:s)?\b/i,
     /\bfianc(?:e|é|és|ées)\b/i,
     /\bdating\b/i,
-    /\bmarriage\b/i,
-    /\bmarried\b/i,
     /\bromantic\b/i,
     /\bsexual\b/i,
     /\bsex\b/i,
-    /\bintimacy\b/i,
+    /\bcouple(?:s)?\b/i,
   ];
+  const friendshipPatterns = [/\bfriend(?:s|ship)?\b/i, /\bbestie\b/i, /\bhang out\b/i];
+  const familyPatterns = [/\bmother\b/i, /\bfather\b/i, /\bparent(?:s)?\b/i, /\bsibling(?:s)?\b/i, /\bfamily\b/i];
+  const colleaguePatterns = [/\bcolleague(?:s)?\b/i, /\bcoworker(?:s)?\b/i, /\bworkplace\b/i, /\bmanager\b/i, /\bprofessional\b/i];
 
-  return romanticOnlyPatterns.some((pattern) => pattern.test(String(text)));
+  if (["romantic", "committed_relationship", "marriage"].includes(type)) {
+    return false;
+  }
+
+  if (type === "friendship") {
+    return romanticPatterns.some((pattern) => pattern.test(normalizedText)) || colleaguePatterns.some((pattern) => pattern.test(normalizedText));
+  }
+
+  if (type === "family") {
+    return romanticPatterns.some((pattern) => pattern.test(normalizedText)) || colleaguePatterns.some((pattern) => pattern.test(normalizedText));
+  }
+
+  if (type === "colleague") {
+    return romanticPatterns.some((pattern) => pattern.test(normalizedText)) || familyPatterns.some((pattern) => pattern.test(normalizedText));
+  }
+
+  if (type === "other") {
+    return romanticPatterns.some((pattern) => pattern.test(normalizedText));
+  }
+
+  return false;
 }
 
 export function isTextVisibleForRelationshipContext(text, foreignNames = [], activeRelationshipOrType) {
@@ -318,6 +433,84 @@ export function isTextVisibleForRelationshipContext(text, foreignNames = [], act
     !containsForeignParticipantNames(text, foreignNames) &&
     !containsRelationshipTypeLeakage(text, activeRelationshipOrType)
   );
+}
+
+export function buildActiveConnectionContext({
+  pairId,
+  activeConnectionId,
+  activeRelationship,
+  actorUser,
+  targetUser,
+  allowedPeople = [],
+  forbiddenPeople = [],
+  availableDataSources = [],
+} = {}) {
+  const terms = getRelationshipTerms(activeRelationship);
+  return {
+    pairId: String(pairId || activeConnectionId || activeRelationship?.id || ""),
+    activeConnectionId: String(activeConnectionId || activeRelationship?.id || ""),
+    relationshipStatus: terms.type,
+    relationshipStatusLabel: terms.typeLabel,
+    actorUser: actorUser || "",
+    targetUser: targetUser || "",
+    allowedPeople: [...new Set((allowedPeople || []).filter(Boolean))],
+    forbiddenPeople: [...new Set((forbiddenPeople || []).filter(Boolean))],
+    availableDataSources: [...new Set((availableDataSources || []).filter(Boolean))],
+    connectionLabel: activeRelationship?.name || "",
+  };
+}
+
+export function buildActiveConnectionContextBlock(context = {}) {
+  return `ACTIVE CONNECTION CONTEXT:
+pairId: ${context.pairId || ""}
+connectionLabel: ${context.connectionLabel || ""}
+relationshipStatus: ${context.relationshipStatusLabel || context.relationshipStatus || "Other"}
+actorUser: ${context.actorUser || ""}
+targetUser: ${context.targetUser || ""}
+allowedPeople: ${(context.allowedPeople || []).join(", ")}
+forbiddenPeople: ${(context.forbiddenPeople || []).join(", ")}
+availableDataSources: ${(context.availableDataSources || []).join(", ")}
+
+STRICT RULES:
+- Only use data from this pairId.
+- Only refer to people listed in allowedPeople.
+- Never refer to forbiddenPeople.
+- Match tone, questions, analysis, and guidance to relationshipStatus.
+- If content appears to come from another pairing, discard it.
+- If data is missing, say the system does not yet have enough information for this connection.`;
+}
+
+export function validateOutputScope(output, context = {}) {
+  const text = String(output || "");
+  const violations = [];
+
+  if (!text.trim()) {
+    violations.push("empty_output");
+  }
+
+  if (containsForeignParticipantNames(text, context.forbiddenPeople || [])) {
+    violations.push("forbidden_people_mentioned");
+  }
+
+  if (containsRelationshipTypeLeakage(text, context.relationshipStatus || "other")) {
+    violations.push("relationship_status_language_mismatch");
+  }
+
+  const allowedPeople = context.allowedPeople || [];
+  if (allowedPeople.length) {
+    const capitalizedTokens = text.match(/\b[A-Z][a-z]{2,}\b/g) || [];
+    const unknownPeople = [...new Set(capitalizedTokens)].filter(
+      (name) => !allowedPeople.includes(name) && !(context.forbiddenPeople || []).includes(name),
+    );
+    if (unknownPeople.length > 0) {
+      violations.push("unknown_people_referenced");
+    }
+  }
+
+  return {
+    ok: violations.length === 0,
+    violations,
+  };
 }
 
 export function presentRelationshipText(text, participants = ["Tony", "Drew"], activeRelationshipOrType) {

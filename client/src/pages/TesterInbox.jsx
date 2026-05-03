@@ -9,6 +9,27 @@ import { getPartnerName } from "@/lib/relationshipParticipants";
 import { clearSharedMessageDraft, readSharedMessageDraft } from "@/lib/messageShare";
 import { toast } from "sonner";
 
+function firstSentence(text = "", maxChars = 110) {
+  const normalized = String(text || "").replace(/\s+/g, " ").trim();
+  if (!normalized) return "No message preview available.";
+  const sentence = normalized.split(/(?<=[.!?])\s+/)[0] || normalized;
+  if (sentence.length <= maxChars) return sentence;
+  return `${sentence.slice(0, maxChars - 3).trimEnd()}...`;
+}
+
+function formatMessageTimestamp(note) {
+  const raw = note?.updated_date || note?.created_date;
+  const date = raw ? new Date(raw) : null;
+  if (!date || Number.isNaN(date.getTime())) return "Unknown time";
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function TesterInbox() {
   const queryClient = useQueryClient();
   const { user, activeRelationshipId, activeRelationship } = useRelationshipAuth();
@@ -16,6 +37,7 @@ export default function TesterInbox() {
   const [sharedDraftSource, setSharedDraftSource] = useState("");
   const [sending, setSending] = useState(false);
   const [sendConfirmation, setSendConfirmation] = useState("");
+  const [expandedMessages, setExpandedMessages] = useState({});
   const textareaRef = useRef(null);
   const currentUserName = user?.name || "";
   const currentPersonName = activeRelationship?.current_person_name || currentUserName || "";
@@ -103,6 +125,14 @@ export default function TesterInbox() {
     }
   };
 
+  const toggleMessage = (id) => {
+    if (!id) return;
+    setExpandedMessages((current) => ({
+      ...current,
+      [id]: !current[id],
+    }));
+  };
+
   return (
     <div className="space-y-6">
       <Card className="border border-border/70 shadow-sm">
@@ -156,12 +186,28 @@ export default function TesterInbox() {
               inboxMessages.map((note) => (
                 <div key={note.id} className="rounded-2xl border border-border/70 bg-background p-4 space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-foreground">From {note.person_name || "Unknown"}</p>
-                    {!note.read_by_recipient ? (
-                      <span className="inline-flex rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">Unread</span>
-                    ) : null}
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-foreground">
+                        From {note.person_name || "Unknown"}: {firstSentence(note.content, 92)}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">{formatMessageTimestamp(note)}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {!note.read_by_recipient ? (
+                        <span className="inline-flex rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">Unread</span>
+                      ) : null}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => toggleMessage(note.id)}
+                      >
+                        {expandedMessages[note.id] ? "Collapse" : "Expand"}
+                      </Button>
+                    </div>
                   </div>
-                  <p className="text-sm whitespace-pre-wrap text-foreground">{note.content}</p>
+                  {expandedMessages[note.id] ? <p className="text-sm whitespace-pre-wrap text-foreground">{note.content}</p> : null}
                 </div>
               ))
             )}
@@ -178,8 +224,26 @@ export default function TesterInbox() {
             ) : (
               sentMessages.map((note) => (
                 <div key={note.id} className="rounded-2xl border border-border/70 bg-muted/20 p-4 space-y-2">
-                  <p className="text-sm whitespace-pre-wrap text-foreground">{note.content}</p>
-                  <p className="text-xs text-muted-foreground">To {note.recipient_name || partnerName || "Connection Partner"}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-foreground">
+                        To {note.recipient_name || partnerName || "Connection Partner"}: {firstSentence(note.content, 88)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{formatMessageTimestamp(note)}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => toggleMessage(`sent-${note.id}`)}
+                    >
+                      {expandedMessages[`sent-${note.id}`] ? "Collapse" : "Expand"}
+                    </Button>
+                  </div>
+                  {expandedMessages[`sent-${note.id}`] ? (
+                    <p className="text-sm whitespace-pre-wrap text-foreground">{note.content}</p>
+                  ) : null}
                 </div>
               ))
             )}

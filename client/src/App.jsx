@@ -21,7 +21,6 @@ import SmartTools from './pages/SmartTools.jsx';
 import TriggerLibrary from './pages/TriggerLibrary.jsx';
 import ProactiveRepair from './pages/ProactiveRepair.jsx';
 import DownloadData from './pages/DownloadData.jsx';
-import RelationshipChat from './pages/RelationshipChat.jsx';
 import AnalysisEngine from './pages/AnalysisEngine.jsx';
 import InsightLibrary from './pages/InsightLibrary.jsx';
 import KnowledgeHub from './pages/KnowledgeHub.jsx';
@@ -208,7 +207,7 @@ const ApplicationRoutes = () => {
         <Route path="/triggers" element={<TriggerLibrary />} />
         <Route path="/proactive-repair" element={<ProactiveRepair />} />
         <Route path="/download-data" element={<DownloadData />} />
-        <Route path="/chat" element={<RelationshipChat />} />
+        <Route path="/chat" element={<Navigate to="/reflect?mode=mirror" replace />} />
         <Route path="/analysis" element={<AnalysisEngine />} />
         <Route path="/insight-library" element={<InsightLibrary />} />
         <Route path="/knowledge" element={<KnowledgeHub />} />

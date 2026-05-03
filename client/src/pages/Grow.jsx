@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Insights from "@/pages/Insights";
@@ -9,6 +8,10 @@ import KnowledgeHub from "@/pages/KnowledgeHub";
 import PlayLab from "@/pages/PlayLab";
 import RelationshipRoadmap from "@/pages/RelationshipRoadmap";
 import PlayLabII from "@/pages/PlayLabII";
+import InsightLibrary from "@/pages/InsightLibrary";
+import HealthReport from "@/pages/HealthReport";
+import VisionBoard from "@/pages/VisionBoard";
+import RelationshipPlaybook from "@/pages/RelationshipPlaybook";
 import { cn } from "@/lib/utils";
 
 const sidebarItems = [
@@ -31,6 +34,35 @@ export default function Grow() {
   const [activeTab, setActiveTab] = useState("insights");
   const [activeSidebarItem, setActiveSidebarItem] = useState("overview");
 
+  const contentBySidebarItem = {
+    overview: <Insights />,
+    insights: <Insights />,
+    patterns: <AnalysisEngine />,
+    "deep-analysis": <AnalysisEngine />,
+    "analysis-engine": <AnalysisEngine />,
+    "multi-perspective": <AnalysisEngine />,
+    "pattern-scores": <AnalysisEngine />,
+    "predictive-layer": <AnalysisEngine />,
+    "knowledge-hub": <KnowledgeHub />,
+    "play-lab": <PlayLab />,
+    "growth-roadmap": <RelationshipRoadmap />,
+    resources: <InsightLibrary />,
+  };
+
+  const analysisExtendedViews = {
+    "health-report": <HealthReport />,
+    vision: <VisionBoard />,
+    playbook: <RelationshipPlaybook />,
+    "play-lab-ii": <PlayLabII />,
+  };
+
+  const handleSidebarSelect = (item) => {
+    setActiveTab(item.section);
+    setActiveSidebarItem(item.id);
+  };
+
+  const currentSidebarContent = contentBySidebarItem[activeSidebarItem] || <Insights />;
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
@@ -49,10 +81,7 @@ export default function Grow() {
               {sidebarItems.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.section);
-                    setActiveSidebarItem(item.id);
-                  }}
+                  onClick={() => handleSidebarSelect(item)}
                   className={cn(
                     "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
                     activeSidebarItem === item.id
@@ -105,17 +134,21 @@ export default function Grow() {
 
               {/* Insights Tab */}
               <TabsContent value="insights" className="space-y-6">
-                <Insights />
+                {currentSidebarContent}
               </TabsContent>
 
               {/* Analysis Tab */}
               <TabsContent value="analysis" className="space-y-6">
-                <AnalysisEngine />
+                {currentSidebarContent}
+                {activeSidebarItem === "deep-analysis" ? analysisExtendedViews["health-report"] : null}
+                {activeSidebarItem === "multi-perspective" ? analysisExtendedViews.vision : null}
+                {activeSidebarItem === "pattern-scores" ? analysisExtendedViews.playbook : null}
+                {activeSidebarItem === "predictive-layer" ? analysisExtendedViews["play-lab-ii"] : null}
               </TabsContent>
 
               {/* Knowledge Hub Tab */}
               <TabsContent value="knowledge" className="space-y-6">
-                <KnowledgeHub />
+                {currentSidebarContent}
               </TabsContent>
             </Tabs>
           </div>

@@ -51,7 +51,7 @@ const PAGE_META = {
   "/triggers": { label: "Trigger Library", subtitle: "Know what activates you — and each other", icon: ShieldAlert },
   "/repair": { label: "Proactive Repair", subtitle: "AI-guided repair after tension or conflict", icon: ShieldAlert },
   "/restore-center": { label: "Restore Center", subtitle: "Owner-only emergency recovery for deleted records across the full site", icon: History },
-  "/chat": { label: "Relationship Chat", subtitle: "Open conversation with your AI relationship coach", icon: MessagesSquare },
+  "/chat": { label: "Reflection Mirror", subtitle: "Dual-perspective, non-chat analysis for difficult moments", icon: MessagesSquare },
   "/tester-inbox": { label: "Connection Inbox", subtitle: "Direct messages, shared notes, and alerts for this connection", icon: MessagesSquare },
   "/health-report": { label: "Health Report", subtitle: "An enterprise-grade snapshot of your relationship health", icon: ActivitySquare },
 };
@@ -95,8 +95,8 @@ export default function PageBanner() {
     label = terms.type === "romantic" ? "Knowledge Hub" : `${terms.typeLabel} Knowledge Hub`;
     subtitle = `AI insights + curated psychology resources for this ${terms.bond}`;
   } else if (location.pathname === "/chat") {
-    label = terms.type === "romantic" ? "Relationship Chat" : `${terms.typeLabel} Chat`;
-    subtitle = `Open conversation with your AI coach for this ${terms.bond}`;
+    label = terms.type === "romantic" ? "Reflection Mirror" : `${terms.typeLabel} Reflection Mirror`;
+    subtitle = `Dual-perspective guidance for this ${terms.bond} without live chat`;
   } else if (location.pathname === "/health-report") {
     label = terms.type === "romantic" ? "Health Report" : `${terms.typeLabel} Health Report`;
     subtitle =

@@ -1,12 +1,18 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "@/api/client";
 import { queryClientInstance } from "@/lib/query-client";
-import { getRelationshipLabel, getRelationshipParticipants } from "@/lib/relationshipParticipants";
+import { getRelationshipLabel, getRelationshipParticipants, normalizeRelationshipType } from "@/lib/relationshipParticipants";
 
 const RelationshipAuthContext = createContext(null);
 
 function sanitizeRelationships(list = []) {
   return Array.isArray(list) ? list.filter(Boolean) : [];
+}
+
+function persistRelationshipSelection(relationships, relationshipId) {
+  api.session.setStoredRelationshipId(relationshipId || "");
+  const selected = (relationships || []).find((relationship) => relationship.id === relationshipId) || null;
+  api.session.setStoredRelationshipLayer(selected?.type ? normalizeRelationshipType(selected.type) : "");
 }
 
 export function RelationshipAuthProvider({ children }) {
@@ -27,7 +33,7 @@ export function RelationshipAuthProvider({ children }) {
         : nextRelationships.find((relationship) => relationship.id === payload?.default_relationship_id)?.id ||
         nextRelationships[0]?.id ||
         "";
-    api.session.setStoredRelationshipId(nextId);
+    persistRelationshipSelection(nextRelationships, nextId);
     setActiveRelationshipId(nextId);
     setError("");
     queryClientInstance.clear();
@@ -132,7 +138,7 @@ export function RelationshipAuthProvider({ children }) {
   };
 
   const selectRelationship = (relationshipId) => {
-    api.session.setStoredRelationshipId(relationshipId);
+    persistRelationshipSelection(relationships, relationshipId);
     setActiveRelationshipId(relationshipId);
     queryClientInstance.clear();
   };
@@ -146,7 +152,7 @@ export function RelationshipAuthProvider({ children }) {
         : sanitizedRelationships.some((relationship) => relationship.id === activeRelationshipId)
           ? activeRelationshipId
           : sanitizedRelationships[0]?.id || "";
-    api.session.setStoredRelationshipId(nextId);
+    persistRelationshipSelection(sanitizedRelationships, nextId);
     setActiveRelationshipId(nextId);
     queryClientInstance.clear();
   };

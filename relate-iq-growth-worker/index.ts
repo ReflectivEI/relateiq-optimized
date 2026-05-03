@@ -1012,10 +1012,7 @@ async function buildRelationshipSummaryPersistent(
   const memberNames = users
     .filter((user) => memberIds.includes(user.id))
     .map((user) => user.name);
-  const participantNames =
-    relationship.participants?.length >= 2
-      ? mergeParticipantNames(relationship.participants)
-      : mergeParticipantNames(relationship.participants, memberNames);
+  const participantNames = repairRelationshipParticipantNames(relationship.participants || [], memberNames);
   const currentUser = users.find((user) => user.id === userId) || null;
   const currentUserRole = await inferRelationshipRolePersistent(
     env,
@@ -1068,6 +1065,30 @@ function defaultProcessingStyle(value: string) {
 
 function mergeParticipantNames(...groups: Array<Array<string> | undefined>) {
   return [...new Set(groups.flat().map((value) => normalizeText(value)).filter(Boolean))];
+}
+
+function isPlaceholderParticipantName(value: string) {
+  const normalized = normalizeText(value).toLowerCase();
+  return ["other person", "participant", "person a", "person b", "unknown"].includes(normalized);
+}
+
+function hasTwoRealParticipantNames(values: string[]) {
+  return values.filter((value) => !isPlaceholderParticipantName(value)).length >= 2;
+}
+
+function repairRelationshipParticipantNames(currentParticipants: string[] = [], memberNames: string[] = []) {
+  const current = mergeParticipantNames(currentParticipants);
+  const members = mergeParticipantNames(memberNames);
+
+  const nonPlaceholderCurrent = current.filter((value) => !isPlaceholderParticipantName(value));
+  const nonPlaceholderMembers = members.filter((value) => !isPlaceholderParticipantName(value));
+  const merged = mergeParticipantNames(nonPlaceholderCurrent, nonPlaceholderMembers);
+
+  if (merged.length >= 2) return merged.slice(0, 2);
+  if (merged.length === 1) return [merged[0], "Other Person"];
+  if (current.length >= 2) return current.slice(0, 2);
+  if (current.length === 1) return [current[0], "Other Person"];
+  return ["Participant", "Other Person"];
 }
 
 function parseRelationshipParticipants(name: string, creatorName: string) {
@@ -1489,8 +1510,15 @@ async function acceptRelationshipInvitePersistent(env: Env, input: { token: stri
       user_id: user.id,
       role: "participant",
     } satisfies RelationshipMembership);
-    if (!relationship.participants || relationship.participants.length < 2) {
-      relationship.participants = mergeParticipantNames(relationship.participants, [user.name]);
+    const currentParticipants = mergeParticipantNames(relationship.participants || []);
+    const repairedParticipants = repairRelationshipParticipantNames(currentParticipants, [user.name]);
+    const needsParticipantRepair =
+      currentParticipants.length < 2 ||
+      currentParticipants.some((value) => isPlaceholderParticipantName(value)) ||
+      !currentParticipants.some((value) => normalizeText(value).toLowerCase() === normalizeText(user.name).toLowerCase());
+
+    if (needsParticipantRepair && repairedParticipants.join("|") !== currentParticipants.slice(0, 2).join("|")) {
+      relationship.participants = repairedParticipants;
       relationship.updated_at = nowIso();
       await saveAuthRecord(env, "relationship", relationship);
     }
@@ -1502,6 +1530,101 @@ async function acceptRelationshipInvitePersistent(env: Env, input: { token: stri
     relationship,
     summary: await buildRelationshipSummaryPersistent(env, relationship, user.id),
     alreadyMember,
+  };
+}
+
+async function repairPlaceholderParticipantsPersistent(
+  env: Env,
+  actingUserId: string,
+  options: { dryRun?: boolean; relationshipId?: string } = {},
+) {
+  const dryRun = options.dryRun !== false;
+  const scopedRelationshipId = normalizeText(options.relationshipId);
+  const relationships = await listRelationships(env);
+  const memberships = await listMemberships(env);
+  const users = await listUsers(env);
+
+  const processed: Array<{
+    relationship_id: string;
+    relationship_name: string;
+    before: string[];
+    after: string[];
+    action: "updated" | "dry-run" | "skipped";
+    reason: string;
+  }> = [];
+
+  for (const relationship of relationships) {
+    if (scopedRelationshipId && relationship.id !== scopedRelationshipId) continue;
+
+    const role = await inferRelationshipRolePersistent(
+      env,
+      relationship,
+      actingUserId,
+      memberships.filter((membership) => membership.relationship_id === relationship.id),
+    );
+    if (role !== "owner") {
+      processed.push({
+        relationship_id: relationship.id,
+        relationship_name: relationship.name,
+        before: mergeParticipantNames(relationship.participants || []),
+        after: mergeParticipantNames(relationship.participants || []),
+        action: "skipped",
+        reason: "forbidden",
+      });
+      continue;
+    }
+
+    const relationshipMemberships = memberships.filter((membership) => membership.relationship_id === relationship.id);
+    const memberIds = relationshipMemberships.map((membership) => membership.user_id);
+    const memberNames = users
+      .filter((user) => memberIds.includes(user.id))
+      .map((user) => user.name);
+
+    const before = mergeParticipantNames(relationship.participants || []);
+    const after = repairRelationshipParticipantNames(before, memberNames);
+    const changed = before.slice(0, 2).join("|") !== after.join("|");
+    const hasPlaceholder = before.some((value) => isPlaceholderParticipantName(value));
+    const safeToApply = hasPlaceholder && hasTwoRealParticipantNames(after);
+
+    if (!changed || !safeToApply) {
+      processed.push({
+        relationship_id: relationship.id,
+        relationship_name: relationship.name,
+        before,
+        after,
+        action: "skipped",
+        reason: !changed ? "no_change" : "ambiguous_or_not_safe",
+      });
+      continue;
+    }
+
+    if (!dryRun) {
+      const repaired: Relationship = {
+        ...relationship,
+        participants: after,
+        updated_at: nowIso(),
+      };
+      await saveAuthRecord(env, "relationship", repaired);
+    }
+
+    processed.push({
+      relationship_id: relationship.id,
+      relationship_name: relationship.name,
+      before,
+      after,
+      action: dryRun ? "dry-run" : "updated",
+      reason: "placeholder_replaced",
+    });
+  }
+
+  return {
+    ok: true,
+    dry_run: dryRun,
+    scoped_relationship_id: scopedRelationshipId || null,
+    processed,
+    updated_count: processed.filter((entry) => entry.action === "updated").length,
+    dry_run_count: processed.filter((entry) => entry.action === "dry-run").length,
+    skipped_count: processed.filter((entry) => entry.action === "skipped").length,
   };
 }
 
@@ -4476,6 +4599,17 @@ export default {
         const user = await readSessionUser(request, env, false);
         if (!user) return json({ error: "unauthorized" }, request, env, 401);
         return json({ rows: await listRelationshipAdminRowsPersistent(env, user.id) }, request, env);
+      }
+
+      if (url.pathname === "/api/relationships/repair-participants" && request.method === "POST") {
+        const user = await readSessionUser(request, env, false);
+        if (!user) return json({ error: "unauthorized" }, request, env, 401);
+        const body = await readJson(request);
+        const result = await repairPlaceholderParticipantsPersistent(env, user.id, {
+          dryRun: body?.dryRun,
+          relationshipId: body?.relationshipId,
+        });
+        return json(result, request, env);
       }
 
       if (url.pathname === "/api/relationships/create" && request.method === "POST") {

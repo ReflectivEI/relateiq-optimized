@@ -11,6 +11,14 @@
 import { api } from "@/api/client";
 import { RELATIONSHIP_COACH_SYSTEM, aggregateTags, serializeProfile, buildFullResponseContext } from "./prompts";
 import { safeInvokeLLM } from "./aiSafe";
+import {
+  buildActiveConnectionContext,
+  buildActiveConnectionContextBlock,
+  validateOutputScope,
+} from "./relationshipParticipants";
+
+const SCOPE_VALIDATION_FAILURE = "This response could not be safely generated for the active connection. Please try again.";
+const NOT_ENOUGH_SCOPED_INFORMATION = "Not enough information is available for this connection yet.";
 
 function getNamesFromMemory(memory = {}) {
   const primaryProfile = memory?.primaryProfile || memory?.tonyProfile || null;
@@ -79,6 +87,10 @@ export function buildContextObject({
   sessions = [],
   checkIns = [],
   relationshipDynamic = null,
+  activeRelationship = null,
+  actorUser = "",
+  targetUser = "",
+  forbiddenPeople = [],
 }) {
   const primaryPerson =
     tonyResponses[0]?.person_name ||
@@ -130,7 +142,25 @@ export function buildContextObject({
       recentSessions: sessions.slice(0, 20),
       recentCheckIns: checkIns.slice(0, 20),
       relationshipDynamic,
+      activeRelationship,
+      relationshipId: activeRelationship?.id || api.session.getStoredRelationshipId(),
     },
+    scopeContext: buildActiveConnectionContext({
+      pairId: activeRelationship?.id || api.session.getStoredRelationshipId(),
+      activeConnectionId: activeRelationship?.id || api.session.getStoredRelationshipId(),
+      activeRelationship,
+      actorUser: actorUser || primaryPerson,
+      targetUser: targetUser || secondaryPerson,
+      allowedPeople: [primaryPerson, secondaryPerson],
+      forbiddenPeople,
+      availableDataSources: [
+        profiles.length ? "profiles" : "",
+        tonyResponses.length || drewResponses.length ? "questionnaire" : "",
+        sessions.length ? "coachSessions" : "",
+        checkIns.length ? "checkIns" : "",
+        relationshipDynamic ? "relationshipDynamic" : "",
+      ].filter(Boolean),
+    }),
   };
 }
 
@@ -169,8 +199,24 @@ function serializeMemoryForPrompt(ctx) {
  * Ask AI Coach a free-form question with full page context.
  */
 export async function askCoach({ question, ctx }) {
+  const scopeContext = ctx?.scopeContext || buildActiveConnectionContext({
+    pairId: ctx?.memory?.relationshipId || api.session.getStoredRelationshipId(),
+    activeConnectionId: ctx?.memory?.relationshipId || api.session.getStoredRelationshipId(),
+    activeRelationship: ctx?.memory?.activeRelationship,
+    actorUser: ctx?.memory?.primaryPerson,
+    targetUser: ctx?.memory?.secondaryPerson,
+    allowedPeople: [ctx?.memory?.primaryPerson, ctx?.memory?.secondaryPerson].filter(Boolean),
+  });
+
+  if (!scopeContext.pairId || (scopeContext.availableDataSources || []).length === 0) {
+    return NOT_ENOUGH_SCOPED_INFORMATION;
+  }
+
   const memoryBlock = serializeMemoryForPrompt(ctx);
+  const scopeBlock = buildActiveConnectionContextBlock(scopeContext);
   const prompt = `${RELATIONSHIP_COACH_SYSTEM}
+
+${scopeBlock}
 
 ═══════════════════════════════════════════
 PAGE CONTEXT
@@ -192,11 +238,22 @@ Answer this question specifically in the context of the page and section above.
 Be specific to ${ctx.scope}. Use stored profile data and memory. Do not give generic advice.
 Format your response with clear section headers and short readable paragraphs.`;
 
-  const result = await safeInvokeLLM(
-    { prompt, model: "claude_sonnet_4_6", partnerLanguage: getPartnerLanguageForScope(ctx.scope, ctx.memory) },
+  const generate = (inputPrompt) => safeInvokeLLM(
+    { prompt: inputPrompt, model: "claude_sonnet_4_6", partnerLanguage: getPartnerLanguageForScope(ctx.scope, ctx.memory) },
     35000,
     "I'm unable to respond right now. Please try again in a moment."
   );
+
+  let result = await generate(prompt);
+  let validation = validateOutputScope(result, scopeContext);
+  if (!validation.ok) {
+    const retryPrompt = `${prompt}\n\nSTRICT REGENERATION RULES:\n- A prior output was rejected for scope leakage (${validation.violations.join(", ")}).\n- Only mention allowedPeople and match relationshipStatus exactly.`;
+    result = await generate(retryPrompt);
+    validation = validateOutputScope(result, scopeContext);
+    if (!validation.ok) {
+      return SCOPE_VALIDATION_FAILURE;
+    }
+  }
 
   // Log session
   try {
@@ -222,10 +279,23 @@ Format your response with clear section headers and short readable paragraphs.`;
  * Explain: simplify an existing AI output section.
  */
 export async function explainSection({ ctx }) {
+  const scopeContext = ctx?.scopeContext || buildActiveConnectionContext({
+    pairId: ctx?.memory?.relationshipId || api.session.getStoredRelationshipId(),
+    activeConnectionId: ctx?.memory?.relationshipId || api.session.getStoredRelationshipId(),
+    activeRelationship: ctx?.memory?.activeRelationship,
+    actorUser: ctx?.memory?.primaryPerson,
+    targetUser: ctx?.memory?.secondaryPerson,
+    allowedPeople: [ctx?.memory?.primaryPerson, ctx?.memory?.secondaryPerson].filter(Boolean),
+  });
+  if (!scopeContext.pairId) return NOT_ENOUGH_SCOPED_INFORMATION;
+
   const memoryBlock = serializeMemoryForPrompt(ctx);
   const scope = ctx.scope;
+  const scopeBlock = buildActiveConnectionContextBlock(scopeContext);
 
   const prompt = `${RELATIONSHIP_COACH_SYSTEM}
+
+${scopeBlock}
 
 The user wants a SIMPLIFIED EXPLANATION of the following AI-generated section.
 
@@ -260,21 +330,35 @@ Return your response in this exact format:
 ## 📌 One Simple Takeaway
 [Single sentence. Make it memorable.]`;
 
-  return safeInvokeLLM(
+  const first = await safeInvokeLLM(
     { prompt, model: "claude_sonnet_4_6", partnerLanguage: getPartnerLanguageForScope(scope, ctx.memory) },
     35000,
     "Unable to generate explanation right now. Please try again."
   );
+  return validateOutputScope(first, scopeContext).ok ? first : SCOPE_VALIDATION_FAILURE;
 }
 
 /**
  * Elaborate: expand an existing AI output section with more depth.
  */
 export async function elaborateSection({ ctx }) {
+  const scopeContext = ctx?.scopeContext || buildActiveConnectionContext({
+    pairId: ctx?.memory?.relationshipId || api.session.getStoredRelationshipId(),
+    activeConnectionId: ctx?.memory?.relationshipId || api.session.getStoredRelationshipId(),
+    activeRelationship: ctx?.memory?.activeRelationship,
+    actorUser: ctx?.memory?.primaryPerson,
+    targetUser: ctx?.memory?.secondaryPerson,
+    allowedPeople: [ctx?.memory?.primaryPerson, ctx?.memory?.secondaryPerson].filter(Boolean),
+  });
+  if (!scopeContext.pairId) return NOT_ENOUGH_SCOPED_INFORMATION;
+
   const memoryBlock = serializeMemoryForPrompt(ctx);
   const scope = ctx.scope;
+  const scopeBlock = buildActiveConnectionContextBlock(scopeContext);
 
   const prompt = `${RELATIONSHIP_COACH_SYSTEM}
+
+${scopeBlock}
 
 The user wants a DEEPER ELABORATION of the following AI-generated section.
 
@@ -312,11 +396,12 @@ Return your response in this exact format:
 ## ✨ Why This Fits Your Dynamic
 [A closing insight connecting this pattern to their specific relationship history]`;
 
-  return safeInvokeLLM(
+  const first = await safeInvokeLLM(
     { prompt, model: "claude_sonnet_4_6", partnerLanguage: getPartnerLanguageForScope(scope, ctx.memory) },
     35000,
     "Unable to generate elaboration right now. Please try again."
   );
+  return validateOutputScope(first, scopeContext).ok ? first : SCOPE_VALIDATION_FAILURE;
 }
 
 /**

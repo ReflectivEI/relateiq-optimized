@@ -1,14 +1,12 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { api } from "@/api/client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Send,
   Loader2,
   Sparkles,
-  RotateCcw,
   Heart,
   MessageSquareText,
   Scale,
@@ -17,11 +15,10 @@ import {
   ShieldAlert,
   Ear,
   Clock3,
-  MessageCircleQuestion,
   Lightbulb,
+  Search,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { cn } from "@/lib/utils";
 import CreditLimitBanner from "@/components/ui/CreditLimitBanner";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
@@ -162,17 +159,17 @@ export default function RelationshipChat() {
   const [primaryPerson = "Person A", secondaryPerson = "Other Person"] = participants;
   const relationshipTerms = getRelationshipTerms(activeRelationship);
   const coachLabel = getRelationshipCoachLabel(relationshipTerms);
-  const sectionPrompts = React.useMemo(
+  const sectionPrompts = useMemo(
     () => buildSectionPrompts(primaryPerson, secondaryPerson, relationshipTerms, relationshipLabel),
     [primaryPerson, secondaryPerson, relationshipTerms, relationshipLabel],
   );
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
+  const [situation, setSituation] = useState("");
+  const [focusPrompt, setFocusPrompt] = useState(sectionPrompts[0]?.prompt || "");
+  const [analysisResult, setAnalysisResult] = useState("");
+  const [analysisTitle, setAnalysisTitle] = useState("Reflection Mirror Output");
   const [loading, setLoading] = useState(false);
   const [scope, setScope] = useState("both");
   const [creditError, setCreditError] = useState(false);
-  const bottomRef = useRef(null);
-  const textareaRef = useRef(null);
 
   const { data: primaryResponses = [] } = useQuery({
     queryKey: ["chat-responses-primary", activeRelationshipId, primaryPerson],
@@ -183,69 +180,57 @@ export default function RelationshipChat() {
     queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: secondaryPerson }),
   });
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  const runMirrorAnalysis = async (promptText, promptTitle = "Reflection Mirror Output") => {
+    const focus = String(promptText || focusPrompt || "").trim();
+    const contextDetails = String(situation || "").trim();
+    if (!focus && !contextDetails) return;
 
-  useEffect(() => {
-    setScope((current) => {
-      if (current === "both") return current;
-      return participants.includes(current) ? current : "both";
-    });
-  }, [participants]);
-
-  const sendMessage = async (text) => {
-    const userText = (text || input).trim();
-    if (!userText || loading) return;
-    setInput("");
     setCreditError(false);
-
-    const userMsg = { role: "user", content: userText };
-    const newMessages = [...messages, userMsg];
-    setMessages(newMessages);
     setLoading(true);
-
-    const conversationHistory = newMessages
-      .map((message) => `${message.role === "user" ? "User" : "Coach"}: ${message.content}`)
-      .join("\n\n");
 
     const prompt = `${buildSystemPrompt(scope, participants, primaryResponses, secondaryResponses, relationshipTerms, relationshipLabel)}
 
-CONVERSATION SO FAR:
-${conversationHistory}
+TASK:
+Create a single structured Reflection Mirror analysis with these sections:
+1) Situation Snapshot
+2) ${primaryPerson}'s likely perspective
+3) ${secondaryPerson}'s likely perspective
+4) Potential misreads and escalation risks
+5) Evidence-backed intervention options
+6) A 24-hour repair script
+7) A 7-day behavior experiment
 
-Respond as the ${coachLabel}. Use clean headers and human-readable section names.`;
+Use evidence-based techniques explicitly where relevant (for example: nonviolent communication, cognitive reappraisal, attachment-informed framing, emotional regulation, active listening, perspective-taking, conflict de-escalation, and culturally responsive communication).
+Do not produce a back-and-forth chat response. Produce one focused professional analysis.
+
+FOCUS REQUEST:
+${focus || "General reflection mirror analysis"}
+
+SITUATION DETAILS:
+${contextDetails || "No extra situation details provided."}
+
+Respond as the ${coachLabel}. Use clean headers and practical guidance.`;
 
     try {
       const result = await api.integrations.Core.InvokeLLM({ prompt, model: "claude_sonnet_4_6" });
       const rawText = typeof result === "string" ? result : result?.response || "I wasn't able to generate a response. Please try again.";
       const aiText = prettifyResponseText(rawText);
-      setMessages((prev) => [...prev, { role: "assistant", content: aiText }]);
+      setAnalysisTitle(promptTitle);
+      setAnalysisResult(aiText);
     } catch (err) {
       if (err?.response?.status === 402 || err?.message?.includes("402") || err?.message?.includes("credit")) {
         setCreditError(true);
       } else {
-        setMessages((prev) => [...prev, { role: "assistant", content: "Something went wrong. Please try again." }]);
+        setAnalysisResult("Something went wrong. Please try again.");
+        setAnalysisTitle("Reflection Mirror Output");
       }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-  };
-
-  const handleKeyDown = (event) => {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      sendMessage();
-    }
-  };
-
-  const clearChat = () => {
-    setMessages([]);
-    setCreditError(false);
   };
 
   return (
-    <div className="flex h-[calc(100vh-5rem)] max-h-[960px] flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <div className="enterprise-panel flex shrink-0 items-center justify-between border-2 border-[#0e6f72]/20 bg-[#f4fbfa] px-4 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-white">
@@ -253,9 +238,9 @@ Respond as the ${coachLabel}. Use clean headers and human-readable section names
           </div>
           <div>
             <h1 className="font-display text-xl font-bold text-foreground">
-              {coachLabel}
+              Reflection Mirror
             </h1>
-            <p className="text-xs text-muted-foreground">Powered by {relationshipLabel}&apos;s questionnaire data</p>
+            <p className="text-xs text-muted-foreground">Single-run, questionnaire-grounded dual-perspective analysis for {relationshipLabel}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -269,11 +254,6 @@ Respond as the ${coachLabel}. Use clean headers and human-readable section names
               <SelectItem value={secondaryPerson}>{secondaryPerson}&apos;s perspective</SelectItem>
             </SelectContent>
           </Select>
-          {messages.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={clearChat} className="h-9 gap-1.5 rounded-full border border-[#0e6f72]/15 bg-white text-xs text-[#14263f] hover:bg-[#eef8f7]">
-              <RotateCcw className="w-3 h-3" /> Clear
-            </Button>
-          )}
         </div>
       </div>
 
@@ -283,124 +263,95 @@ Respond as the ${coachLabel}. Use clean headers and human-readable section names
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto space-y-4 min-h-0 pr-1">
-        {messages.length === 0 && (
-          <div className="space-y-6">
-            <div className="enterprise-panel border-2 border-[#0e6f72]/15 bg-[#f8fbfd] py-8 text-center space-y-2">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-white">
-                <Sparkles className="h-7 w-7 text-[#0e6f72]" />
-              </div>
-              <h2 className="font-display text-lg font-semibold text-foreground">Choose a section to explore</h2>
-              <p className="mx-auto max-w-2xl text-sm text-muted-foreground">
-                Each section below is grounded in {primaryPerson} and {secondaryPerson}&apos;s actual questionnaire answers. Use the main action for a deeper answer or the summarize pill for a faster read.
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {sectionPrompts.map((section) => (
-                <div
-                  key={section.title}
-                  className="enterprise-hover-raise flex h-full flex-col rounded-2xl border border-[#0e6f72]/20 bg-white p-4 shadow-sm"
-                >
-                  <div className="mb-3 flex items-start justify-between gap-2">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-[#eef8f7]">
-                      <section.icon className="h-4 w-4 text-[#0e6f72]" />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => sendMessage(section.summaryPrompt)}
-                      className="enterprise-icon-pill px-3 py-1.5 text-xs"
-                    >
-                      Summarize
-                    </button>
-                  </div>
-                  <h3 className="text-base font-semibold text-[#14263f]">{section.title}</h3>
-                  <p className="mt-2 flex-1 text-sm leading-6 text-[#4e6077]">{section.description}</p>
-                  <button
-                    type="button"
-                    onClick={() => sendMessage(section.prompt)}
-                    className="mt-4 inline-flex w-full items-center justify-center rounded-full border-2 border-teal-500 bg-[#14263f] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#0f1d31]"
-                  >
-                    Ask About This
-                  </button>
-                </div>
-              ))}
-            </div>
+      <div className="space-y-6">
+        <div className="enterprise-panel border-2 border-[#0e6f72]/15 bg-[#f8fbfd] py-8 text-center space-y-2">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-white">
+            <Sparkles className="h-7 w-7 text-[#0e6f72]" />
           </div>
-        )}
-
-        {messages.map((message, index) => (
-          <div key={index} className={cn("flex gap-3", message.role === "user" ? "justify-end" : "justify-start")}>
-            {message.role === "assistant" && (
-              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-[#eef8f7]">
-                <MessageCircleQuestion className="h-4 w-4 text-[#0e6f72]" />
-              </div>
-            )}
-            <div
-              className={cn(
-                "max-w-[82%] rounded-2xl px-4 py-3 text-sm shadow-sm",
-                message.role === "user"
-                  ? "border border-[#0e6f72] bg-[#0e6f72] text-white"
-                  : "border border-[#0e6f72]/15 bg-white text-foreground"
-              )}
-            >
-              {message.role === "assistant" ? (
-                <div className="space-y-3">
-                  <div className="prose prose-sm max-w-none text-foreground prose-headings:text-[#14263f] prose-strong:text-[#14263f] [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                    <ReactMarkdown>{message.content}</ReactMarkdown>
-                  </div>
-                  <ResponseExportBar
-                    content={message.content}
-                    title={`${coachLabel} Response`}
-                    filename={`relationship-chat-${index + 1}.pdf`}
-                    shareSourceLabel={coachLabel}
-                  />
-                </div>
-              ) : (
-                <p>{message.content}</p>
-              )}
-            </div>
-          </div>
-        ))}
-
-        {loading && (
-          <div className="flex gap-3 justify-start">
-            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-[#eef8f7]">
-              <MessageCircleQuestion className="h-4 w-4 text-[#0e6f72]" />
-            </div>
-            <div className="flex items-center gap-2 rounded-2xl border border-[#0e6f72]/15 bg-white px-4 py-3 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin text-[#0e6f72]" />
-              Thinking with full context...
-            </div>
-          </div>
-        )}
-
-        <div ref={bottomRef} />
-      </div>
-
-      <div className="enterprise-panel shrink-0 border-2 border-[#0e6f72]/15 bg-[#f8fbfd] pt-4">
-        <div className="flex gap-2 items-end">
-          <Textarea
-            ref={textareaRef}
-            placeholder={`Ask about ${primaryPerson}, ${secondaryPerson}, or this ${relationshipTerms.bond}...`}
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            onKeyDown={handleKeyDown}
-            className="min-h-[48px] max-h-[140px] resize-none rounded-2xl border-2 bg-white text-sm py-3"
-            rows={1}
-            disabled={loading}
-          />
-          <Button
-            onClick={() => sendMessage()}
-            disabled={loading || !input.trim()}
-            className="h-12 w-12 shrink-0 rounded-full border-2 border-teal-500 bg-[#14263f] p-0 text-white hover:bg-[#0f1d31]"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          </Button>
+          <h2 className="font-display text-lg font-semibold text-foreground">Structured Reflection Mirror</h2>
+          <p className="mx-auto max-w-2xl text-sm text-muted-foreground">
+            Use one focused prompt plus your situation details. This generates a single robust analysis without live chat.
+          </p>
         </div>
-        <p className="mt-1.5 text-center text-[10px] text-muted-foreground/60">
-          References {primaryPerson} &amp; {secondaryPerson}&apos;s full questionnaire responses · Press Enter to send
-        </p>
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {sectionPrompts.map((section) => (
+            <button
+              key={section.title}
+              type="button"
+              onClick={() => {
+                setFocusPrompt(section.prompt);
+                setAnalysisTitle(section.title);
+                runMirrorAnalysis(section.prompt, section.title);
+              }}
+              className="enterprise-hover-raise flex h-full flex-col rounded-2xl border border-[#0e6f72]/20 bg-white p-4 text-left shadow-sm"
+              disabled={loading}
+            >
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl border border-[#0e6f72]/15 bg-[#eef8f7]">
+                <section.icon className="h-4 w-4 text-[#0e6f72]" />
+              </div>
+              <h3 className="text-base font-semibold text-[#14263f]">{section.title}</h3>
+              <p className="mt-2 flex-1 text-sm leading-6 text-[#4e6077]">{section.description}</p>
+              <p className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#0e6f72]">
+                <Search className="h-3.5 w-3.5" /> Run analysis
+              </p>
+            </button>
+          ))}
+        </div>
+
+        <div className="enterprise-panel shrink-0 border-2 border-[#0e6f72]/15 bg-[#f8fbfd] p-4">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0e6f72]">Situation Details</p>
+            <Textarea
+              placeholder={`Describe the specific situation between ${primaryPerson} and ${secondaryPerson}...`}
+              value={situation}
+              onChange={(event) => setSituation(event.target.value)}
+              className="min-h-[120px] resize-y rounded-2xl border-2 bg-white text-sm py-3"
+              disabled={loading}
+            />
+            <p className="text-[11px] text-muted-foreground">Include exact wording, emotional tone, and what outcome you want next.</p>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#0e6f72]">Focus Prompt</p>
+              <Textarea
+                value={focusPrompt}
+                onChange={(event) => setFocusPrompt(event.target.value)}
+                className="min-h-[72px] rounded-2xl border-2 bg-white text-sm"
+                disabled={loading}
+              />
+            </div>
+            <Button
+              onClick={() => runMirrorAnalysis(focusPrompt || "General reflection mirror analysis", analysisTitle || "Reflection Mirror Output")}
+              disabled={loading || (!focusPrompt.trim() && !situation.trim())}
+              className="h-12 rounded-full border-2 border-teal-500 bg-[#14263f] px-6 text-white hover:bg-[#0f1d31]"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              <span className="ml-2">Generate Mirror Analysis</span>
+            </Button>
+          </div>
+        </div>
+
+        {analysisResult ? (
+          <div className="enterprise-panel rounded-2xl border border-[#0e6f72]/15 bg-white p-5">
+            <div className="mb-3 flex items-center gap-2 text-[#14263f]">
+              <MessageSquareText className="h-4 w-4 text-[#0e6f72]" />
+              <h3 className="text-sm font-semibold uppercase tracking-[0.12em]">{analysisTitle}</h3>
+            </div>
+            <div className="prose prose-sm max-w-none text-foreground prose-headings:text-[#14263f] prose-strong:text-[#14263f] [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+              <ReactMarkdown>{analysisResult}</ReactMarkdown>
+            </div>
+            <div className="mt-4">
+              <ResponseExportBar
+                content={analysisResult}
+                title={analysisTitle}
+                filename={`reflection-mirror-${Date.now()}.pdf`}
+                shareSourceLabel="Reflection Mirror"
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

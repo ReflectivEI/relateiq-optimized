@@ -137,6 +137,67 @@ const RESOURCES = {
       relevantFrameworks: ["EFT"],
     },
   ],
+  relationshipSpecific: {
+    friendship: [
+      {
+        title: "APA Monitor: The Science of Friendship",
+        description: "Evidence review on why friendship quality predicts health, wellbeing, and resilience.",
+        url: "https://www.apa.org/monitor/2023/06/cover-story-science-of-friendship",
+        category: "Friendship Science",
+      },
+      {
+        title: "Mayo Clinic: Friendships",
+        description: "Clinical guidance on maintaining healthy friendships and preventing social isolation.",
+        url: "https://www.mayoclinic.org/healthy-lifestyle/adult-health/in-depth/friendships/art-20044860",
+        category: "Friendship Science",
+      },
+    ],
+    family: [
+      {
+        title: "APA: Families",
+        description: "Psychology guidance on family dynamics, stress, and supportive communication patterns.",
+        url: "https://www.apa.org/topics/families",
+        category: "Family Systems",
+      },
+      {
+        title: "AAMFT",
+        description: "Family systems and relationship therapy organization with family-focused education resources.",
+        url: "https://www.aamft.org",
+        category: "Family Systems",
+      },
+    ],
+    colleague: [
+      {
+        title: "CDC NIOSH: Stress at Work",
+        description: "Occupational health guidance on stress, communication, and psychosocial workplace risk.",
+        url: "https://www.cdc.gov/niosh/topics/stress",
+        category: "Workplace Collaboration",
+      },
+      {
+        title: "APA: Healthy Workplaces",
+        description: "Evidence-informed workplace wellbeing practices that support communication and trust.",
+        url: "https://www.apa.org/topics/healthy-workplaces",
+        category: "Workplace Collaboration",
+      },
+    ],
+    other: [
+      {
+        title: "CDC: Social Connectedness",
+        description: "Public health evidence on connectedness as a protective factor for wellbeing and resilience.",
+        url: "https://www.cdc.gov/violenceprevention/about/social-connectedness.html",
+        category: "Connection Science",
+      },
+      {
+        title: "APA: Relationships",
+        description: "Foundational relationship psychology guidance applicable across connection types.",
+        url: "https://www.apa.org/topics/relationships",
+        category: "Connection Science",
+      },
+    ],
+    romantic: [],
+    committed_relationship: [],
+    marriage: [],
+  },
 };
 
 function buildResourceSections(terms) {
@@ -148,6 +209,17 @@ function buildResourceSections(terms) {
   const supportResources =
     terms.type === "romantic" ? RESOURCES.romanticSpecific : RESOURCES.connectionSupport;
 
+  const evidenceBase = (terms.sourceReferences || []).map((source) => ({
+    title: source.title,
+    description: `Credible source used to tailor guidance for this ${terms.bond}.`,
+    url: source.url,
+    category: `${terms.typeLabel} Evidence Base`,
+    relevantFrameworks: ["EVIDENCE"],
+  }));
+
+  const typeSpecific =
+    RESOURCES.relationshipSpecific[terms.type] || RESOURCES.relationshipSpecific.other;
+
   const coreResources = RESOURCES.core.map((resource) => ({
     ...resource,
     category: terms.type === "romantic" ? resource.category : `Core ${terms.typeLabel} Science`,
@@ -155,9 +227,19 @@ function buildResourceSections(terms) {
 
   return [
     {
+      title: `${terms.typeLabel} Evidence Base`,
+      icon: Target,
+      resources: evidenceBase,
+    },
+    {
       title: terms.type === "romantic" ? "Core Relationship Science" : `Core ${terms.typeLabel} Science`,
       icon: Library,
       resources: coreResources,
+    },
+    {
+      title: `${terms.typeLabel} Specific Guidance`,
+      icon: Heart,
+      resources: typeSpecific,
     },
     {
       title: supportTitle,

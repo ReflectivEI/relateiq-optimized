@@ -135,6 +135,71 @@ function buildEmptyRelationshipMemory() {
   };
 }
 
+function extractQuestionnaireThemes(responses = []) {
+  const keywords = responses
+    .flatMap((r) => [r.question_text || "", r.answer || ""].join(" ").toLowerCase().split(/\s+/))
+    .filter(Boolean);
+  const patterns = {
+    communication: ["talk", "listen", "express", "discuss", "say", "hear", "communicate"],
+    support: ["help", "support", "need", "comfort", "understand", "there"],
+    conflict: ["disagree", "conflict", "argue", "tension", "difficult", "challenge"],
+    emotion: ["feel", "emotion", "happy", "sad", "angry", "mood", "heart"],
+    values: ["value", "important", "matter", "believe", "principle", "meaning"],
+    growth: ["grow", "learn", "develop", "improve", "strengthen", "build"],
+  };
+  const themes = {};
+  Object.entries(patterns).forEach(([theme, words]) => {
+    themes[theme] = words.filter((w) => keywords.includes(w)).length;
+  });
+  return Object.entries(themes)
+    .filter(([_, count]) => count > 0)
+    .sort(([, a], [, b]) => b - a)
+    .map(([theme]) => theme)
+    .slice(0, 3);
+}
+
+function buildProfileAnalysisFromData(profile = {}, memory = {}) {
+  const personName = profile.person_name || "";
+  if (!personName) return profile;
+  const questionnaireResponses = (memory.questionnaireResponses || []).filter(
+    (r) => normalizeText(r.person_name) === normalizeText(personName)
+  );
+  const dailyReflections = (memory.dailyReflections || []).filter(
+    (r) => normalizeText(r.person_name) === normalizeText(personName)
+  );
+  const journalEntries = (memory.journalEntries || []).filter(
+    (r) => normalizeText(r.person_name) === normalizeText(personName)
+  );
+  const checkIns = (memory.checkIns || []).filter((r) => normalizeText(r.person_name) === normalizeText(personName));
+  const triggers = (memory.triggers || []).filter((r) => normalizeText(r.owner) === normalizeText(personName));
+  const themes = extractQuestionnaireThemes(questionnaireResponses);
+  const sourceCounts = {
+    questionnaire: questionnaireResponses.length,
+    daily: dailyReflections.length,
+    journal: journalEntries.length,
+    checkin: checkIns.length,
+    triggers: triggers.length,
+  };
+  const totalSources = Object.values(sourceCounts).reduce((a, b) => a + b, 0);
+  return {
+    ...profile,
+    ai_behavioral_summary:
+      profile.ai_behavioral_summary ||
+      `${personName}'s profile is informed by ${totalSources} data points across questionnaire, daily reflections, journal, check-ins, and experience tracking. Key patterns: ${themes.join(", ") || "Building from lived experience"}`,
+    continuous_learning: {
+      ...profile.continuous_learning,
+      questionnaire_count: sourceCounts.questionnaire,
+      daily_count: sourceCounts.daily,
+      journal_count: sourceCounts.journal,
+      checkin_count: sourceCounts.checkin,
+      trigger_count: sourceCounts.triggers,
+      coverage_total: totalSources,
+      key_themes: themes,
+      last_sync: new Date().toISOString(),
+    },
+  };
+}
+
 function inferScopedPerson(record = {}) {
   if (normalizeText(record.person_name)) return normalizeText(record.person_name);
   if (normalizeText(record.owner)) return normalizeText(record.owner);

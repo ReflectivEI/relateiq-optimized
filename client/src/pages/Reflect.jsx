@@ -1,13 +1,58 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Coach from "@/pages/Coach";
-import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
+import CheckIn from "@/pages/CheckIn";
+import RelationshipJournal from "@/pages/RelationshipJournal";
+import DailyConnections from "@/pages/DailyConnections";
+import RelationshipChat from "@/pages/RelationshipChat";
 
 export default function Reflect() {
-  const { activeRelationship } = useRelationshipAuth();
-  const [mode, setMode] = useState("coach"); // "coach" or "whatHappened"
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedMode = searchParams.get("mode") || "coach";
+  const [mode, setMode] = useState(requestedMode);
+
+  const modeItems = useMemo(
+    () => [
+      { id: "coach", label: "AI Coach" },
+      { id: "whatHappened", label: "What Happened" },
+      { id: "mirror", label: "Reflection Mirror" },
+      { id: "checkIn", label: "Check-In" },
+      { id: "journal", label: "Journal" },
+      { id: "daily", label: "Daily Connections" },
+    ],
+    [],
+  );
+
+  const modeDescription = {
+    coach: "Context-aware coaching for immediate guidance and clean action steps.",
+    whatHappened: "Structured weekly reflection to understand what happened and what to do next.",
+    mirror: "Dual-perspective intelligence to understand both sides of the same moment.",
+    checkIn: "Weekly relationship check-in with robust insight and export-ready summaries.",
+    journal: "Private writing, timeline continuity, and clean exports for reflection history.",
+    daily: "Daily prompts that strengthen consistency, empathy, and emotional signal tracking.",
+  };
+
+  const renderModeContent = () => {
+    if (mode === "coach") return <Coach />;
+    if (mode === "whatHappened") return <CheckIn />;
+    if (mode === "mirror") return <RelationshipChat />;
+    if (mode === "checkIn") return <CheckIn />;
+    if (mode === "journal") return <RelationshipJournal />;
+    if (mode === "daily") return <DailyConnections />;
+    return <Coach />;
+  };
+
+  React.useEffect(() => {
+    if (requestedMode !== mode) {
+      setMode(requestedMode);
+    }
+  }, [requestedMode, mode]);
+
+  const handleModeSelect = (nextMode) => {
+    setMode(nextMode);
+    setSearchParams({ mode: nextMode }, { replace: true });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -22,87 +67,22 @@ export default function Reflect() {
 
         {/* Mode Selector */}
         <div className="flex gap-2 mb-8 flex-wrap">
-          <Button
-            variant={mode === "coach" ? "default" : "outline"}
-            onClick={() => setMode("coach")}
-            className="gap-2 rounded-lg font-medium"
-          >
-            AI Coach
-          </Button>
-          <Button
-            variant={mode === "whatHappened" ? "default" : "outline"}
-            onClick={() => setMode("whatHappened")}
-            className="gap-2 rounded-lg font-medium"
-          >
-            What Happened
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {}}
-            disabled
-            className="gap-2 rounded-lg font-medium opacity-50"
-          >
-            Reflection Mirror
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {}}
-            disabled
-            className="gap-2 rounded-lg font-medium opacity-50"
-          >
-            Check-In
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {}}
-            disabled
-            className="gap-2 rounded-lg font-medium opacity-50"
-          >
-            Journal
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {}}
-            disabled
-            className="gap-2 rounded-lg font-medium opacity-50"
-          >
-            Daily Connections
-          </Button>
+          {modeItems.map((item) => (
+            <Button
+              key={item.id}
+              variant={mode === item.id ? "default" : "outline"}
+              onClick={() => handleModeSelect(item.id)}
+              className="gap-2 rounded-lg font-medium"
+            >
+              {item.label}
+            </Button>
+          ))}
         </div>
+
+        <p className="mb-6 text-sm text-muted-foreground">{modeDescription[mode]}</p>
 
         {/* Mode Content */}
-        <div className="space-y-6">
-          {mode === "coach" && (
-            <div>
-              <Coach />
-            </div>
-          )}
-
-          {mode === "whatHappened" && (
-            <Card className="border border-border/50 bg-card/50">
-              <CardHeader>
-                <CardTitle className="text-2xl">What Happened</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
-                  <p className="text-sm text-muted-foreground">
-                    This guided reflection helps you process a specific moment or pattern:
-                  </p>
-                  <ol className="mt-3 space-y-2 text-sm text-muted-foreground list-decimal list-inside">
-                    <li>Describe the situation</li>
-                    <li>Explore what you're feeling</li>
-                    <li>Consider what they might be experiencing</li>
-                    <li>Get system insight and analysis</li>
-                    <li>Receive recommended approach</li>
-                  </ol>
-                </div>
-                <p className="text-sm text-muted-foreground italic">
-                  "What Happened" analysis feature coming soon. Use AI Coach for immediate guidance.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        <div className="space-y-6">{renderModeContent()}</div>
       </div>
     </div>
   );

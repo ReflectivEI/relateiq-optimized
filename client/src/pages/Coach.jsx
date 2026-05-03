@@ -49,12 +49,15 @@ import NotesPanel from "@/components/notes/NotesPanel";
 import { enforceCoachStructure, deriveCoachModes } from "@/lib/coachStructureEnforcer";
 import { useRelationshipAuth } from "@/context/RelationshipAuthContext";
 import {
+  buildActiveConnectionContext,
+  buildActiveConnectionContextBlock,
   buildParticipantData,
   getForeignParticipantNames,
   getPartnerName,
   getRelationshipTerms,
   isTextVisibleForRelationshipContext,
   presentRelationshipText,
+  validateOutputScope,
 } from "@/lib/relationshipParticipants";
 
 const SUGGESTION_PILLS = [
@@ -383,11 +386,38 @@ export default function Coach() {
         .slice(0, 10),
     }) + (triggerCtx ? `\n\nTRIGGER MEMORY:\n${triggerCtx}` : "");
 
+    const scopeContext = buildActiveConnectionContext({
+      pairId: activeRelationshipId,
+      activeConnectionId: activeRelationshipId,
+      activeRelationship,
+      actorUser: normalizedSpeaker,
+      targetUser: resolvedTarget,
+      allowedPeople: activeParticipants,
+      forbiddenPeople: hiddenParticipantNames,
+      availableDataSources: [
+        speakerProfile ? "speakerProfile" : "",
+        targetProfile ? "targetProfile" : "",
+        speakerResponses.length ? "speakerResponses" : "",
+        targetResponses.length ? "targetResponses" : "",
+        safePastSessions.length ? "coachSessions" : "",
+      ].filter(Boolean),
+    });
+
+    if ((scopeContext.availableDataSources || []).length === 0) {
+      setLoading(false);
+      setResponse("Not enough information is available for this connection yet.");
+      setBaseResponse("Not enough information is available for this connection yet.");
+      setCoachModes(deriveCoachModes("Not enough information is available for this connection yet."));
+      return;
+    }
+
+    const scopedPrompt = `${buildActiveConnectionContextBlock(scopeContext)}\n\n${prompt}`;
+
     let result;
     try {
       result = await safeInvokeLLM(
         {
-          prompt,
+          prompt: scopedPrompt,
           model: "claude_sonnet_4_6",
           partnerLanguage: { personName: normalizedSpeaker, partnerName: resolvedTarget },
         },
@@ -406,6 +436,26 @@ export default function Coach() {
 
     if (!result) {
       result = buildFallbackCoachResponse(normalizedSpeaker, resolvedTarget, situationText);
+    }
+
+    let validation = validateOutputScope(result, scopeContext);
+    if (!validation.ok) {
+      const strictRetry = await safeInvokeLLM(
+        {
+          prompt: `${scopedPrompt}\n\nSTRICT REGENERATION RULES:\nA prior output was rejected for: ${validation.violations.join(", ")}.\nOnly mention allowedPeople and follow relationshipStatus language rules exactly.`,
+          model: "claude_sonnet_4_6",
+          partnerLanguage: { personName: normalizedSpeaker, partnerName: resolvedTarget },
+        },
+        35000,
+        null,
+        validateCoachOutput
+      );
+      validation = validateOutputScope(strictRetry, scopeContext);
+      if (validation.ok) {
+        result = strictRetry;
+      } else {
+        result = "This response could not be safely generated for the active connection. Please try again.";
+      }
     }
 
     // ENFORCE STRUCTURE

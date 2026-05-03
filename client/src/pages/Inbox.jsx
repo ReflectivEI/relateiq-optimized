@@ -11,12 +11,33 @@ import { formatDistanceToNow } from "date-fns";
 import { Trash2, Send, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+function firstSentence(text = "", maxChars = 110) {
+  const normalized = String(text || "").replace(/\s+/g, " ").trim();
+  if (!normalized) return "No message preview available.";
+  const sentence = normalized.split(/(?<=[.!?])\s+/)[0] || normalized;
+  if (sentence.length <= maxChars) return sentence;
+  return `${sentence.slice(0, maxChars - 3).trimEnd()}...`;
+}
+
+function formatMessageTimestamp(message) {
+  const date = new Date(message.created_date || message.updated_date);
+  if (Number.isNaN(date.getTime())) return "Unknown time";
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function Inbox() {
   const { activeRelationshipId, user, primaryPerson, secondaryPerson } = useRelationshipAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [messageDraft, setMessageDraft] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [selectedTab, setSelectedTab] = useState("inbox");
+  const [expandedMessages, setExpandedMessages] = useState({});
   const queryClient = useQueryClient();
 
   const currentPersonName = user?.name || primaryPerson;
@@ -98,6 +119,14 @@ export default function Inbox() {
     }
   };
 
+  const toggleMessage = (id) => {
+    if (!id) return;
+    setExpandedMessages((current) => ({
+      ...current,
+      [id]: !current[id],
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="px-4 md:px-8 py-6 max-w-4xl mx-auto">
@@ -177,23 +206,27 @@ export default function Inbox() {
                     <CardContent className="pt-4 space-y-2">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-foreground">{message.person_name}</p>
-                          <p className="text-sm text-muted-foreground mt-1 break-words">
-                            {message.content}
+                          <p className="font-semibold text-foreground">
+                            {message.person_name}: {firstSentence(message.content, 95)}
                           </p>
+                          <p className="mt-1 text-xs text-muted-foreground">{formatMessageTimestamp(message)}</p>
                         </div>
-                        <button
-                          onClick={() => handleDeleteMessage(message.id)}
-                          className="p-2 hover:bg-destructive/10 text-destructive rounded-md transition-colors flex-shrink-0"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => toggleMessage(message.id)}>
+                            {expandedMessages[message.id] ? "Collapse" : "Expand"}
+                          </Button>
+                          <button
+                            onClick={() => handleDeleteMessage(message.id)}
+                            className="p-2 hover:bg-destructive/10 text-destructive rounded-md transition-colors flex-shrink-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(message.created_date || message.updated_date), {
-                          addSuffix: true,
-                        })}
-                      </p>
+                      {expandedMessages[message.id] ? (
+                        <p className="text-sm whitespace-pre-wrap text-muted-foreground break-words">{message.content}</p>
+                      ) : null}
+                      <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(message.created_date || message.updated_date), { addSuffix: true })}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -226,23 +259,30 @@ export default function Inbox() {
                     <CardContent className="pt-4 space-y-2">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-foreground">To: {message.recipient_name}</p>
-                          <p className="text-sm text-muted-foreground mt-1 break-words">
-                            {message.content}
-                          </p>
+                          <p className="font-semibold text-foreground">To: {message.recipient_name} — {firstSentence(message.content, 80)}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{formatMessageTimestamp(message)}</p>
                         </div>
-                        <button
-                          onClick={() => handleDeleteMessage(message.id)}
-                          className="p-2 hover:bg-destructive/10 text-destructive rounded-md transition-colors flex-shrink-0"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 text-xs"
+                            onClick={() => toggleMessage(`sent-${message.id}`)}
+                          >
+                            {expandedMessages[`sent-${message.id}`] ? "Collapse" : "Expand"}
+                          </Button>
+                          <button
+                            onClick={() => handleDeleteMessage(message.id)}
+                            className="p-2 hover:bg-destructive/10 text-destructive rounded-md transition-colors flex-shrink-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(message.created_date || message.updated_date), {
-                          addSuffix: true,
-                        })}
-                      </p>
+                      {expandedMessages[`sent-${message.id}`] ? (
+                        <p className="text-sm whitespace-pre-wrap text-muted-foreground break-words">{message.content}</p>
+                      ) : null}
+                      <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(message.created_date || message.updated_date), { addSuffix: true })}</p>
                     </CardContent>
                   </Card>
                 ))}

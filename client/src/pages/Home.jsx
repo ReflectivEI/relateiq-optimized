@@ -113,10 +113,15 @@ export default function Home() {
   const [messageConfirmation, setMessageConfirmation] = useState("");
   const queryClient = useQueryClient();
 
-  const { data: profiles = [] } = useQuery({
+  const { data: profilesRaw = [] } = useQuery({
     queryKey: ["profiles-home", activeRelationshipId],
     queryFn: () => api.entities.UserProfile.list(),
   });
+
+  const profiles = profilesRaw.map((p) => ({
+    ...p,
+    continuous_learning: p.continuous_learning || { coverage_total: 0, key_themes: [] },
+  }));
 
   const { data: checkIns = [] } = useQuery({
     queryKey: ["checkins-home", activeRelationshipId],
@@ -305,10 +310,11 @@ export default function Home() {
       </AnimatePresence>
 
       {/* Profile Status Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
         {participants.map((name, index) => {
           const profile = index === 0 ? (tonyProfile || fallbackTony) : (drewProfile || fallbackDrew);
           const hasProfileData = Boolean(profile);
+          const learningCoverage = profile?.continuous_learning || { coverage_total: 0, key_themes: [] };
           const isExpanded = Boolean(expandedProfileCards[name]);
           const previewText = profile?.communication_style || `${name}'s profile preview`;
           return (
@@ -318,45 +324,23 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index === 0 ? 0.1 : 0.2 }}
             >
-              <Card className="h-full border border-border/70 bg-card/90 backdrop-blur-sm hover:shadow-md transition-shadow">
-                <CardContent className="flex h-full flex-col p-6">
-                  <div className="mb-3 flex items-start justify-between gap-3">
+              <Card className="h-full border border-primary/15 bg-card/95 backdrop-blur-sm hover:shadow-lg hover:border-primary/25 transition-all duration-300">
+                <CardContent className="flex h-full flex-col p-5 sm:p-6">
+                  <div className="mb-4 flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-display text-[2rem] font-semibold leading-none text-foreground">{name}</h3>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {previewText}
+                      <h3 className="font-display text-xl sm:text-2xl font-semibold leading-tight text-foreground">{name}</h3>
+                      <p className="mt-1 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground/80">
+                        {learningCoverage?.key_themes?.length
+                          ? learningCoverage.key_themes.join(" • ")
+                          : `${learningCoverage.coverage_total || 0} credible sources`}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 rounded-full border border-primary/20 text-primary hover:bg-primary/5"
-                        onClick={() => setExpandedProfile(name)}
-                        title={`View full ${name} profile preview`}
-                      >
-                        <Expand className="h-4 w-4" />
-                      </Button>
-                      {hasProfileData ? (
-                        <Star className="w-4 h-4 text-primary" />
-                      ) : (
-                        <Zap className="w-4 h-4 text-muted-foreground/40" />
-                      )}
-                    </div>
+                    <div>{hasProfileData ? <Star className="w-5 h-5 text-primary fill-primary" /> : <Zap className="w-4 h-4 text-muted-foreground/40" />}</div>
                   </div>
                   {profile?.ai_behavioral_summary ? (
-                    <div className="flex-1 space-y-4">
-                      {isExpanded ? (
-                        <p className="text-base leading-8 text-muted-foreground">
-                          {profile.ai_behavioral_summary}
-                        </p>
-                      ) : null}
-
+                    <div className="flex-1 space-y-3 sm:space-y-4">
                       {!isExpanded ? (
-                        <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
-                          Expand this section to view the full profile summary, needs, and watch-for patterns.
-                        </div>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{previewText}</p>
                       ) : null}
 
                       <AnimatePresence initial={false}>

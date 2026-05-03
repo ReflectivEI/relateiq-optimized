@@ -23,7 +23,7 @@ export default function NotesPanel({
   relatedItemId = null,
   personName = "Tony",
 }) {
-  const { activeRelationshipId, participants, activeRelationship } = useRelationshipAuth();
+  const { activeRelationshipId, participants, activeRelationship, user } = useRelationshipAuth();
   const [expanded, setExpanded] = useState(false);
   const queryClient = useQueryClient();
   const terms = getRelationshipTerms(activeRelationship);
@@ -48,6 +48,8 @@ export default function NotesPanel({
 
   const sharedScope = `${participants[0]}_${participants[1]}`;
   const isSharedScope = personName === sharedScope;
+  const activeAuthorName =
+    activeRelationship?.current_person_name || user?.name || participants[0] || "User";
   const partnerName = getPartnerName(personName, participants);
   const counterpartLabel = partnerName || terms.counterpart;
   const myNotes = isSharedScope
@@ -63,7 +65,7 @@ export default function NotesPanel({
   const createNoteMutation = useMutation({
     mutationFn: (content) =>
       api.entities.Note.create({
-        person_name: isSharedScope ? participants[0] : personName,
+        person_name: isSharedScope ? activeAuthorName : personName,
         content,
         related_section: section,
         related_item_id: relatedItemId,
