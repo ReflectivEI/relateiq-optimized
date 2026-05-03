@@ -164,12 +164,12 @@ export default function Home() {
     queryFn: () => api.entities.CoachSession.list("-created_date", 15),
   });
 
-  const { data: tonyResponses = [] } = useQuery({
+  const { data: responsesA = [] } = useQuery({
     queryKey: ["relationship-person-a-responses-home", activeRelationshipId, primaryPerson],
     queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: primaryPerson }),
   });
 
-  const { data: drewResponses = [] } = useQuery({
+  const { data: responsesB = [] } = useQuery({
     queryKey: ["relationship-person-b-responses-home", activeRelationshipId, secondaryPerson],
     queryFn: () => api.entities.QuestionnaireResponse.filter({ person_name: secondaryPerson }),
   });
@@ -200,13 +200,13 @@ export default function Home() {
     .sort((left, right) => new Date(right.updated_date || right.created_date) - new Date(left.updated_date || left.created_date));
   const unreadMessages = inboxMessages.filter((note) => !note.read_by_recipient);
 
-  const tonyProfile = profiles.find((p) => p.person_name === primaryPerson);
-  const drewProfile = profiles.find((p) => p.person_name === secondaryPerson);
-  const fallbackTony = !tonyProfile && tonyResponses.length > 0
-    ? normalizeProfileOutput(buildFallbackProfile(primaryPerson, tonyResponses, secondaryPerson), primaryPerson)
+  const profileA = profiles.find((p) => p.person_name === primaryPerson);
+  const profileB = profiles.find((p) => p.person_name === secondaryPerson);
+  const fallbackA = !profileA && responsesA.length > 0
+    ? normalizeProfileOutput(buildFallbackProfile(primaryPerson, responsesA, secondaryPerson), primaryPerson)
     : null;
-  const fallbackDrew = !drewProfile && drewResponses.length > 0
-    ? normalizeProfileOutput(buildFallbackProfile(secondaryPerson, drewResponses, primaryPerson), secondaryPerson)
+  const fallbackB = !profileB && responsesB.length > 0
+    ? normalizeProfileOutput(buildFallbackProfile(secondaryPerson, responsesB, primaryPerson), secondaryPerson)
     : null;
 
   // Run early warning system when check-ins load
@@ -215,9 +215,15 @@ export default function Home() {
       setRiskSummary(null);
       return;
     }
-    const summary = getRiskSummary({ checkIns, tonyProfile, drewProfile });
+    const summary = getRiskSummary({
+      checkIns,
+      tonyProfile: profileA,
+      drewProfile: profileB,
+      participantAProfile: profileA,
+      participantBProfile: profileB,
+    });
     setRiskSummary(summary);
-  }, [checkIns, tonyProfile, drewProfile]);
+  }, [checkIns, profileA, profileB]);
 
   // Run friction detection when data loads — only fires AI if signals present
   useEffect(() => {
@@ -229,10 +235,12 @@ export default function Home() {
 
     setRepairLoading(true);
     generateRepairSuggestion({
-      tonyResponses,
-      drewResponses,
-      tonyProfile,
-      drewProfile,
+      tonyResponses: responsesA,
+      drewResponses: responsesB,
+      tonyProfile: profileA,
+      drewProfile: profileB,
+      participantA: primaryPerson,
+      participantB: secondaryPerson,
       checkIns,
       repairEntries,
       sessions,
@@ -248,7 +256,9 @@ export default function Home() {
     setRepairDismissed(false);
     setRepairLoading(true);
     generateRepairSuggestion({
-      tonyResponses, drewResponses, tonyProfile, drewProfile,
+      tonyResponses: responsesA, drewResponses: responsesB,
+      tonyProfile: profileA, drewProfile: profileB,
+      participantA: primaryPerson, participantB: secondaryPerson,
       checkIns, repairEntries, sessions, triggers,
     }).then((result) => {
       if (result) setRepairSuggestion(result);
@@ -383,11 +393,11 @@ export default function Home() {
       {/* Profile Status Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         {participants.map((name, index) => {
-          const profile = index === 0 ? (tonyProfile || fallbackTony) : (drewProfile || fallbackDrew);
+          const profile = index === 0 ? (profileA || fallbackA) : (profileB || fallbackB);
           const hasProfileData = Boolean(profile);
           const isExpanded = Boolean(expandedProfileCards[name]);
           const communicationPreview = compactText(
-            profile?.communication_style,
+            profile?.communication_style || profile?.ai_behavioral_summary,
             180,
             `${name} is building a communication profile from questionnaire and session data.`,
           );
@@ -437,7 +447,7 @@ export default function Home() {
                       )}
                     </div>
                   </div>
-                  {profile?.ai_behavioral_summary ? (
+                  {hasProfileData ? (
                     <div className="flex-1 space-y-4">
                       <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-3">
                         <div className="rounded-2xl border border-primary/15 bg-primary/5 px-3 py-2">
@@ -455,14 +465,14 @@ export default function Home() {
                       </div>
 
                       {isExpanded ? (
-                        <div className="max-h-48 overflow-y-auto rounded-2xl border border-border/60 bg-background/60 px-4 py-3">
-                          <p className="text-sm leading-7 text-muted-foreground">
-                            {profile.ai_behavioral_summary}
-                          </p>
-                        </div>
-                      ) : null}
+                      <div className="max-h-48 overflow-y-auto rounded-2xl border border-border/60 bg-background/60 px-4 py-3">
+                        <p className="text-sm leading-7 text-muted-foreground">
+                          {profile.ai_behavioral_summary || profile.communication_style || (name + "'s full profile detail will appear here as more data is collected.")}
+                        </p>
+                      </div>
+                    ) : null}
 
-                      {!isExpanded ? (
+                    {!isExpanded ? (
                         <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
                           Expand this section to view the full profile summary, needs, and watch-for patterns.
                         </div>
@@ -519,11 +529,7 @@ export default function Home() {
                       </Link>
                     </div>
                   )}
-                  {!profile?.ai_behavioral_summary && hasProfileData && (
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {name}'s data is available and ready for a fuller profile view.
-                    </p>
-                  )}
+
                 </CardContent>
               </Card>
             </motion.div>
@@ -740,7 +746,7 @@ export default function Home() {
               </DialogHeader>
               <div className="space-y-5 px-6 py-6">
                 {(() => {
-                  const profile = expandedProfile === primaryPerson ? (tonyProfile || fallbackTony) : (drewProfile || fallbackDrew);
+                  const profile = expandedProfile === primaryPerson ? (profileA || fallbackA) : (profileB || fallbackB);
                   return (
                     <>
                       <p className="text-base leading-8 text-foreground">

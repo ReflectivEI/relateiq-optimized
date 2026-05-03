@@ -10,14 +10,17 @@ class GlobalStateStore {
       // User profiles
       tony: null,
       drew: null,
+      profilesByPerson: {},
 
       // Questionnaire responses
       tonyResponses: [],
       drewResponses: [],
+      responsesByPerson: {},
 
       // Pattern analysis
       tonyPatterns: null,
       drewPatterns: null,
+      patternsByPerson: {},
       relationshipDynamics: null,
 
       // Predictive outputs
@@ -90,8 +93,15 @@ class GlobalStateStore {
    * Update profile data
    */
   setProfile(person, profileData) {
+    if (!person) return;
+    this.state.profilesByPerson = {
+      ...(this.state.profilesByPerson || {}),
+      [person]: profileData,
+    };
     if (person === "Tony") this.state.tony = profileData;
     else if (person === "Drew") this.state.drew = profileData;
+    else if (!this.state.tony) this.state.tony = profileData;
+    else if (!this.state.drew) this.state.drew = profileData;
     this.notify();
   }
 
@@ -99,8 +109,15 @@ class GlobalStateStore {
    * Update questionnaire responses
    */
   setResponses(person, responses) {
+    if (!person) return;
+    this.state.responsesByPerson = {
+      ...(this.state.responsesByPerson || {}),
+      [person]: responses,
+    };
     if (person === "Tony") this.state.tonyResponses = responses;
     else if (person === "Drew") this.state.drewResponses = responses;
+    else if (!this.state.tonyResponses?.length) this.state.tonyResponses = responses;
+    else if (!this.state.drewResponses?.length) this.state.drewResponses = responses;
     this.notify();
   }
 
@@ -108,8 +125,15 @@ class GlobalStateStore {
    * Update pattern analysis
    */
   setPatterns(person, patterns) {
+    if (!person) return;
+    this.state.patternsByPerson = {
+      ...(this.state.patternsByPerson || {}),
+      [person]: patterns,
+    };
     if (person === "Tony") this.state.tonyPatterns = patterns;
     else if (person === "Drew") this.state.drewPatterns = patterns;
+    else if (!this.state.tonyPatterns) this.state.tonyPatterns = patterns;
+    else if (!this.state.drewPatterns) this.state.drewPatterns = patterns;
     this.notify();
   }
 
@@ -212,10 +236,13 @@ class GlobalStateStore {
     this.state = {
       tony: null,
       drew: null,
+      profilesByPerson: {},
       tonyResponses: [],
       drewResponses: [],
+      responsesByPerson: {},
       tonyPatterns: null,
       drewPatterns: null,
+      patternsByPerson: {},
       relationshipDynamics: null,
       riskSummary: null,
       predictions: {},

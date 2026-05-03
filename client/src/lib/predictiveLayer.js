@@ -262,15 +262,44 @@ function recommendPreemptiveAction(patterns, initiator, target, initiatorProfile
  *
  * @param {Object} params
  * @param {string} params.scenario - Text description of the situation
- * @param {string} params.initiator - "Tony" | "Drew" — who is acting
- * @param {string} params.target - "Drew" | "Tony" — who receives the action
- * @param {Array}  params.tonyResponses
- * @param {Array}  params.drewResponses
+ * @param {string} params.initiator - acting person name
+ * @param {string} params.target - receiving person name
+ * @param {Array}  params.tonyResponses - legacy Person A responses
+ * @param {Array}  params.drewResponses - legacy Person B responses
+ * @param {Array}  params.responsesA - generic Person A responses
+ * @param {Array}  params.responsesB - generic Person B responses
+ * @param {string} params.participantA - generic Person A name
+ * @param {string} params.participantB - generic Person B name
  * @returns {Object} Prediction schema
  */
-export function predictScenario({ scenario, initiator, target, tonyResponses = [], drewResponses = [] }) {
-  const initiatorResponses = initiator === "Tony" ? tonyResponses : drewResponses;
-  const targetResponses = target === "Tony" ? tonyResponses : drewResponses;
+export function predictScenario({
+  scenario,
+  initiator,
+  target,
+  tonyResponses = [],
+  drewResponses = [],
+  responsesA,
+  responsesB,
+  participantA,
+  participantB,
+}) {
+  const bucketA = Array.isArray(responsesA) ? responsesA : tonyResponses;
+  const bucketB = Array.isArray(responsesB) ? responsesB : drewResponses;
+
+  const resolvedParticipantA = participantA || bucketA[0]?.person_name || "Person A";
+  const resolvedParticipantB = participantB || bucketB[0]?.person_name || "Other Person";
+
+  const resolveResponsesForPerson = (personName) => {
+    if (!personName) return [];
+    if (personName === resolvedParticipantA) return bucketA;
+    if (personName === resolvedParticipantB) return bucketB;
+    if (personName === "Tony") return bucketA;
+    if (personName === "Drew") return bucketB;
+    return personName === initiator ? bucketA : bucketB;
+  };
+
+  const initiatorResponses = resolveResponsesForPerson(initiator);
+  const targetResponses = resolveResponsesForPerson(target);
 
   const initiatorProfile = computePatternProfile(initiator, initiatorResponses);
   const targetProfile = computePatternProfile(target, targetResponses);

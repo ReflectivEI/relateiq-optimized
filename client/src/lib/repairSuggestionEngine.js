@@ -137,42 +137,45 @@ export function identifyLessLikelyInitiator({
   tonyResponses = [],
   drewResponses = [],
   repairEntries = [],
+  participantA = "Tony",
+  participantB = "Drew",
 }) {
-  const tonyPatterns = computePatternProfile("Tony", tonyResponses);
-  const drewPatterns = computePatternProfile("Drew", drewResponses);
+  // Support both legacy and generic param names
+  const responsesA = tonyResponses;
+  const responsesB = drewResponses;
 
-  const tonyRepairScore = tonyPatterns.traits?.repair_orientation?.score ?? 5;
-  const drewRepairScore = drewPatterns.traits?.repair_orientation?.score ?? 5;
-  const tonyWithdrawal = tonyPatterns.traits?.withdrawal_tendency?.score ?? 5;
-  const drewWithdrawal = drewPatterns.traits?.withdrawal_tendency?.score ?? 5;
+  const patternsA = computePatternProfile(participantA, responsesA);
+  const patternsB = computePatternProfile(participantB, responsesB);
+
+  const repairScoreA = patternsA.traits?.repair_orientation?.score ?? 5;
+  const repairScoreB = patternsB.traits?.repair_orientation?.score ?? 5;
+  const withdrawalA = patternsA.traits?.withdrawal_tendency?.score ?? 5;
+  const withdrawalB = patternsB.traits?.withdrawal_tendency?.score ?? 5;
 
   // Historical: how many repairs was each person the owner of?
-  const tonyInitiations = repairEntries.filter((r) => r.owner === "Tony").length;
-  const drewInitiations = repairEntries.filter((r) => r.owner === "Drew").length;
-  const totalInitiations = tonyInitiations + drewInitiations;
+  const initiationsA = repairEntries.filter((r) => r.owner === participantA).length;
+  const initiationsB = repairEntries.filter((r) => r.owner === participantB).length;
+  const totalInitiations = initiationsA + initiationsB;
 
   // Composite score: lower = less likely to initiate
-  // repair_orientation (higher = more likely to initiate)
-  // withdrawal_tendency (higher = less likely to initiate)
-  // historical_rate (lower proportion = less likely)
-  const tonyHistoricalRate = totalInitiations > 0 ? tonyInitiations / totalInitiations : 0.5;
-  const drewHistoricalRate = totalInitiations > 0 ? drewInitiations / totalInitiations : 0.5;
+  const historicalRateA = totalInitiations > 0 ? initiationsA / totalInitiations : 0.5;
+  const historicalRateB = totalInitiations > 0 ? initiationsB / totalInitiations : 0.5;
 
-  const tonyLikelihood = tonyRepairScore / 10 * 0.4 + (1 - tonyWithdrawal / 10) * 0.3 + tonyHistoricalRate * 0.3;
-  const drewLikelihood = drewRepairScore / 10 * 0.4 + (1 - drewWithdrawal / 10) * 0.3 + drewHistoricalRate * 0.3;
+  const likelihoodA = repairScoreA / 10 * 0.4 + (1 - withdrawalA / 10) * 0.3 + historicalRateA * 0.3;
+  const likelihoodB = repairScoreB / 10 * 0.4 + (1 - withdrawalB / 10) * 0.3 + historicalRateB * 0.3;
 
-  const lessLikely = tonyLikelihood <= drewLikelihood ? "Tony" : "Drew";
-  const moreActive = lessLikely === "Tony" ? "Drew" : "Tony";
+  const lessLikely = likelihoodA <= likelihoodB ? participantA : participantB;
+  const moreActive = lessLikely === participantA ? participantB : participantA;
 
   const reasons = [];
-  if (lessLikely === "Tony") {
-    if (tonyWithdrawal > drewWithdrawal) reasons.push(`Tony's withdrawal tendency (${tonyWithdrawal}/10) is higher than Drew's (${drewWithdrawal}/10)`);
-    if (tonyRepairScore < drewRepairScore) reasons.push(`Tony's repair orientation score (${tonyRepairScore}/10) is lower than Drew's (${drewRepairScore}/10)`);
-    if (tonyInitiations < drewInitiations && totalInitiations > 0) reasons.push(`Drew has initiated ${drewInitiations} past repairs vs Tony's ${tonyInitiations}`);
+  if (lessLikely === participantA) {
+    if (withdrawalA > withdrawalB) reasons.push(`${participantA}'s withdrawal tendency (${withdrawalA}/10) is higher than ${participantB}'s (${withdrawalB}/10)`);
+    if (repairScoreA < repairScoreB) reasons.push(`${participantA}'s repair orientation score (${repairScoreA}/10) is lower than ${participantB}'s (${repairScoreB}/10)`);
+    if (initiationsA < initiationsB && totalInitiations > 0) reasons.push(`${participantB} has initiated ${initiationsB} past repairs vs ${participantA}'s ${initiationsA}`);
   } else {
-    if (drewWithdrawal > tonyWithdrawal) reasons.push(`Drew's withdrawal tendency (${drewWithdrawal}/10) is higher than Tony's (${tonyWithdrawal}/10)`);
-    if (drewRepairScore < tonyRepairScore) reasons.push(`Drew's repair orientation score (${drewRepairScore}/10) is lower than Tony's (${tonyRepairScore}/10)`);
-    if (drewInitiations < tonyInitiations && totalInitiations > 0) reasons.push(`Tony has initiated ${tonyInitiations} past repairs vs Drew's ${drewInitiations}`);
+    if (withdrawalB > withdrawalA) reasons.push(`${participantB}'s withdrawal tendency (${withdrawalB}/10) is higher than ${participantA}'s (${withdrawalA}/10)`);
+    if (repairScoreB < repairScoreA) reasons.push(`${participantB}'s repair orientation score (${repairScoreB}/10) is lower than ${participantA}'s (${repairScoreA}/10)`);
+    if (initiationsB < initiationsA && totalInitiations > 0) reasons.push(`${participantA} has initiated ${initiationsA} past repairs vs ${participantB}'s ${initiationsB}`);
   }
 
   if (reasons.length === 0) reasons.push(`Pattern scores are similar — defaulting to ${lessLikely} as less likely initiator this cycle`);
@@ -181,7 +184,7 @@ export function identifyLessLikelyInitiator({
     suggested_initiator: lessLikely,
     more_active_repairer: moreActive,
     initiator_reasoning: reasons.join(". "),
-    likelihood_scores: { Tony: parseFloat(tonyLikelihood.toFixed(2)), Drew: parseFloat(drewLikelihood.toFixed(2)) },
+    likelihood_scores: { [participantA]: parseFloat(likelihoodA.toFixed(2)), [participantB]: parseFloat(likelihoodB.toFixed(2)) },
   };
 }
 
@@ -200,6 +203,8 @@ export async function generateRepairSuggestion({
   drewResponses = [],
   tonyProfile = null,
   drewProfile = null,
+  participantA = "Tony",
+  participantB = "Drew",
   checkIns = [],
   repairEntries = [],
   sessions = [],
@@ -209,15 +214,15 @@ export async function generateRepairSuggestion({
   const frictionResult = detectFriction({ checkIns, repairEntries, sessions });
   if (!frictionResult.friction_detected) return null;
 
-  // Step 2: Identify less likely initiator
-  const initiatorResult = identifyLessLikelyInitiator({ tonyResponses, drewResponses, repairEntries });
+  // Step 2: Identify less likely initiator (participant-agnostic)
+  const initiatorResult = identifyLessLikelyInitiator({ tonyResponses, drewResponses, repairEntries, participantA, participantB });
   const { suggested_initiator } = initiatorResult;
-  const partner = suggested_initiator === "Tony" ? "Drew" : "Tony";
+  const partner = suggested_initiator === participantA ? participantB : participantA;
 
-  const initiatorProfile = suggested_initiator === "Tony" ? tonyProfile : drewProfile;
-  const partnerProfile = suggested_initiator === "Tony" ? drewProfile : tonyProfile;
-  const initiatorResponses = suggested_initiator === "Tony" ? tonyResponses : drewResponses;
-  const partnerResponses = suggested_initiator === "Tony" ? drewResponses : tonyResponses;
+  const initiatorProfile = suggested_initiator === participantA ? tonyProfile : drewProfile;
+  const partnerProfile = suggested_initiator === participantA ? drewProfile : tonyProfile;
+  const initiatorResponses = suggested_initiator === participantA ? tonyResponses : drewResponses;
+  const partnerResponses = suggested_initiator === participantA ? drewResponses : tonyResponses;
 
   const initiatorCtx = serializeProfile(suggested_initiator, initiatorProfile);
   const partnerCtx = serializeProfile(partner, partnerProfile);

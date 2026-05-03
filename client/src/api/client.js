@@ -198,7 +198,14 @@ function updateLegacyGlobalState(entity, record) {
   const person = normalizeText(record.person_name || record.owner || record.speaker);
   if (!person) return;
   if (entity === "QuestionnaireResponse") {
-    const current = person === "Tony" ? globalState.getState().tonyResponses : person === "Drew" ? globalState.getState().drewResponses : [];
+    const state = globalState.getState();
+    const current =
+      state.responsesByPerson?.[person] ||
+      (person === "Tony"
+        ? state.tonyResponses
+        : person === "Drew"
+          ? state.drewResponses
+          : []);
     const next = upsertRecord(current, record);
     globalState.setResponses(person, next);
   }

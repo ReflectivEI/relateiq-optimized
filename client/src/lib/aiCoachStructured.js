@@ -52,6 +52,26 @@ function generateConflictSafeLanguage(situation, perspective, tone, targetProfil
   return openings[Math.floor(Math.random() * openings.length)];
 }
 
+function getParticipantProfilesFromMemory(memory = {}) {
+  const primaryPerson = memory?.primaryPerson || memory?.primaryProfile?.person_name || memory?.tonyProfile?.person_name || "Person A";
+  const secondaryPerson = memory?.secondaryPerson || memory?.secondaryProfile?.person_name || memory?.drewProfile?.person_name || "Other Person";
+  const primaryProfile = memory?.primaryProfile || memory?.tonyProfile || null;
+  const secondaryProfile = memory?.secondaryProfile || memory?.drewProfile || null;
+
+  return {
+    primaryPerson,
+    secondaryPerson,
+    profileFor(person) {
+      if (!person) return null;
+      if (person === primaryPerson) return primaryProfile;
+      if (person === secondaryPerson) return secondaryProfile;
+      if (person === "Tony") return memory?.tonyProfile || primaryProfile;
+      if (person === "Drew") return memory?.drewProfile || secondaryProfile;
+      return null;
+    },
+  };
+}
+
 // ── MAIN STRUCTURED GUIDANCE GENERATION ──────────────────────────
 
 /**
@@ -59,7 +79,7 @@ function generateConflictSafeLanguage(situation, perspective, tone, targetProfil
  * NO free-form text — ALL fields follow schema.
  *
  * @param {object} params
- * @param {string} params.perspective — "Tony" | "Drew" | "Tony→Drew" | "Drew→Tony"
+ * @param {string} params.perspective — "PersonA" | "PersonB" | "PersonA→PersonB"
  * @param {string} params.situation — the situation being discussed
  * @param {object} params.ctx — full context object with profiles, traits, etc.
  * @returns {object} Structured guidance following the schema
@@ -71,10 +91,11 @@ export async function generateStructuredGuidance({ perspective, situation, ctx }
     : [perspective, perspective];
 
   const memory = ctx.memory || {};
-  const actorProfile = actor === "Tony" ? memory.tonyProfile : memory.drewProfile;
-  const targetProfile = target === "Tony" ? memory.tonyProfile : memory.drewProfile;
-  const actorTraits = actor === "Tony" ? memory.tonyProfile?.traits : memory.drewProfile?.traits || {};
-  const targetTraits = target === "Tony" ? memory.tonyProfile?.traits : memory.drewProfile?.traits || {};
+  const participants = getParticipantProfilesFromMemory(memory);
+  const actorProfile = participants.profileFor(actor);
+  const targetProfile = participants.profileFor(target);
+  const actorTraits = actorProfile?.traits || {};
+  const targetTraits = targetProfile?.traits || {};
 
   // Match frameworks deterministically
   const matchedFrameworks = matchFrameworks({
@@ -95,8 +116,8 @@ Situation: ${situation}
 Actor: ${actor}
 Target: ${target}${isDirectional ? " (directional guidance)" : " (self-guidance)"}
 
-Actor Profile/Traits: ${actorTraits}
-Target Profile/Traits: ${targetTraits}
+Actor Profile/Traits: ${JSON.stringify(actorTraits)}
+Target Profile/Traits: ${JSON.stringify(targetTraits)}
 
 ${memory.recentSessions?.length > 0 ? `Recent sessions context: ${memory.recentSessions.map((s) => s.situation).join("; ").slice(0, 500)}` : ""}
 

@@ -159,7 +159,15 @@ function amplifyRiskByTraits(baseRisk, profile) {
  * @param {object} params.drewProfile — Drew's UserProfile
  * @returns {array} Detected risk signals with severity + recommendations
  */
-export function detectRiskSignals({ checkIns, tonyProfile, drewProfile }) {
+export function detectRiskSignals({
+  checkIns,
+  tonyProfile,
+  drewProfile,
+  participantAProfile,
+  participantBProfile,
+}) {
+  const profileA = participantAProfile || tonyProfile;
+  const profileB = participantBProfile || drewProfile;
   const signals = [];
   const seen = new Set();
 
@@ -169,9 +177,9 @@ export function detectRiskSignals({ checkIns, tonyProfile, drewProfile }) {
       let riskScore = { low: 0.3, medium: 0.6, high: 0.85 }[indicator.severity] || 0.5;
 
       // Amplify by trait profiles (use average of both for relationship-wide risk)
-      const tonyAmplified = tonyProfile ? amplifyRiskByTraits(riskScore, tonyProfile) : riskScore;
-      const drewAmplified = drewProfile ? amplifyRiskByTraits(riskScore, drewProfile) : riskScore;
-      riskScore = Math.max(tonyAmplified, drewAmplified); // Use highest
+      const amplifiedA = profileA ? amplifyRiskByTraits(riskScore, profileA) : riskScore;
+      const amplifiedB = profileB ? amplifyRiskByTraits(riskScore, profileB) : riskScore;
+      riskScore = Math.max(amplifiedA, amplifiedB); // Use highest
 
       signals.push({
         id: indicator.id,
@@ -198,7 +206,17 @@ export function detectRiskSignals({ checkIns, tonyProfile, drewProfile }) {
  * @param {object} drewProfile — Drew's UserProfile (with traits)
  * @returns {array} Micro-repair suggestions with frameworks
  */
-export function generateMicroRepairs({ riskSignals, tonyProfile, drewProfile }) {
+export function generateMicroRepairs({
+  riskSignals,
+  tonyProfile,
+  drewProfile,
+  participantAProfile,
+  participantBProfile,
+}) {
+  const profileA = participantAProfile || tonyProfile;
+  const profileB = participantBProfile || drewProfile;
+  void profileA;
+  void profileB;
   if (!riskSignals || riskSignals.length === 0) return null;
 
   const repairs = [];
@@ -400,8 +418,22 @@ export function calculateOverallRiskScore(riskSignals) {
 /**
  * Get risk summary for dashboard display.
  */
-export function getRiskSummary({ checkIns, tonyProfile, drewProfile }) {
-  const signals = detectRiskSignals({ checkIns, tonyProfile, drewProfile });
+export function getRiskSummary({
+  checkIns,
+  tonyProfile,
+  drewProfile,
+  participantAProfile,
+  participantBProfile,
+}) {
+  const profileA = participantAProfile || tonyProfile;
+  const profileB = participantBProfile || drewProfile;
+  const signals = detectRiskSignals({
+    checkIns,
+    tonyProfile: profileA,
+    drewProfile: profileB,
+    participantAProfile: profileA,
+    participantBProfile: profileB,
+  });
   if (!signals) {
     return {
       status: "healthy",
@@ -421,7 +453,13 @@ export function getRiskSummary({ checkIns, tonyProfile, drewProfile }) {
     };
   }
 
-  const repairs = generateMicroRepairs({ riskSignals: signals, tonyProfile, drewProfile });
+  const repairs = generateMicroRepairs({
+    riskSignals: signals,
+    tonyProfile: profileA,
+    drewProfile: profileB,
+    participantAProfile: profileA,
+    participantBProfile: profileB,
+  });
   const overall = calculateOverallRiskScore(signals);
   const averageSignalScore =
     signals.reduce((sum, signal) => sum + signal.risk_score, 0) / signals.length;
