@@ -41,7 +41,7 @@ jobs:
           test -f client/src/lib/system/index.ts && echo "✓ System Integration"
       
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dist-${{ matrix.node-version }}
           path: dist/
