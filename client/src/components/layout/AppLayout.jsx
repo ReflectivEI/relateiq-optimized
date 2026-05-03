@@ -93,6 +93,15 @@ const navGroups = [
 
 const homeNavItem = { path: "/", label: "Home", icon: LayoutDashboard };
 
+const topNavItems = [
+  { path: "/", label: "Home" },
+  { path: "/reflect?mode=mirror", label: "Reflection Mirror" },
+  { path: "/repair", label: "Repair" },
+  { path: "/grow", label: "Grow" },
+  { path: "/tester-inbox", label: "Inbox" },
+  { path: "/profiles", label: "Profile" },
+];
+
 const consolidatedRouteAliases = {
   "/reflect": ["/coach", "/chat", "/daily", "/journal"],
   "/repair": ["/proactive-repair", "/triggers"],
@@ -115,6 +124,10 @@ const consolidatedRouteAliases = {
 function isPathActive(navPath, currentPath) {
   if (navPath === currentPath) return true;
   return consolidatedRouteAliases[navPath]?.includes(currentPath) || false;
+}
+
+function getPathWithoutQuery(path = "") {
+  return String(path).split("?")[0] || path;
 }
 
 function generateTemporaryPassword() {
@@ -871,7 +884,7 @@ export default function AppLayout() {
       {/* Main Content */}
       <main className={cn("flex-1 pt-14 lg:pt-0 transition-all duration-300", sidebarCollapsed ? "lg:ml-[92px]" : "lg:ml-72")}>
         {/* Top bar with theme toggle */}
-        <div className="hidden lg:flex items-center justify-between gap-4 px-8 pt-4 pb-0">
+        <div className="hidden lg:flex items-center gap-4 px-8 pt-4 pb-0">
           <div className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card/70 px-3 py-2">
             <Avatar className="h-9 w-9 border border-primary/20">
               {currentAvatar ? <AvatarImage src={currentAvatar} alt={`${currentPersonName} avatar`} /> : null}
@@ -892,12 +905,34 @@ export default function AppLayout() {
             </Avatar>
             <p className="text-sm font-semibold text-foreground">{sendTargetLabel}</p>
           </div>
-          <div className="flex items-center gap-6">
+
+          <nav className="flex items-center gap-1 rounded-2xl border border-border/70 bg-card/70 px-2 py-1.5">
+            {topNavItems.map((item) => {
+              const navPath = getPathWithoutQuery(item.path);
+              const active = isPathActive(navPath, location.pathname);
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    "rounded-xl px-3 py-1.5 text-sm font-semibold transition-colors",
+                    active
+                      ? "bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="ml-auto flex items-center gap-6">
             <Button variant="outline" size="sm" onClick={() => setNotesOpen(true)}>
               Shared Notes
             </Button>
             <Button variant="outline" size="sm" onClick={openSendComposer} disabled={!canDirectMessage}>
-              Send to {sendTargetLabel}
+              Message Builder
             </Button>
             <Button
               variant="outline"
