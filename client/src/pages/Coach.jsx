@@ -39,6 +39,7 @@ import DataSourceBadge from "@/components/ui/DataSourceBadge";
 import PrivacyBanner from "@/components/ui/PrivacyBanner";
 import { toast } from "sonner";
 import CoachSuggestionPills from "@/components/coach/CoachSuggestionPills";
+import { Slider } from "@/components/ui/slider";
 import CoachOutputModes from "@/components/coach/CoachOutputModes";
 import PredictiveOutcomeBlock from "@/components/coach/PredictiveOutcomeBlock";
 import { computePatternProfile } from "@/lib/patternEngine";
@@ -172,6 +173,7 @@ export default function Coach() {
   const [speaker, setSpeaker] = useState(activeParticipants[0] || "");
   const [speakingTo, setSpeakingTo] = useState(activeParticipants[1] || "");
   const [situation, setSituation] = useState("");
+  const [severity, setSeverity] = useState(3);
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState(null);
   const [outputMode, setOutputMode] = useState("full");
@@ -384,7 +386,7 @@ export default function Coach() {
       pastSessions: safePastSessions
         .filter((s) => s.speaker === normalizedSpeaker || s.speaking_to === normalizedSpeaker)
         .slice(0, 10),
-    }) + (triggerCtx ? `\n\nTRIGGER MEMORY:\n${triggerCtx}` : "");
+    }) + (triggerCtx ? `\n\nTRIGGER MEMORY:\n${triggerCtx}` : "") + `\n\nSITUATION SEVERITY: ${severity}/5 (${["Very Low","Low","Moderate","High","Critical"][severity - 1]})\nCalibrate the tone, urgency, and directness of your guidance accordingly. ${severity >= 4 ? "High-stakes — be direct, specific, and action-focused." : severity <= 2 ? "Low-intensity — be exploratory, educational, and calm." : "Balanced — thorough but measured."}`;
 
     const scopeContext = buildActiveConnectionContext({
       pairId: activeRelationshipId,
@@ -638,6 +640,30 @@ export default function Coach() {
               onChange={(e) => setSituation(e.target.value)}
               className="min-h-[90px] resize-none bg-background/50 text-sm"
             />
+          </div>
+
+          {/* Situation Severity */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">Situation Severity</label>
+              <span className="text-sm tabular-nums text-muted-foreground">
+                {severity}/5 · {["Very Low", "Low", "Moderate", "High", "Critical"][severity - 1]}
+              </span>
+            </div>
+            <Slider
+              value={[severity]}
+              onValueChange={([val]) => setSeverity(val)}
+              min={1}
+              max={5}
+              step={1}
+              className="w-full"
+            />
+            <div className="flex justify-between text-[10px] text-muted-foreground select-none">
+              {[1, 2, 3, 4, 5].map((n) => <span key={n}>{n}</span>)}
+            </div>
+            <p className="text-xs text-muted-foreground leading-5">
+              Guidance keeps full depth and structure, while intensity and urgency are calibrated to this setting.
+            </p>
           </div>
 
           {/* Suggestion Pills */}
