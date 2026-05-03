@@ -142,9 +142,12 @@ export default function Profiles() {
       scope: activePerson,
       sourceInputs: { responseCount: responses.length },
       originalOutput: result.ai_behavioral_summary || JSON.stringify(result, null, 2),
-      profiles: profile ? [profile] : [],
+      profiles: [...profiles.filter(Boolean), { ...(profile || {}), ...result, person_name: activePerson }].filter(Boolean),
       tonyResponses: activePerson === participants[0] ? responses : [],
       drewResponses: activePerson === participants[1] ? responses : [],
+      activeRelationship,
+      actorUser: activePerson,
+      targetUser: participants.find((person) => person !== activePerson) || participants[1] || "Other Person",
     }));
     setGenerating(false);
     setActiveTab("my-profile");
@@ -219,9 +222,12 @@ export default function Profiles() {
     scope: activePerson,
     sourceInputs: {},
     originalOutput: profile?.ai_behavioral_summary || null,
-    profiles: profile ? [profile] : [],
+    profiles: profiles.filter(Boolean),
     tonyResponses: activePerson === participants[0] ? responses : [],
     drewResponses: activePerson === participants[1] ? responses : [],
+    activeRelationship,
+    actorUser: activePerson,
+    targetUser: participants.find((person) => person !== activePerson) || participants[1] || "Other Person",
   });
 
   return (

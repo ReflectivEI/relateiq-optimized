@@ -43,6 +43,8 @@ import { Slider } from "@/components/ui/slider";
 import CoachOutputModes from "@/components/coach/CoachOutputModes";
 import PredictiveOutcomeBlock from "@/components/coach/PredictiveOutcomeBlock";
 import { computePatternProfile } from "@/lib/patternEngine";
+import { predictOutcome } from "@/lib/predictiveEngine";
+import { matchFrameworks } from "@/lib/frameworkEngine";
 import TracePanel from "@/components/trace/TracePanel";
 import ErrorFallback from "@/components/errors/ErrorFallback";
 import ResponseExportBar from "@/components/export/ResponseExportBar";
@@ -196,6 +198,211 @@ function trimSessionText(value, max = 260) {
   return clean.length > max ? `${clean.slice(0, max - 3)}...` : clean;
 }
 
+function summarizePredictiveEvidence(entries = []) {
+  return entries
+    .map((entry, index) => {
+      const prediction = entry?.prediction || {};
+      const methods = Array.isArray(prediction.methodologies)
+        ? prediction.methodologies
+          .map((method) => `${method.label} (${method.focus})`)
+          .join("; ")
+        : "No methodology tags";
+      return [
+        `${index + 1}. ${entry.scenario}`,
+        `- risk: ${prediction.risk_level || "unknown"}${Number.isFinite(prediction.risk_score) ? ` (${prediction.risk_score}/100)` : ""}`,
+        `- predicted_behavior: ${trimSessionText(prediction.predicted_behavior, 220)}`,
+        `- likely_misinterpretation: ${trimSessionText(prediction.likely_misinterpretation, 220)}`,
+        `- recommended_preemptive_action: ${trimSessionText(prediction.recommended_preemptive_action, 220)}`,
+        `- methods: ${methods}`,
+        `- rationale: ${trimSessionText(prediction.evidence_rationale, 220)}`,
+      ].join("\n");
+    })
+    .join("\n\n");
+}
+
+function summarizeMethodologySources(entries = []) {
+  const seen = new Set();
+  const lines = [];
+  for (const entry of entries) {
+    const methods = Array.isArray(entry?.prediction?.methodologies) ? entry.prediction.methodologies : [];
+    for (const method of methods) {
+      const key = method?.id || method?.label;
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      lines.push(`- ${method.label}: ${method.source}. Focus: ${method.focus}. Why selected: ${method.why_selected}`);
+    }
+  }
+  return lines.join("\n");
+}
+
+function normalizeFeedbackHistory(entries = []) {
+  if (!Array.isArray(entries)) return [];
+  const seen = new Set();
+  return entries
+    .filter((entry) => entry && typeof entry === "object")
+    .map((entry) => ({
+      feedbackType: String(entry.feedbackType || entry.feedback_type || "helpful").trim() || "helpful",
+      mode: String(entry.mode || "full").trim() || "full",
+      methodologyIds: [...new Set((Array.isArray(entry.methodologyIds || entry.methodology_ids) ? (entry.methodologyIds || entry.methodology_ids) : []).map((id) => String(id || "").trim()).filter(Boolean))].slice(0, 12),
+      createdAt: String(entry.createdAt || entry.created_date || new Date().toISOString()),
+    }))
+    .filter((entry) => {
+      const key = `${entry.createdAt}::${entry.feedbackType}::${entry.mode}::${entry.methodologyIds.join(",")}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 40);
+}
+
+function normalizeMethodologyStats(stats = {}) {
+  if (!stats || typeof stats !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(stats)
+      .map(([key, value]) => {
+        const normalizedKey = String(key || "").trim();
+        const source = value && typeof value === "object" ? value : {};
+        const helpful = Number(source.helpful || 0) || 0;
+        const corrective = Number(source.corrective || 0) || 0;
+        const total = Math.max(Number(source.total || 0) || 0, helpful + corrective);
+        const score = Number(source.score);
+        return [normalizedKey, {
+          helpful,
+          corrective,
+          total,
+          score: Number.isFinite(score) ? score : (helpful + 1) / (helpful + corrective + 2),
+        }];
+      })
+      .filter(([key]) => key),
+  );
+}
+
+function feedbackDecayWeight(createdAt, halfLifeDays = 14) {
+  const timestamp = new Date(createdAt).getTime();
+  if (!Number.isFinite(timestamp)) return 0.25;
+  const ageDays = Math.max(0, (Date.now() - timestamp) / (1000 * 60 * 60 * 24));
+  return Math.exp((-Math.log(2) * ageDays) / halfLifeDays);
+}
+
+function summarizeBayesianFeedbackTrends(feedbackHistory = []) {
+  const history = normalizeFeedbackHistory(feedbackHistory);
+  const categoryWeights = {
+    helpful: 0,
+    too_generic: 0,
+    too_long: 0,
+    too_soft: 0,
+    too_direct: 0,
+  };
+
+  let helpfulAlpha = 1;
+  let correctiveBeta = 1;
+  for (const entry of history) {
+    const weight = feedbackDecayWeight(entry.createdAt);
+    if (entry.feedbackType === "helpful") {
+      helpfulAlpha += weight;
+    } else {
+      correctiveBeta += weight;
+    }
+    if (Object.prototype.hasOwnProperty.call(categoryWeights, entry.feedbackType)) {
+      categoryWeights[entry.feedbackType] += weight;
+    }
+  }
+
+  const posteriorHelpful = helpfulAlpha / (helpfulAlpha + correctiveBeta);
+  const specificityNeed = categoryWeights.too_generic / Math.max(1, helpfulAlpha + correctiveBeta);
+  const brevityNeed = categoryWeights.too_long / Math.max(1, helpfulAlpha + correctiveBeta);
+  const directnessNeed = categoryWeights.too_soft / Math.max(1, helpfulAlpha + correctiveBeta);
+  const softnessNeed = categoryWeights.too_direct / Math.max(1, helpfulAlpha + correctiveBeta);
+
+  return {
+    posteriorHelpful: Number(posteriorHelpful.toFixed(3)),
+    specificityNeed: Number(specificityNeed.toFixed(3)),
+    brevityNeed: Number(brevityNeed.toFixed(3)),
+    directnessNeed: Number(directnessNeed.toFixed(3)),
+    softnessNeed: Number(softnessNeed.toFixed(3)),
+    summaryLine: `Helpful posterior ${posteriorHelpful.toFixed(2)}. Push specificity ${specificityNeed.toFixed(2)}, brevity ${brevityNeed.toFixed(2)}, more directness ${directnessNeed.toFixed(2)}, more softness ${softnessNeed.toFixed(2)}.`,
+  };
+}
+
+function computeMethodologyPreferences(methodologyStats = {}, feedbackHistory = []) {
+  const normalizedStats = normalizeMethodologyStats(methodologyStats);
+  const history = normalizeFeedbackHistory(feedbackHistory);
+  const methods = new Set([
+    ...Object.keys(normalizedStats),
+    ...history.flatMap((entry) => entry.methodologyIds || []),
+  ]);
+
+  return [...methods]
+    .map((methodId) => {
+      let helpful = Number(normalizedStats[methodId]?.helpful || 0);
+      let corrective = Number(normalizedStats[methodId]?.corrective || 0);
+
+      for (const entry of history) {
+        if (!(entry.methodologyIds || []).includes(methodId)) continue;
+        const weight = feedbackDecayWeight(entry.createdAt, 10);
+        if (entry.feedbackType === "helpful") helpful += weight;
+        else corrective += weight;
+      }
+
+      const posterior = (helpful + 1) / (helpful + corrective + 2);
+      return {
+        id: methodId,
+        weight: Number(posterior.toFixed(3)),
+        helpful: Number(helpful.toFixed(2)),
+        corrective: Number(corrective.toFixed(2)),
+        evidence: Number((helpful + corrective).toFixed(2)),
+      };
+    })
+    .filter((entry) => entry.evidence > 0)
+    .sort((a, b) => b.weight - a.weight || b.evidence - a.evidence)
+    .slice(0, 6);
+}
+
+function summarizeMethodologyPreferences(preferences = []) {
+  if (!preferences.length) return "No learned methodology preference yet.";
+  return preferences
+    .map((entry) => `${entry.id}: weight ${entry.weight.toFixed(2)} from ${entry.evidence.toFixed(2)} weighted signals`)
+    .join(" | ");
+}
+
+function extractMethodologyIdsFromPredictiveOutput(predictiveOutput) {
+  const ids = (predictiveOutput?.scenarios || []).flatMap((entry) =>
+    Array.isArray(entry?.prediction?.methodologies)
+      ? entry.prediction.methodologies.map((method) => String(method?.id || "").trim()).filter(Boolean)
+      : [],
+  );
+  return [...new Set(ids)].slice(0, 12);
+}
+
+function buildCounterfactualSimulatorSection(predictiveEvidence = [], methodologyPreferences = []) {
+  if (!Array.isArray(predictiveEvidence) || predictiveEvidence.length === 0) return "";
+
+  const rows = predictiveEvidence.map((entry) => {
+    const prediction = entry?.prediction || {};
+    const riskText = prediction.risk_level || "unknown";
+    const riskScore = Number.isFinite(prediction.risk_score) ? ` (${prediction.risk_score}/100)` : "";
+    return `### ${entry.scenario}
+- Next 24h: ${trimSessionText(prediction.predicted_behavior, 200)}
+- Next 7d: ${trimSessionText(prediction.likely_misinterpretation, 200)}
+- Best lever: ${trimSessionText(prediction.recommended_preemptive_action, 200)}
+- Risk: ${riskText}${riskScore}`;
+  });
+
+  const methodologyLine = methodologyPreferences.length
+    ? `Preferred methodology weighting for this connection: ${summarizeMethodologyPreferences(methodologyPreferences)}.`
+    : "Preferred methodology weighting for this connection is still stabilizing, so the simulator is using the full evidence blend.";
+
+  return `## Counterfactual Simulator\n${rows.join("\n\n")}\n\n${methodologyLine}`;
+}
+
+function appendCounterfactualSection(text, predictiveEvidence = [], methodologyPreferences = []) {
+  if (typeof text !== "string") return text;
+  if (text.toLowerCase().includes("counterfactual simulator")) return text;
+  const section = buildCounterfactualSimulatorSection(predictiveEvidence, methodologyPreferences);
+  if (!section) return text;
+  return `${text.trim()}\n\n${section}`.trim();
+}
+
 const COACH_MODE_LEARNING_KEY = "relateiq.coach.modeLearning.v1";
 
 function getLearningStore() {
@@ -229,6 +436,8 @@ function getLearningSignals(relationshipId, speaker, target) {
     feedbackSignals: { helpful: 0, too_generic: 0, too_long: 0, too_soft: 0, too_direct: 0 },
     recentSituations: [],
     successfulOpenings: [],
+    feedbackHistory: [],
+    methodologyStats: {},
     updatedAt: null,
   };
 }
@@ -276,6 +485,8 @@ function normalizeLearningSignalsShape(raw) {
     successfulOpenings: Array.isArray(raw.successfulOpenings || raw.successful_openings)
       ? (raw.successfulOpenings || raw.successful_openings).filter(Boolean).slice(0, 10)
       : [],
+    feedbackHistory: normalizeFeedbackHistory(raw.feedbackHistory || raw.feedback_history),
+    methodologyStats: normalizeMethodologyStats(raw.methodologyStats || raw.methodology_stats),
     updatedAt: raw.updatedAt || raw.updated_date || null,
   };
 }
@@ -302,12 +513,33 @@ function mergeLearningSignals(localSignals, remoteSignals) {
     too_direct: Math.max(Number(localMap?.too_direct || 0), Number(remoteMap?.too_direct || 0)),
   });
 
+  const mergeMethodologyStats = (localStats, remoteStats) => {
+    const merged = {};
+    const keys = new Set([...Object.keys(normalizeMethodologyStats(localStats)), ...Object.keys(normalizeMethodologyStats(remoteStats))]);
+    for (const key of keys) {
+      const local = normalizeMethodologyStats(localStats)[key] || { helpful: 0, corrective: 0, total: 0, score: 0.5 };
+      const remote = normalizeMethodologyStats(remoteStats)[key] || { helpful: 0, corrective: 0, total: 0, score: 0.5 };
+      const helpful = Math.max(local.helpful, remote.helpful);
+      const corrective = Math.max(local.corrective, remote.corrective);
+      const total = Math.max(local.total, remote.total, helpful + corrective);
+      merged[key] = {
+        helpful,
+        corrective,
+        total,
+        score: Number((((helpful + 1) / (helpful + corrective + 2)) || 0.5).toFixed(3)),
+      };
+    }
+    return merged;
+  };
+
   return {
     modeUsage: mergedCounter(localSignals?.modeUsage, remoteSignals?.modeUsage),
     copiedByMode: mergedCounter(localSignals?.copiedByMode, remoteSignals?.copiedByMode),
     feedbackSignals: mergeFeedback(localSignals?.feedbackSignals, remoteSignals?.feedbackSignals),
     recentSituations: mergeList(localSignals?.recentSituations, remoteSignals?.recentSituations, 8),
     successfulOpenings: mergeList(localSignals?.successfulOpenings, remoteSignals?.successfulOpenings, 10),
+    feedbackHistory: normalizeFeedbackHistory([...(remoteSignals?.feedbackHistory || []), ...(localSignals?.feedbackHistory || [])]),
+    methodologyStats: mergeMethodologyStats(localSignals?.methodologyStats, remoteSignals?.methodologyStats),
     updatedAt: remoteSignals.updatedAt || localSignals?.updatedAt || null,
   };
 }
@@ -491,6 +723,14 @@ export default function Coach() {
   const targetProfile = profiles.find((p) => p.person_name === currentSpeakingTo);
   const speakerResponses = currentSpeaker === participantA ? tonyResponses : drewResponses;
   const targetResponses = currentSpeakingTo === participantA ? tonyResponses : drewResponses;
+  const speakerPatternProfile = useMemo(
+    () => computePatternProfile(currentSpeaker, speakerResponses),
+    [currentSpeaker, speakerResponses],
+  );
+  const targetPatternProfile = useMemo(
+    () => computePatternProfile(currentSpeakingTo, targetResponses),
+    [currentSpeakingTo, targetResponses],
+  );
   const terms = getRelationshipTerms(activeRelationship);
 
   const runCoachCall = async (situationText, overrides = {}) => {
@@ -656,9 +896,72 @@ export default function Coach() {
     // ENFORCE STRUCTURE
     const structuredOutput = enforceCoachStructure(result, situationText);
     const fallbackModes = deriveCoachModes(structuredOutput);
+    const actorResponses = normalizedSpeaker === activeParticipants[0] ? tonyResponses : drewResponses;
+    const targetResolvedResponses = resolvedTarget === activeParticipants[0] ? tonyResponses : drewResponses;
+    const actorPatternProfile = computePatternProfile(normalizedSpeaker, actorResponses);
+    const targetPatternProfile = computePatternProfile(resolvedTarget, targetResolvedResponses);
+    const predictiveEvidence = [
+      {
+        scenario: "If no one addresses this",
+        prediction: predictOutcome({
+          actor: normalizedSpeaker,
+          target: resolvedTarget,
+          scenarioText: `avoidance: ${situationText}`,
+          actorTraits: actorPatternProfile?.traits || {},
+          targetTraits: targetPatternProfile?.traits || {},
+        }),
+      },
+      {
+        scenario: "If the next response is reactive",
+        prediction: predictOutcome({
+          actor: normalizedSpeaker,
+          target: resolvedTarget,
+          scenarioText: `reactive escalation: ${situationText}`,
+          actorTraits: actorPatternProfile?.traits || {},
+          targetTraits: targetPatternProfile?.traits || {},
+        }),
+      },
+      {
+        scenario: "If guidance is applied intentionally",
+        prediction: predictOutcome({
+          actor: normalizedSpeaker,
+          target: resolvedTarget,
+          scenarioText: `intentional repair: ${situationText}`,
+          actorTraits: actorPatternProfile?.traits || {},
+          targetTraits: targetPatternProfile?.traits || {},
+        }),
+      },
+    ];
+    setPredictiveOutput({ scenarios: predictiveEvidence, computed_at: new Date().toISOString() });
 
     const buildAdaptiveModes = async () => {
       const learningSignals = await getLearningSignalsHybrid(activeRelationshipId, normalizedSpeaker, resolvedTarget);
+      const actorTraits = actorPatternProfile?.traits || {};
+      const targetTraits = targetPatternProfile?.traits || {};
+      const feedbackTrendSummary = summarizeBayesianFeedbackTrends(learningSignals.feedbackHistory || []);
+      const methodologyPreferences = computeMethodologyPreferences(
+        learningSignals.methodologyStats || {},
+        learningSignals.feedbackHistory || [],
+      );
+
+      const scenarioHint = predictiveEvidence[2]?.prediction?.trace?.scenario_id || predictiveEvidence[0]?.prediction?.trace?.scenario_id || null;
+      const frameworkMatches = matchFrameworks({
+        traits: actorTraits,
+        other_traits: targetTraits,
+        scenario_id: scenarioHint,
+        patterns: [],
+        perspective: `${normalizedSpeaker}→${resolvedTarget}`,
+        lgbtq_context: false,
+      });
+
+      setPredictiveOutput({
+        scenarios: predictiveEvidence,
+        frameworks: frameworkMatches,
+        methodologyPreferences,
+        feedbackTrendSummary,
+        computed_at: new Date().toISOString(),
+      });
+
       const recentSessionEvidence = safePastSessions
         .filter((s) => s.speaker === normalizedSpeaker || s.speaking_to === normalizedSpeaker)
         .slice(0, 8)
@@ -698,8 +1001,19 @@ LEARNING SIGNALS FROM THIS CONNECTION
 - Mode usage counts: ${JSON.stringify(learningSignals.modeUsage || {})}
 - Copy/save preference counts: ${JSON.stringify(learningSignals.copiedByMode || {})}
 - Explicit feedback counts: ${JSON.stringify(learningSignals.feedbackSignals || {})}
+- Bayesian recency-weighted trend summary: ${feedbackTrendSummary.summaryLine}
 - Recent situations where coaching was requested: ${(learningSignals.recentSituations || []).join(" | ") || "None"}
 - Openings that were previously copied/saved most often: ${(learningSignals.successfulOpenings || []).join(" | ") || "None"}
+- Methodology preferences learned for this connection: ${summarizeMethodologyPreferences(methodologyPreferences)}
+
+PREDICTIVE EVIDENCE (DETERMINISTIC, METHOD-BLENDED)
+${summarizePredictiveEvidence(predictiveEvidence)}
+
+METHODOLOGY SOURCES TO INTEGRATE
+${summarizeMethodologySources(predictiveEvidence) || "- Gottman Method, EFT, CBT, DBT, NVC, and Polyvagal-informed state regulation"}
+
+FRAMEWORK MATCHES FOR THIS SPECIFIC CONTEXT
+${frameworkMatches.map((item) => `- ${item.framework}: ${item.reason}. Application: ${item.application}`).join("\n") || "- GOTTMAN: Repair and de-escalation"}
 
 Use these signals to adapt voice and level of detail while staying specific to current context.
 
@@ -738,7 +1052,8 @@ Mode requirements:
 Hard constraints:
 - Mention only allowed participants from scope.
 - No placeholders like "Person A" or "partner" when names are known.
-- No generic fallback statements.`;
+- No generic fallback statements.
+- In each mode, explicitly name at least one methodology-informed tactic and one predictive risk mitigator.`;
 
       const adaptiveRaw = await safeInvokeLLM(
         {
@@ -761,6 +1076,8 @@ Hard constraints:
         action: String(parsed.action || "").trim(),
         script: String(parsed.script || "").trim(),
       };
+
+      candidate.explain = appendCounterfactualSection(candidate.explain, predictiveEvidence, methodologyPreferences);
 
       if (!isUsefulModeText(candidate.explain) || !isUsefulModeText(candidate["60second"]) || !isUsefulModeText(candidate.action) || !isUsefulModeText(candidate.script)) {
         return null;
@@ -932,6 +1249,13 @@ Hard constraints:
 
     setFeedbackSubmitting(true);
     setSelectedFeedback(feedbackType);
+    const methodologyIds = extractMethodologyIdsFromPredictiveOutput(predictiveOutput);
+    const feedbackEntry = {
+      feedbackType,
+      mode: outputMode,
+      methodologyIds,
+      createdAt: new Date().toISOString(),
+    };
 
     updateLearningSignals(activeRelationshipId, currentSpeaker, currentSpeakingTo, (current) => ({
       ...current,
@@ -939,6 +1263,20 @@ Hard constraints:
         ...(current.feedbackSignals || { helpful: 0, too_generic: 0, too_long: 0, too_soft: 0, too_direct: 0 }),
         [feedbackType]: Number(current?.feedbackSignals?.[feedbackType] || 0) + 1,
       },
+      feedbackHistory: normalizeFeedbackHistory([feedbackEntry, ...(current.feedbackHistory || [])]),
+      methodologyStats: methodologyIds.reduce((acc, methodologyId) => {
+        const currentStats = acc[methodologyId] || { helpful: 0, corrective: 0, total: 0, score: 0.5 };
+        const helpful = currentStats.helpful + (feedbackType === "helpful" ? 1 : 0);
+        const corrective = currentStats.corrective + (feedbackType === "helpful" ? 0 : 1);
+        const total = helpful + corrective;
+        acc[methodologyId] = {
+          helpful,
+          corrective,
+          total,
+          score: Number((((helpful + 1) / (total + 2)) || 0.5).toFixed(3)),
+        };
+        return acc;
+      }, { ...(current.methodologyStats || {}) }),
     }));
 
     trackLearningEventServer({
@@ -948,6 +1286,7 @@ Hard constraints:
       eventType: "feedback",
       feedbackType,
       mode: outputMode,
+      methodologyIds,
       relatedSessionId: sessionId,
     });
 
@@ -1198,6 +1537,8 @@ Hard constraints:
                 situation={situation}
                 speakerProfile={speakerProfile}
                 targetProfile={targetProfile}
+                speakerTraits={speakerPatternProfile?.traits}
+                targetTraits={targetPatternProfile?.traits}
               />
             )}
 

@@ -8,9 +8,15 @@ import { TrendingDown, CheckCircle2 } from "lucide-react";
 import { predictOutcome } from "@/lib/predictiveEngine";
 import { cn } from "@/lib/utils";
 
-export default function PredictiveOutcomeBlock({ speaker, speakingTo, situation, speakerProfile, targetProfile }) {
-  const speakerTraits = speakerProfile?.trait_weights || {};
-  const targetTraits = targetProfile?.trait_weights || {};
+function riskLabel(prediction) {
+  if (!prediction) return "Unknown";
+  const base = prediction.risk_level === "high" ? "High" : prediction.risk_level === "medium" ? "Medium" : "Low";
+  return Number.isFinite(prediction.risk_score) ? `${base} (${prediction.risk_score}/100)` : base;
+}
+
+export default function PredictiveOutcomeBlock({ speaker, speakingTo, situation, speakerProfile, targetProfile, speakerTraits, targetTraits }) {
+  const actorTraits = speakerTraits || speakerProfile?.trait_weights || {};
+  const counterpartTraits = targetTraits || targetProfile?.trait_weights || {};
 
   const predictions = [
     {
@@ -19,8 +25,8 @@ export default function PredictiveOutcomeBlock({ speaker, speakingTo, situation,
         actor: speaker,
         target: speakingTo,
         scenarioText: "avoidance: " + situation,
-        actorTraits: speakerTraits,
-        targetTraits: targetTraits,
+          actorTraits,
+          targetTraits: counterpartTraits,
       }),
       icon: TrendingDown,
       color: "text-red-600 dark:text-red-300",
@@ -32,8 +38,8 @@ export default function PredictiveOutcomeBlock({ speaker, speakingTo, situation,
         actor: speaker,
         target: speakingTo,
         scenarioText: "reactive: " + situation,
-        actorTraits: speakerTraits,
-        targetTraits: targetTraits,
+          actorTraits,
+          targetTraits: counterpartTraits,
       }),
       icon: TrendingDown,
       color: "text-orange-600 dark:text-orange-300",
@@ -45,8 +51,8 @@ export default function PredictiveOutcomeBlock({ speaker, speakingTo, situation,
         actor: speaker,
         target: speakingTo,
         scenarioText: "intentional: " + situation,
-        actorTraits: speakerTraits,
-        targetTraits: targetTraits,
+          actorTraits,
+          targetTraits: counterpartTraits,
       }),
       icon: CheckCircle2,
       color: "text-green-700 dark:text-green-300",
@@ -71,8 +77,23 @@ export default function PredictiveOutcomeBlock({ speaker, speakingTo, situation,
               </div>
               <p className="text-sm text-foreground/90">{p.prediction?.predicted_behavior || "Conflict escalation likely"}</p>
               <p className="text-xs text-foreground/75 italic">
-                Risk: {p.prediction?.risk_level === "high" ? "🔴 High" : p.prediction?.risk_level === "medium" ? "🟡 Medium" : "🟢 Low"}
+                Risk: {p.prediction?.risk_level === "high" ? "🔴" : p.prediction?.risk_level === "medium" ? "🟡" : "🟢"} {riskLabel(p.prediction)}
               </p>
+              {Array.isArray(p.prediction?.methodologies) && p.prediction.methodologies.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {p.prediction.methodologies.slice(0, 3).map((method) => (
+                    <span
+                      key={`${p.scenario}-${method.id}`}
+                      className="rounded-full border border-foreground/15 bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground/75"
+                    >
+                      {method.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {p.prediction?.evidence_rationale && (
+                <p className="text-[11px] leading-5 text-foreground/70">{p.prediction.evidence_rationale}</p>
+              )}
             </div>
           );
         })}

@@ -2560,6 +2560,77 @@ type CoachModeKey = (typeof COACH_MODE_KEYS)[number];
 const COACH_FEEDBACK_KEYS = ["helpful", "too_generic", "too_long", "too_soft", "too_direct"] as const;
 type CoachFeedbackKey = (typeof COACH_FEEDBACK_KEYS)[number];
 
+function normalizeCoachMethodologyId(value: unknown) {
+  return normalizeText(value).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function normalizeCoachMethodologyIds(value: unknown) {
+  if (!Array.isArray(value)) return [] as string[];
+  return [...new Set(value.map((entry) => normalizeCoachMethodologyId(entry)).filter(Boolean))].slice(0, 12);
+}
+
+function normalizeCoachMethodologyStats(value: unknown) {
+  const input = isObject(value) ? value : {};
+  const output: Record<string, { helpful: number; corrective: number; total: number; score: number }> = {};
+
+  for (const [rawKey, rawValue] of Object.entries(input)) {
+    const key = normalizeCoachMethodologyId(rawKey);
+    if (!key || !isObject(rawValue)) continue;
+    const helpful = Math.max(0, Math.floor(Number(rawValue.helpful) || 0));
+    const corrective = Math.max(0, Math.floor(Number(rawValue.corrective) || 0));
+    const total = Math.max(helpful + corrective, Math.floor(Number(rawValue.total) || 0));
+    const score = Number.isFinite(Number(rawValue.score))
+      ? Math.max(0, Math.min(1, Number(rawValue.score)))
+      : (helpful + 1) / (helpful + corrective + 2);
+    output[key] = {
+      helpful,
+      corrective,
+      total,
+      score: Number(score.toFixed(3)),
+    };
+  }
+
+  return output;
+}
+
+function normalizeCoachFeedbackHistory(value: unknown) {
+  if (!Array.isArray(value)) return [] as Array<Record<string, unknown>>;
+  return value
+    .filter((entry) => isObject(entry))
+    .map((entry) => ({
+      feedback_type: normalizeCoachFeedback(entry.feedback_type || entry.feedbackType),
+      mode: normalizeCoachMode(entry.mode),
+      methodology_ids: normalizeCoachMethodologyIds(entry.methodology_ids || entry.methodologyIds),
+      created_date: normalizeText(entry.created_date || entry.createdDate) || nowIso(),
+    }))
+    .slice(0, 40);
+}
+
+function mergeCoachFeedbackHistory(
+  history: Array<Record<string, unknown>>,
+  nextEntry: Record<string, unknown>,
+  limit: number,
+) {
+  const normalized = normalizeCoachFeedbackHistory([nextEntry, ...history]);
+  const seen = new Set<string>();
+  const merged: Array<Record<string, unknown>> = [];
+
+  for (const entry of normalized) {
+    const key = [
+      normalizeText(entry.created_date),
+      normalizeText(entry.feedback_type),
+      normalizeText(entry.mode),
+      normalizeCoachMethodologyIds(entry.methodology_ids).join(","),
+    ].join("::");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(entry);
+    if (merged.length >= limit) break;
+  }
+
+  return merged;
+}
+
 function normalizeCoachMode(value: unknown): CoachModeKey {
   const normalized = normalizeText(value).toLowerCase();
   if (normalized === "full") return "full";
@@ -2618,6 +2689,8 @@ function buildDefaultCoachLearningState(relationshipId: string, speaker: string,
     feedback_signals: normalizeCoachFeedbackCounterMap({}),
     recent_situations: [],
     successful_openings: [],
+    feedback_history: [],
+    methodology_stats: {},
     created_date: nowIso(),
     updated_date: nowIso(),
   };
@@ -2639,6 +2712,8 @@ function normalizeCoachLearningRecord(record: StoredRecord | null, relationshipI
     feedback_signals: normalizeCoachFeedbackCounterMap(record.feedback_signals),
     recent_situations: toStringArray(record.recent_situations, []).slice(0, 8),
     successful_openings: toStringArray(record.successful_openings, []).slice(0, 10),
+    feedback_history: normalizeCoachFeedbackHistory(record.feedback_history),
+    methodology_stats: normalizeCoachMethodologyStats(record.methodology_stats),
     created_date: normalizeText(record.created_date) || baseline.created_date,
     updated_date: normalizeText(record.updated_date) || baseline.updated_date,
   };
@@ -2676,8 +2751,10 @@ async function upsertCoachLearningState(
   const nextModeUsage = normalizeCoachModeCounterMap(current.mode_usage);
   const nextCopied = normalizeCoachModeCounterMap(current.copied_by_mode);
   const nextFeedback = normalizeCoachFeedbackCounterMap(current.feedback_signals);
+  const nextMethodologyStats = normalizeCoachMethodologyStats(current.methodology_stats);
   let nextSituations = toStringArray(current.recent_situations, []);
   let nextOpenings = toStringArray(current.successful_openings, []);
+  let nextFeedbackHistory = normalizeCoachFeedbackHistory(current.feedback_history);
 
   if (eventType === "mode_switch" || eventType === "mode_usage") {
     nextModeUsage[mode] = Number(nextModeUsage[mode] || 0) + 1;
@@ -2689,6 +2766,31 @@ async function upsertCoachLearningState(
 
   if (eventType === "feedback") {
     nextFeedback[feedbackType] = Number(nextFeedback[feedbackType] || 0) + 1;
+
+    const methodologyIds = normalizeCoachMethodologyIds(body.methodologyIds || body.methodology_ids);
+    nextFeedbackHistory = mergeCoachFeedbackHistory(
+      nextFeedbackHistory,
+      {
+        feedback_type: feedbackType,
+        mode,
+        methodology_ids: methodologyIds,
+        created_date: nowIso(),
+      },
+      40,
+    );
+
+    for (const methodologyId of methodologyIds) {
+      const currentStats = nextMethodologyStats[methodologyId] || { helpful: 0, corrective: 0, total: 0, score: 0.5 };
+      const helpful = currentStats.helpful + (feedbackType === "helpful" ? 1 : 0);
+      const corrective = currentStats.corrective + (feedbackType === "helpful" ? 0 : 1);
+      const total = helpful + corrective;
+      nextMethodologyStats[methodologyId] = {
+        helpful,
+        corrective,
+        total,
+        score: Number((((helpful + 1) / (total + 2)) || 0.5).toFixed(3)),
+      };
+    }
   }
 
   const situation = normalizeText(body.situation);
@@ -2712,6 +2814,8 @@ async function upsertCoachLearningState(
     feedback_signals: nextFeedback,
     recent_situations: nextSituations,
     successful_openings: nextOpenings,
+    feedback_history: nextFeedbackHistory,
+    methodology_stats: nextMethodologyStats,
   };
 
   const saved = currentRaw

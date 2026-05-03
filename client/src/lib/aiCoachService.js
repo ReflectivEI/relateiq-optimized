@@ -14,6 +14,7 @@ import { safeInvokeLLM } from "./aiSafe";
 import {
   buildActiveConnectionContext,
   buildActiveConnectionContextBlock,
+  getRelationshipParticipants,
   validateOutputScope,
 } from "./relationshipParticipants";
 
@@ -92,14 +93,19 @@ export function buildContextObject({
   targetUser = "",
   forbiddenPeople = [],
 }) {
+  const relationshipParticipants = getRelationshipParticipants(activeRelationship, actorUser || profiles[0]?.person_name || tonyResponses[0]?.person_name);
   const primaryPerson =
     tonyResponses[0]?.person_name ||
     profiles[0]?.person_name ||
+    relationshipParticipants[0] ||
+    actorUser ||
     "Person A";
   const secondaryPerson =
     drewResponses[0]?.person_name ||
     profiles.find((p) => p.person_name && p.person_name !== primaryPerson)?.person_name ||
     profiles[1]?.person_name ||
+    relationshipParticipants.find((person) => person && person !== primaryPerson) ||
+    targetUser ||
     "Other Person";
 
   const primaryProfile =
@@ -335,7 +341,17 @@ Return your response in this exact format:
     35000,
     "Unable to generate explanation right now. Please try again."
   );
-  return validateOutputScope(first, scopeContext).ok ? first : SCOPE_VALIDATION_FAILURE;
+  let validation = validateOutputScope(first, scopeContext);
+  if (validation.ok) return first;
+
+  const retryPrompt = `${prompt}\n\nSTRICT REGENERATION RULES:\n- A prior output was rejected for scope leakage (${validation.violations.join(", ")}).\n- Only mention allowedPeople and match relationshipStatus exactly.\n- Use the real participant names from the active connection only.`;
+  const retry = await safeInvokeLLM(
+    { prompt: retryPrompt, model: "claude_sonnet_4_6", partnerLanguage: getPartnerLanguageForScope(scope, ctx.memory) },
+    35000,
+    "Unable to generate explanation right now. Please try again."
+  );
+  validation = validateOutputScope(retry, scopeContext);
+  return validation.ok ? retry : SCOPE_VALIDATION_FAILURE;
 }
 
 /**
@@ -401,7 +417,17 @@ Return your response in this exact format:
     35000,
     "Unable to generate elaboration right now. Please try again."
   );
-  return validateOutputScope(first, scopeContext).ok ? first : SCOPE_VALIDATION_FAILURE;
+  let validation = validateOutputScope(first, scopeContext);
+  if (validation.ok) return first;
+
+  const retryPrompt = `${prompt}\n\nSTRICT REGENERATION RULES:\n- A prior output was rejected for scope leakage (${validation.violations.join(", ")}).\n- Only mention allowedPeople and match relationshipStatus exactly.\n- Use the real participant names from the active connection only.`;
+  const retry = await safeInvokeLLM(
+    { prompt: retryPrompt, model: "claude_sonnet_4_6", partnerLanguage: getPartnerLanguageForScope(scope, ctx.memory) },
+    35000,
+    "Unable to generate elaboration right now. Please try again."
+  );
+  validation = validateOutputScope(retry, scopeContext);
+  return validation.ok ? retry : SCOPE_VALIDATION_FAILURE;
 }
 
 /**

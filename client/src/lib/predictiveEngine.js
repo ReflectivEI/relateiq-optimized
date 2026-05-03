@@ -12,6 +12,51 @@
 
 import { matchScenario } from "./predictiveScenarios";
 
+const METHODOLOGY_LIBRARY = {
+  gottman: {
+    id: "gottman",
+    label: "Gottman Method",
+    source: "Gottman Lab longitudinal conflict and repair research",
+    focus: "repair bids, de-escalation, conflict stability",
+  },
+  eft: {
+    id: "eft",
+    label: "Emotionally Focused Therapy",
+    source: "Sue Johnson attachment-focused EFT model",
+    focus: "attachment safety, protest-withdraw cycles",
+  },
+  cbt: {
+    id: "cbt",
+    label: "Cognitive Behavioral Techniques",
+    source: "CBT misinterpretation and cognitive reappraisal work",
+    focus: "thought-emotion-behavior loops",
+  },
+  dbt: {
+    id: "dbt",
+    label: "DBT Distress Tolerance",
+    source: "Linehan DBT emotion regulation framework",
+    focus: "de-escalation under high affect",
+  },
+  nvc: {
+    id: "nvc",
+    label: "Nonviolent Communication",
+    source: "Marshall Rosenberg observation-feeling-need-request protocol",
+    focus: "needs clarity and low-blame requests",
+  },
+  polyvagal: {
+    id: "polyvagal",
+    label: "Polyvagal Lens",
+    source: "Polyvagal state regulation and social engagement theory",
+    focus: "nervous system state and co-regulation readiness",
+  },
+  motivational_interviewing: {
+    id: "motivational_interviewing",
+    label: "Motivational Interviewing",
+    source: "Miller and Rollnick change talk and resistance-reduction",
+    focus: "autonomy-supportive behavior change",
+  },
+};
+
 // ── Trait key helpers ────────────────────────────────────────────
 
 function score(traits, key) {
@@ -320,6 +365,92 @@ function buildDrivers(actorTraits, targetTraits, scenarioId, actor, target) {
     .sort((a, b) => b.score - a.score);
 }
 
+function clamp(num, min, max) {
+  return Math.min(max, Math.max(min, num));
+}
+
+function computeRiskScore(actorTraits, targetTraits, scenarioId) {
+  let scoreValue = 34;
+
+  if (["unexpected_criticism", "tone_escalation", "withdrawal_during_conflict", "emotional_shutdown"].includes(scenarioId)) scoreValue += 16;
+  if (["feeling_dismissed", "affection_bid_rejected", "criticism_about_habits"].includes(scenarioId)) scoreValue += 12;
+
+  scoreValue += Math.max(0, score(actorTraits, "stress_reactivity") - 5) * 4;
+  scoreValue += Math.max(0, score(targetTraits, "emotional_sensitivity") - 5) * 3.5;
+  scoreValue += Math.max(0, score(actorTraits, "withdrawal_tendency") - 5) * 3;
+  scoreValue += Math.max(0, score(targetTraits, "need_for_validation") - 5) * 2.5;
+
+  scoreValue -= Math.max(0, score(actorTraits, "repair_orientation") - 5) * 3;
+  scoreValue -= Math.max(0, score(targetTraits, "repair_orientation") - 5) * 2;
+  scoreValue -= Math.max(0, score(actorTraits, "communication_expressiveness") - 6) * 1.5;
+
+  return Math.round(clamp(scoreValue, 8, 96));
+}
+
+function buildConfidenceCalibration({ scenarioConfidence, actorTraits, targetTraits, riskScore }) {
+  const traitCoverage = [
+    "conflict_avoidance",
+    "withdrawal_tendency",
+    "emotional_sensitivity",
+    "stress_reactivity",
+    "need_for_validation",
+    "repair_orientation",
+    "communication_expressiveness",
+  ].reduce((acc, key) => {
+    const actorHas = Number.isFinite(actorTraits?.[key]?.score);
+    const targetHas = Number.isFinite(targetTraits?.[key]?.score);
+    return acc + (actorHas ? 1 : 0) + (targetHas ? 1 : 0);
+  }, 0);
+
+  const traitCompleteness = clamp(traitCoverage / 14, 0, 1);
+  const riskSpecificity = riskScore >= 70 || riskScore <= 30 ? 0.1 : 0.05;
+  const confidence = clamp(0.45 + scenarioConfidence * 0.25 + traitCompleteness * 0.2 + riskSpecificity, 0.42, 0.93);
+
+  return {
+    score: Number(confidence.toFixed(2)),
+    factors: {
+      scenario_confidence: scenarioConfidence,
+      trait_completeness: Number(traitCompleteness.toFixed(2)),
+      risk_specificity: Number(riskSpecificity.toFixed(2)),
+    },
+  };
+}
+
+function selectMethodologies({ scenarioId, actorTraits, targetTraits, riskLevel }) {
+  const selected = [];
+  const add = (id, reason) => {
+    const method = METHODOLOGY_LIBRARY[id];
+    if (!method) return;
+    if (selected.some((item) => item.id === id)) return;
+    selected.push({ ...method, why_selected: reason });
+  };
+
+  add("gottman", "Conflict repair sequencing and de-escalation structure are needed for this scenario.");
+  add("eft", "Attachment safety and validation dynamics are central to this interaction.");
+
+  if (
+    ["feeling_dismissed", "criticism_about_habits", "unexpected_criticism", "sensitive_topic_raised"].includes(scenarioId) ||
+    score(targetTraits, "need_for_validation") >= 7
+  ) {
+    add("nvc", "Conversation requires low-blame language with explicit needs and requests.");
+  }
+
+  if (score(actorTraits, "stress_reactivity") >= 7 || score(targetTraits, "emotional_sensitivity") >= 7 || riskLevel === "high") {
+    add("dbt", "High arousal likelihood requires distress tolerance and regulation-first tactics.");
+    add("polyvagal", "State shifts suggest sequencing for nervous system safety before content depth.");
+  }
+
+  if (
+    ["avoidance_after_disagreement", "withdrawal_during_conflict", "stress_spillover"].includes(scenarioId) ||
+    score(actorTraits, "conflict_avoidance") >= 7
+  ) {
+    add("motivational_interviewing", "Autonomy-supportive prompts reduce resistance and increase re-engagement.");
+  }
+
+  add("cbt", "Misinterpretation and cognitive reframing are needed to prevent escalation loops.");
+  return selected.slice(0, 5);
+}
+
 // ── Public API ────────────────────────────────────────────────────
 
 /**
@@ -350,6 +481,7 @@ export function predictOutcome({ actor, target, scenarioText, actorTraits, targe
 
   // 4. Risk level (explicit rule-based computation)
   const risk_level = computeRiskLevel(actorTraits, targetTraits, scenarioId);
+  const risk_score = computeRiskScore(actorTraits, targetTraits, scenarioId);
 
   // 5. Misinterpretation (actor × target trait interaction)
   const misinterpResult = applyRules(MISINTERPRETATION_RULES, actorTraits, targetTraits, scenarioId, actor, target);
@@ -363,6 +495,13 @@ export function predictOutcome({ actor, target, scenarioText, actorTraits, targe
 
   // 7. Drivers
   const drivers = buildDrivers(actorTraits, targetTraits, scenarioId, actor, target);
+  const methodologies = selectMethodologies({ scenarioId, actorTraits, targetTraits, riskLevel: risk_level });
+  const confidenceCalibration = buildConfidenceCalibration({
+    scenarioConfidence,
+    actorTraits,
+    targetTraits,
+    riskScore: risk_score,
+  });
 
   // 8. Trace (full rule path)
   const trace = {
@@ -390,17 +529,24 @@ export function predictOutcome({ actor, target, scenarioText, actorTraits, targe
         `actor.repair_orientation: ${score(actorTraits, "repair_orientation")} (mitigator)`,
       ],
       result: risk_level,
+      risk_score: risk_score,
     },
     traits_used: drivers.map((d) => d.trait),
+    methodologies: methodologies.map((m) => ({ id: m.id, label: m.label })),
+    confidence_calibration: confidenceCalibration,
   };
 
   return {
     predicted_behavior,
     emotional_state,
     risk_level,
+    risk_score,
     likely_misinterpretation,
     recommended_preemptive_action,
     drivers,
+    methodologies,
+    confidence: confidenceCalibration.score,
+    evidence_rationale: `Scenario confidence ${scenarioConfidence}; trait completeness ${confidenceCalibration.factors.trait_completeness}; calibrated risk score ${risk_score}.`,
     trace,
     actor,
     target,
