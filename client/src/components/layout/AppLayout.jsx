@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -39,6 +39,7 @@ import {
   Copy,
   SlidersHorizontal,
   Send,
+  Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -200,6 +201,8 @@ export default function AppLayout() {
     actions: false,
   });
   const isOwner = activeRelationship?.current_user_role === "owner";
+  const navAvatarFileInputRef = useRef(null);
+  const [navAvatarSaving, setNavAvatarSaving] = useState(false);
   const currentUserName = user?.name || "";
   const currentPersonName = activeRelationship?.current_person_name || currentUserName || "";
   const partnerName = getPartnerName(currentPersonName, activeRelationship?.participant_names || []);
@@ -254,6 +257,44 @@ export default function AppLayout() {
     () => selectedManagedRow?.relationship_id || editingRelationshipId || "",
     [selectedManagedRow, editingRelationshipId],
   );
+
+  const handleNavAvatarUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file.");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image is too large. Use a file under 5 MB.");
+      event.target.value = "";
+      return;
+    }
+    setNavAvatarSaving(true);
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const key = `relateiq:avatar:${activeRelationshipId || "global"}:${currentPersonName}`;
+      localStorage.setItem(key, dataUrl);
+      if (currentProfile?.id) {
+        await api.entities.UserProfile.update(currentProfile.id, { profile_image_url: dataUrl });
+      } else {
+        await api.entities.UserProfile.create({ person_name: currentPersonName, profile_image_url: dataUrl });
+      }
+      queryClient.invalidateQueries({ queryKey: ["profiles", activeRelationshipId] });
+      toast.success("Profile photo updated.");
+    } catch {
+      toast.error("Unable to update photo.");
+    } finally {
+      setNavAvatarSaving(false);
+      event.target.value = "";
+    }
+  };
 
   const handleOpenNotifications = async () => {
     setNotificationsOpen(true);
@@ -888,13 +929,35 @@ export default function AppLayout() {
         <div className={SHELL_WIDTH_CLASS}>
           {/* Top bar with theme toggle */}
           <div className="hidden lg:flex items-center gap-4 pt-4 pb-0">
+            <input
+              ref={navAvatarFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleNavAvatarUpload}
+            />
             <div className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card/70 px-3 py-2">
-              <Avatar className="h-9 w-9 border border-primary/20">
-                {currentAvatar ? <AvatarImage src={currentAvatar} alt={`${currentPersonName} avatar`} /> : null}
-                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                  {initialsFromName(currentPersonName)}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative group">
+                <button
+                  type="button"
+                  className={cn("rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50", isOwner ? "cursor-pointer" : "cursor-default")}
+                  onClick={() => isOwner && !navAvatarSaving && navAvatarFileInputRef.current?.click()}
+                  aria-label={isOwner ? "Change profile photo" : undefined}
+                  title={isOwner ? "Click to change profile photo" : undefined}
+                >
+                  <Avatar className="h-9 w-9 border border-primary/20">
+                    {currentAvatar ? <AvatarImage src={currentAvatar} alt={`${currentPersonName} avatar`} /> : null}
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                      {initialsFromName(currentPersonName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  {isOwner && (
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                      <Camera className="h-3.5 w-3.5 text-white" />
+                    </span>
+                  )}
+                </button>
+              </div>
               <div className="text-sm leading-tight">
                 <p className="font-semibold text-foreground">{currentPersonName}</p>
                 <p className="text-xs text-muted-foreground">{activeRelationshipTerms.bond}</p>

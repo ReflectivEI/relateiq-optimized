@@ -49,6 +49,7 @@ export default function Profile() {
   const { user, activeRelationship, participants, primaryPerson } = useRelationshipAuth();
   const queryClient = useQueryClient();
   const currentPersonName = activeRelationship?.current_person_name || user?.name || primaryPerson || "User";
+  const isOwner = activeRelationship?.current_user_role === "owner";
   const fileInputRef = useRef(null);
   const avatarStorageKey = useMemo(() => {
     const relationshipId = activeRelationship?.id || "global";
@@ -174,26 +175,30 @@ export default function Profile() {
                 className="hidden"
                 onChange={handleAvatarUpload}
               />
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-full border-primary/30 bg-background/70"
-                disabled={avatarSaving}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                {avatarSaving ? "Saving..." : "Upload Photo"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-full border-border/60"
-                disabled={avatarSaving || !effectiveAvatar}
-                onClick={() => void handleAvatarRemove()}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Remove
-              </Button>
+              {isOwner && (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-full border-primary/30 bg-background/70"
+                    disabled={avatarSaving}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    {avatarSaving ? "Saving..." : "Upload Photo"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-full border-border/60"
+                    disabled={avatarSaving || !effectiveAvatar}
+                    onClick={() => void handleAvatarRemove()}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Remove
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
