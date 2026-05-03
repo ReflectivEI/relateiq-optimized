@@ -35,11 +35,13 @@ import {
   Pencil,
   Trash2,
   RefreshCw,
+  Sparkles,
   Copy,
   SlidersHorizontal,
   Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { api } from "@/api/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -57,28 +59,7 @@ const navGroups = [
     id: "main",
     label: "Main Navigation",
     items: [
-      { path: "/reflect", label: "Reflect", icon: Bot },
-      { path: "/repair", label: "Repair", icon: Wrench },
-      { path: "/grow", label: "Grow", icon: TrendingUp },
-      { path: "/inbox", label: "Inbox", icon: MessagesSquare },
-      { path: "/profile", label: "Profile", icon: Users },
-    ],
-  },
-  {
-    id: "actions",
-    label: "Quick Actions",
-    items: [
-      { path: "/check-in", label: "Check-In", icon: CalendarCheck2 },
-      { path: "/tools", label: "Smart Tools", icon: Wrench },
-      { path: "/download-data", label: "Export & Downloads", icon: BookMarked },
-    ],
-  },
-  {
-    id: "classic",
-    label: "Classic Pages",
-    items: [
       { path: "/coach", label: "AI Coach", icon: Bot },
-      { path: "/chat", label: "Relationship Chat", icon: MessagesSquare },
       { path: "/knowledge", label: "Knowledge Hub", icon: BookOpenText },
       { path: "/analysis", label: "Analysis Engine", icon: BrainCircuit },
       { path: "/insights", label: "Insights", icon: BarChart3 },
@@ -97,6 +78,15 @@ const navGroups = [
       { path: "/tester-inbox", label: "Connection Inbox", icon: MessagesSquare },
       { path: "/restore-center", label: "Restore Center", icon: History },
       { path: "/appendix", label: "Appendix", icon: BookMarked },
+    ],
+  },
+  {
+    id: "actions",
+    label: "Quick Actions",
+    items: [
+      { path: "/check-in", label: "Check-In", icon: CalendarCheck2 },
+      { path: "/tools", label: "Smart Tools", icon: Wrench },
+      { path: "/download-data", label: "Export & Downloads", icon: BookMarked },
     ],
   },
 ];
@@ -141,6 +131,15 @@ function formatRelationshipTypeLabel(type) {
   return normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : "Other";
 }
 
+function initialsFromName(name = "") {
+  return String(name)
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "U";
+}
+
 export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -173,18 +172,17 @@ export default function AppLayout() {
   const [communicationNote, setCommunicationNote] = useState("");
   const [relationshipError, setRelationshipError] = useState("");
   const [messageDraft, setMessageDraft] = useState("");
+  const [generatingMessage, setGeneratingMessage] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [messageConfirmation, setMessageConfirmation] = useState("");
   const [managementLoading, setManagementLoading] = useState(false);
   const [openGroups, setOpenGroups] = useState({
     main: true,
     actions: true,
-    classic: false,
   });
   const [mobileGroupOpen, setMobileGroupOpen] = useState({
     main: true,
     actions: false,
-    classic: false,
   });
   const isOwner = activeRelationship?.current_user_role === "owner";
   const currentUserName = user?.name || "";
@@ -192,6 +190,25 @@ export default function AppLayout() {
   const partnerName = getPartnerName(currentPersonName, activeRelationship?.participant_names || []);
   const sendTargetLabel = partnerName || activeRelationshipTerms.counterpart || "Connection Partner";
   const canDirectMessage = Boolean(activeRelationshipId && sendTargetLabel);
+  const { data: profileRecords = [] } = useQuery({
+    queryKey: ["profiles", activeRelationshipId],
+    queryFn: () => api.entities.UserProfile.list(),
+    enabled: Boolean(activeRelationshipId),
+  });
+  const currentProfile = profileRecords.find((entry) => entry.person_name === currentPersonName) || null;
+  const partnerProfile = profileRecords.find((entry) => entry.person_name === partnerName) || null;
+  const currentAvatarLocal = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    const key = `relateiq:avatar:${activeRelationshipId || "global"}:${currentPersonName}`;
+    return window.localStorage.getItem(key) || "";
+  }, [activeRelationshipId, currentPersonName]);
+  const partnerAvatarLocal = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    const key = `relateiq:avatar:${activeRelationshipId || "global"}:${partnerName}`;
+    return window.localStorage.getItem(key) || "";
+  }, [activeRelationshipId, partnerName]);
+  const currentAvatar = currentProfile?.profile_image_url || currentAvatarLocal;
+  const partnerAvatar = partnerProfile?.profile_image_url || partnerAvatarLocal;
   const showPlayLabII = true;
   const visibleNavGroups = useMemo(
     () =>
@@ -261,6 +278,43 @@ export default function AppLayout() {
       toast.error("Unable to send message right now.");
     } finally {
       setSendingMessage(false);
+    }
+  };
+
+  const handleGenerateTopbarMessage = async () => {
+    if (!partnerName || !currentPersonName) return;
+    setGeneratingMessage(true);
+    setMessageConfirmation("");
+    try {
+      const prompt = [
+        "You are an elite relationship communication coach.",
+        `Write a direct message from ${currentPersonName} to ${partnerName}.`,
+        `Relationship type: ${activeRelationshipTerms.type}. Relationship bond label: ${activeRelationshipTerms.bond}.`,
+        "Goals:",
+        "1) Be emotionally intelligent and specific.",
+        "2) Show understanding of the other person's perspective.",
+        "3) Avoid blame and escalation.",
+        "4) Keep it concise (120-220 words).",
+        "5) End with one clear low-pressure next step.",
+        "",
+        "If a draft already exists, improve it while preserving intent.",
+        `Current draft: ${messageDraft.trim() || "(none yet)"}`,
+        "",
+        "Return only the message text.",
+      ].join("\n");
+
+      const result = await api.integrations.Core.InvokeLLM({
+        prompt,
+        model: "claude_sonnet_4_6",
+      });
+      const text = (typeof result === "string" ? result : result?.response || "").trim();
+      if (!text) throw new Error("empty_ai_draft");
+      setMessageDraft(text);
+      toast.success(`AI draft generated for ${sendTargetLabel}.`);
+    } catch {
+      toast.error("Unable to generate a message draft right now.");
+    } finally {
+      setGeneratingMessage(false);
     }
   };
 
@@ -817,7 +871,27 @@ export default function AppLayout() {
       {/* Main Content */}
       <main className={cn("flex-1 pt-14 lg:pt-0 transition-all duration-300", sidebarCollapsed ? "lg:ml-[92px]" : "lg:ml-72")}>
         {/* Top bar with theme toggle */}
-        <div className="hidden lg:flex items-center justify-end px-8 pt-4 pb-0">
+        <div className="hidden lg:flex items-center justify-between gap-4 px-8 pt-4 pb-0">
+          <div className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card/70 px-3 py-2">
+            <Avatar className="h-9 w-9 border border-primary/20">
+              {currentAvatar ? <AvatarImage src={currentAvatar} alt={`${currentPersonName} avatar`} /> : null}
+              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                {initialsFromName(currentPersonName)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="text-sm leading-tight">
+              <p className="font-semibold text-foreground">{currentPersonName}</p>
+              <p className="text-xs text-muted-foreground">{activeRelationshipTerms.bond}</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <Avatar className="h-9 w-9 border border-primary/20">
+              {partnerAvatar ? <AvatarImage src={partnerAvatar} alt={`${sendTargetLabel} avatar`} /> : null}
+              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                {initialsFromName(sendTargetLabel)}
+              </AvatarFallback>
+            </Avatar>
+            <p className="text-sm font-semibold text-foreground">{sendTargetLabel}</p>
+          </div>
           <div className="flex items-center gap-6">
             <Button variant="outline" size="sm" onClick={() => setNotesOpen(true)}>
               Shared Notes
@@ -913,7 +987,17 @@ export default function AppLayout() {
               placeholder={`Write a message to ${partnerName || activeRelationshipTerms.counterpart}...`}
               className="min-h-[180px] resize-none bg-background"
             />
-            <div className="flex justify-end">
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleGenerateTopbarMessage}
+                disabled={generatingMessage || sendingMessage}
+                className="gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                {generatingMessage ? "Generating..." : "AI Draft"}
+              </Button>
               <Button onClick={handleSendTopbarMessage} disabled={sendingMessage || !messageDraft.trim()}>
                 {sendingMessage ? "Sending..." : `Send to ${sendTargetLabel}`}
               </Button>

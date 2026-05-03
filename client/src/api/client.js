@@ -8,6 +8,7 @@ const API_BASE =
 
 const AUTH_TOKEN_KEY = "relateiq.auth.token";
 const RELATIONSHIP_ID_KEY = "relateiq.active.relationship";
+const RELATIONSHIP_LAYER_KEY = "relateiq.active.relationship.layer";
 const REQUEST_TIMEOUT_MS = 12000;
 const RELATIONSHIP_MEMORY_PREFIX = "relateiq.relationship.memory.v1";
 
@@ -15,6 +16,28 @@ const LOCAL_QUESTIONNAIRE_FILES = {
   Tony: "/data/relateiq/tony.questionnaire.json",
   Drew: "/data/relateiq/drew.questionnaire.json",
 };
+
+const RELATIONSHIP_SCOPED_ENTITIES = new Set([
+  "AhaCard",
+  "CheckIn",
+  "CoachSession",
+  "DailyQuestion",
+  "DailyReflection",
+  "InsightEntry",
+  "JournalEntry",
+  "Note",
+  "OutcomeLog",
+  "PlayLabResponse",
+  "PlayLabResult",
+  "PlayLabSession",
+  "QuestionnaireResponse",
+  "RelationshipDynamic",
+  "RepairEntry",
+  "SideQuest",
+  "TriggerEntry",
+  "UserProfile",
+  "VisionPin",
+]);
 
 function buildUrl(path, params) {
   const url = new URL(path, API_BASE.endsWith("/") ? API_BASE : `${API_BASE}/`);
@@ -29,6 +52,31 @@ function buildUrl(path, params) {
 
 function normalizeText(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeRelationshipLayer(value) {
+  const normalized = normalizeText(value).toLowerCase().replace(/[\s-]+/g, "_");
+  const aliases = {
+    partner: "romantic",
+    partners: "romantic",
+    committed: "committed_relationship",
+    committed_relationship: "committed_relationship",
+    commitment: "committed_relationship",
+    married: "marriage",
+    marriage: "marriage",
+    friendship: "friendship",
+    friends: "friendship",
+    family: "family",
+    colleague: "colleague",
+    colleagues: "colleague",
+    coworker: "colleague",
+    coworkers: "colleague",
+    co_worker: "colleague",
+    co_workers: "colleague",
+    other: "other",
+    romantic: "romantic",
+  };
+  return aliases[normalized] || "other";
 }
 
 function canUseStorage() {
@@ -135,71 +183,6 @@ function buildEmptyRelationshipMemory() {
   };
 }
 
-function extractQuestionnaireThemes(responses = []) {
-  const keywords = responses
-    .flatMap((r) => [r.question_text || "", r.answer || ""].join(" ").toLowerCase().split(/\s+/))
-    .filter(Boolean);
-  const patterns = {
-    communication: ["talk", "listen", "express", "discuss", "say", "hear", "communicate"],
-    support: ["help", "support", "need", "comfort", "understand", "there"],
-    conflict: ["disagree", "conflict", "argue", "tension", "difficult", "challenge"],
-    emotion: ["feel", "emotion", "happy", "sad", "angry", "mood", "heart"],
-    values: ["value", "important", "matter", "believe", "principle", "meaning"],
-    growth: ["grow", "learn", "develop", "improve", "strengthen", "build"],
-  };
-  const themes = {};
-  Object.entries(patterns).forEach(([theme, words]) => {
-    themes[theme] = words.filter((w) => keywords.includes(w)).length;
-  });
-  return Object.entries(themes)
-    .filter(([_, count]) => count > 0)
-    .sort(([, a], [, b]) => b - a)
-    .map(([theme]) => theme)
-    .slice(0, 3);
-}
-
-function buildProfileAnalysisFromData(profile = {}, memory = {}) {
-  const personName = profile.person_name || "";
-  if (!personName) return profile;
-  const questionnaireResponses = (memory.questionnaireResponses || []).filter(
-    (r) => normalizeText(r.person_name) === normalizeText(personName)
-  );
-  const dailyReflections = (memory.dailyReflections || []).filter(
-    (r) => normalizeText(r.person_name) === normalizeText(personName)
-  );
-  const journalEntries = (memory.journalEntries || []).filter(
-    (r) => normalizeText(r.person_name) === normalizeText(personName)
-  );
-  const checkIns = (memory.checkIns || []).filter((r) => normalizeText(r.person_name) === normalizeText(personName));
-  const triggers = (memory.triggers || []).filter((r) => normalizeText(r.owner) === normalizeText(personName));
-  const themes = extractQuestionnaireThemes(questionnaireResponses);
-  const sourceCounts = {
-    questionnaire: questionnaireResponses.length,
-    daily: dailyReflections.length,
-    journal: journalEntries.length,
-    checkin: checkIns.length,
-    triggers: triggers.length,
-  };
-  const totalSources = Object.values(sourceCounts).reduce((a, b) => a + b, 0);
-  return {
-    ...profile,
-    ai_behavioral_summary:
-      profile.ai_behavioral_summary ||
-      `${personName}'s profile is informed by ${totalSources} data points across questionnaire, daily reflections, journal, check-ins, and experience tracking. Key patterns: ${themes.join(", ") || "Building from lived experience"}`,
-    continuous_learning: {
-      ...profile.continuous_learning,
-      questionnaire_count: sourceCounts.questionnaire,
-      daily_count: sourceCounts.daily,
-      journal_count: sourceCounts.journal,
-      checkin_count: sourceCounts.checkin,
-      trigger_count: sourceCounts.triggers,
-      coverage_total: totalSources,
-      key_themes: themes,
-      last_sync: new Date().toISOString(),
-    },
-  };
-}
-
 function inferScopedPerson(record = {}) {
   if (normalizeText(record.person_name)) return normalizeText(record.person_name);
   if (normalizeText(record.owner)) return normalizeText(record.owner);
@@ -241,6 +224,13 @@ function updateLegacyGlobalState(entity, record) {
 async function recordLearningEvent(entity, action, record) {
   const relationshipId = normalizeText(record?.relationship_id) || getStoredRelationshipId();
   if (!entity || !record || !relationshipId) return record;
+  const activeRelationshipId = getStoredRelationshipId();
+  const activeRelationshipLayer = getStoredRelationshipLayer();
+  const recordLayer = normalizeText(record?.relationship_type)
+    ? normalizeRelationshipLayer(record?.relationship_type)
+    : "";
+  if (activeRelationshipId && relationshipId !== activeRelationshipId) return record;
+  if (activeRelationshipLayer && recordLayer && recordLayer !== activeRelationshipLayer) return record;
 
   try {
     const currentMemory = readRelationshipMemorySnapshot(relationshipId) || globalState.getState().relationshipMemory?.[relationshipId] || buildEmptyRelationshipMemory();
@@ -298,6 +288,17 @@ async function recordLearningEvent(entity, action, record) {
   return record;
 }
 
+async function recordLearningFromEnvelope(entity, action, envelope, candidateKeys = []) {
+  if (!entity || !envelope || typeof envelope !== "object") return envelope;
+  const keys = candidateKeys.length ? candidateKeys : ["record", "result", "response", "session", "entry", "data"];
+  const candidate = keys
+    .map((key) => envelope?.[key])
+    .find((value) => value && typeof value === "object" && normalizeText(value.id));
+  if (!candidate) return envelope;
+  await recordLearningEvent(entity, action, candidate);
+  return envelope;
+}
+
 export function getStoredAuthToken() {
   return typeof window === "undefined" ? "" : window.localStorage.getItem(AUTH_TOKEN_KEY) || "";
 }
@@ -315,6 +316,10 @@ export function getStoredRelationshipId() {
   return typeof window === "undefined" ? "" : window.localStorage.getItem(RELATIONSHIP_ID_KEY) || "";
 }
 
+export function getStoredRelationshipLayer() {
+  return typeof window === "undefined" ? "" : window.localStorage.getItem(RELATIONSHIP_LAYER_KEY) || "";
+}
+
 export function setStoredRelationshipId(relationshipId) {
   if (typeof window === "undefined") return;
   if (relationshipId) {
@@ -324,9 +329,53 @@ export function setStoredRelationshipId(relationshipId) {
   }
 }
 
+export function setStoredRelationshipLayer(layer) {
+  if (typeof window === "undefined") return;
+  if (layer) {
+    window.localStorage.setItem(RELATIONSHIP_LAYER_KEY, normalizeRelationshipLayer(layer));
+  } else {
+    window.localStorage.removeItem(RELATIONSHIP_LAYER_KEY);
+  }
+}
+
 export function clearStoredSession() {
   setStoredAuthToken("");
   setStoredRelationshipId("");
+  setStoredRelationshipLayer("");
+}
+
+function isRecordInActiveLayer(record, activeRelationshipId, activeRelationshipLayer) {
+  if (!record || typeof record !== "object") return false;
+  const recordRelationshipId = normalizeText(record.relationship_id);
+  const recordLayer = normalizeText(record.relationship_type)
+    ? normalizeRelationshipLayer(record.relationship_type)
+    : "";
+  if (activeRelationshipId && recordRelationshipId && recordRelationshipId !== activeRelationshipId) {
+    return false;
+  }
+  if (activeRelationshipLayer && recordLayer && recordLayer !== activeRelationshipLayer) {
+    return false;
+  }
+  return true;
+}
+
+function enforceRelationshipIsolation(entity, payload) {
+  if (!isRelationshipScopedEntity(entity)) return payload;
+  const activeRelationshipId = getStoredRelationshipId();
+  const activeRelationshipLayer = normalizeText(getStoredRelationshipLayer())
+    ? normalizeRelationshipLayer(getStoredRelationshipLayer())
+    : "";
+  if (!activeRelationshipId && !activeRelationshipLayer) return payload;
+
+  if (Array.isArray(payload)) {
+    return payload.filter((record) => isRecordInActiveLayer(record, activeRelationshipId, activeRelationshipLayer));
+  }
+
+  if (!payload || typeof payload !== "object") return payload;
+  if (!isRecordInActiveLayer(payload, activeRelationshipId, activeRelationshipLayer)) {
+    return null;
+  }
+  return payload;
 }
 
 async function request(path, options = {}) {
@@ -339,8 +388,8 @@ async function request(path, options = {}) {
     options.body === undefined
       ? undefined
       : options.body instanceof FormData
-      ? options.body
-      : JSON.stringify(options.body);
+        ? options.body
+        : JSON.stringify(options.body);
 
   if (!(body instanceof FormData) && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
@@ -416,33 +465,78 @@ async function questionnaireFallback(params) {
   return loadLocalQuestionnaire(personName);
 }
 
+function isRelationshipScopedEntity(entity) {
+  return RELATIONSHIP_SCOPED_ENTITIES.has(entity);
+}
+
+function withRelationshipQueryScope(entity, query = {}) {
+  if (!isRelationshipScopedEntity(entity)) return { ...(query || {}) };
+  const relationshipId = getStoredRelationshipId();
+  if (!relationshipId) return { ...(query || {}) };
+  return {
+    ...(query || {}),
+    relationship_id: relationshipId,
+  };
+}
+
+function withRelationshipPayloadScope(entity, payload = {}) {
+  if (!isRelationshipScopedEntity(entity)) return { ...(payload || {}) };
+  const relationshipId = getStoredRelationshipId();
+  if (!relationshipId) return { ...(payload || {}) };
+  return {
+    ...(payload || {}),
+    relationship_id: payload?.relationship_id || relationshipId,
+  };
+}
+
+function withScopedLlmPayload(payload = {}) {
+  const relationshipId = getStoredRelationshipId();
+  if (!relationshipId) {
+    throw new Error("relationship_scope_required_for_llm");
+  }
+
+  const relationshipLayer = getStoredRelationshipLayer();
+  return {
+    ...(payload || {}),
+    relationship_id: payload?.relationship_id || relationshipId,
+    relationship_layer: payload?.relationship_layer || relationshipLayer || "",
+    scoped_request: true,
+  };
+}
+
 function entityClient(entity) {
   return {
     list(sort, limit, skip, fields) {
+      const scopedQuery = withRelationshipQueryScope(entity, {});
       return request(`/api/data/${entity}`, {
         params: {
-          sort,
-          limit,
-          skip,
-          fields: Array.isArray(fields) ? fields.join(",") : fields,
-        },
-      }).catch(async (error) => {
-        if (entity === "QuestionnaireResponse") {
-          return questionnaireFallback({});
-        }
-        throw error;
-      });
-    },
-    filter(query, sort, limit, skip, fields) {
-      return request(`/api/data/${entity}`, {
-        params: {
-          q: JSON.stringify(query || {}),
+          q: Object.keys(scopedQuery).length ? JSON.stringify(scopedQuery) : undefined,
           sort,
           limit,
           skip,
           fields: Array.isArray(fields) ? fields.join(",") : fields,
         },
       })
+        .then((records) => enforceRelationshipIsolation(entity, records))
+        .catch(async (error) => {
+          if (entity === "QuestionnaireResponse") {
+            return questionnaireFallback({});
+          }
+          throw error;
+        });
+    },
+    filter(query, sort, limit, skip, fields) {
+      const scopedQuery = withRelationshipQueryScope(entity, query || {});
+      return request(`/api/data/${entity}`, {
+        params: {
+          q: JSON.stringify(scopedQuery),
+          sort,
+          limit,
+          skip,
+          fields: Array.isArray(fields) ? fields.join(",") : fields,
+        },
+      })
+        .then((records) => enforceRelationshipIsolation(entity, records))
         .then(async (records) => {
           if (entity === "QuestionnaireResponse" && Array.isArray(records) && records.length === 0) {
             return questionnaireFallback(query);
@@ -457,19 +551,31 @@ function entityClient(entity) {
         });
     },
     get(id) {
-      return request(`/api/data/${entity}/${id}`);
+      return request(`/api/data/${entity}/${id}`).then((record) => {
+        const isolated = enforceRelationshipIsolation(entity, record);
+        if (isolated === null) {
+          throw new Error("record_out_of_active_relationship_scope");
+        }
+        return isolated;
+      });
     },
     create(data) {
+      const scopedPayload = withRelationshipPayloadScope(entity, data || {});
       return request(`/api/data/${entity}`, {
         method: "POST",
-        body: data,
-      }).then((record) => recordLearningEvent(entity, "create", record));
+        body: scopedPayload,
+      })
+        .then((record) => enforceRelationshipIsolation(entity, record))
+        .then((record) => recordLearningEvent(entity, "create", record));
     },
     update(id, data) {
+      const scopedPayload = withRelationshipPayloadScope(entity, data || {});
       return request(`/api/data/${entity}/${id}`, {
         method: "PUT",
-        body: data,
-      }).then((record) => recordLearningEvent(entity, "update", record));
+        body: scopedPayload,
+      })
+        .then((record) => enforceRelationshipIsolation(entity, record))
+        .then((record) => recordLearningEvent(entity, "update", record));
     },
     delete(id) {
       return request(`/api/data/${entity}/${id}`, {
@@ -486,6 +592,8 @@ export const api = {
     setStoredAuthToken,
     getStoredRelationshipId,
     setStoredRelationshipId,
+    getStoredRelationshipLayer,
+    setStoredRelationshipLayer,
     clearStoredSession,
   },
   entities: {
@@ -535,6 +643,12 @@ export const api = {
         body: payload,
       });
     },
+    repairParticipants(payload) {
+      return request("/api/relationships/repair-participants", {
+        method: "POST",
+        body: payload,
+      });
+    },
     updateManaged(relationshipId, payload) {
       return request(`/api/relationships/manage/${relationshipId}`, {
         method: "PATCH",
@@ -556,6 +670,24 @@ export const api = {
     },
   },
   questionnaire: {
+    submit(payload) {
+      return request("/api/questionnaire", {
+        method: "POST",
+        body: payload,
+      });
+    },
+    preview(payload) {
+      return request("/api/questionnaire/preview", {
+        method: "POST",
+        body: payload,
+      });
+    },
+    upload(payload) {
+      return request("/api/questionnaire/upload", {
+        method: "POST",
+        body: payload,
+      });
+    },
     prefillFromBaseline(payload) {
       return request("/api/questionnaire/prefill", {
         method: "POST",
@@ -579,7 +711,7 @@ export const api = {
       return request("/api/play-lab/session", {
         method: "POST",
         body: payload,
-      });
+      }).then((envelope) => recordLearningFromEnvelope("PlayLabSession", "create", envelope, ["session"]));
     },
     refreshPrompt(payload) {
       return request("/api/play-lab/refresh", {
@@ -591,13 +723,13 @@ export const api = {
       return request("/api/play-lab/submit", {
         method: "POST",
         body: payload,
-      });
+      }).then((envelope) => recordLearningFromEnvelope("PlayLabResponse", "create", envelope, ["response"]));
     },
     evaluate(payload) {
       return request("/api/play-lab/evaluate", {
         method: "POST",
         body: payload,
-      });
+      }).then((envelope) => recordLearningFromEnvelope("PlayLabResult", "create", envelope, ["result"]));
     },
     generateRepairPlan(payload) {
       return request("/api/play-lab/repair-plan", {
@@ -609,19 +741,19 @@ export const api = {
       return request("/api/play-lab/aha", {
         method: "POST",
         body: payload,
-      });
+      }).then((envelope) => recordLearningFromEnvelope("AhaCard", "create", envelope, ["card", "ahaCard", "aha_card"]));
     },
     assignSideQuest(payload) {
       return request("/api/play-lab/side-quest", {
         method: "POST",
         body: payload,
-      });
+      }).then((envelope) => recordLearningFromEnvelope("SideQuest", "create", envelope, ["sideQuest", "side_quest", "quest"]));
     },
     logOutcome(payload) {
       return request("/api/play-lab/outcome", {
         method: "POST",
         body: payload,
-      });
+      }).then((envelope) => recordLearningFromEnvelope("OutcomeLog", "create", envelope, ["outcome", "entry", "record"]));
     },
     fetchHistory(params) {
       return request("/api/play-lab/history", { params });
@@ -654,9 +786,10 @@ export const api = {
   integrations: {
     Core: {
       InvokeLLM(params) {
+        const scopedPayload = withScopedLlmPayload(params || {});
         return request("/api/llm", {
           method: "POST",
-          body: params,
+          body: scopedPayload,
         });
       },
       async UploadFile({ file, filename, metadata } = {}) {

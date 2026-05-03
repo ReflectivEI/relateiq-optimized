@@ -49,10 +49,10 @@ const quickActions = [
     color: "bg-primary/10 text-primary",
   },
   {
-    title: "Relationship Chat",
-    description: "Talk through tension, context, or decisions in real time.",
+    title: "Reflection Mirror",
+    description: "Run a structured dual-perspective analysis from your situation details.",
     icon: MessagesSquare,
-    path: "/chat",
+    path: "/reflect?mode=mirror",
     color: "bg-primary/10 text-primary",
   },
   {
@@ -99,6 +99,35 @@ const quickActions = [
   },
 ];
 
+function firstSentence(text = "", maxChars = 120) {
+  const normalized = String(text || "").replace(/\s+/g, " ").trim();
+  if (!normalized) return "No message preview available.";
+  const sentence = normalized.split(/(?<=[.!?])\s+/)[0] || normalized;
+  if (sentence.length <= maxChars) return sentence;
+  return `${sentence.slice(0, maxChars - 3).trimEnd()}...`;
+}
+
+function compactText(text = "", maxChars = 180, fallback = "") {
+  const normalized = String(text || "").replace(/\s+/g, " ").trim();
+  const source = normalized || fallback;
+  if (!source) return "";
+  if (source.length <= maxChars) return source;
+  return `${source.slice(0, maxChars - 3).trimEnd()}...`;
+}
+
+function formatInboxTimestamp(note) {
+  const raw = note?.updated_date || note?.created_date;
+  const date = raw ? new Date(raw) : null;
+  if (!date || Number.isNaN(date.getTime())) return "Unknown time";
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function Home() {
   const navigate = useNavigate();
   const { activeRelationshipId, activeRelationship, participants, primaryPerson, secondaryPerson, relationshipLabel, user } = useRelationshipAuth();
@@ -108,20 +137,17 @@ export default function Home() {
   const [riskSummary, setRiskSummary] = useState(null);
   const [expandedProfile, setExpandedProfile] = useState(null);
   const [expandedProfileCards, setExpandedProfileCards] = useState({});
+  const [expandedInboxItems, setExpandedInboxItems] = useState({});
   const [messageDraft, setMessageDraft] = useState("");
+  const [generatingMessage, setGeneratingMessage] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [messageConfirmation, setMessageConfirmation] = useState("");
   const queryClient = useQueryClient();
 
-  const { data: profilesRaw = [] } = useQuery({
+  const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-home", activeRelationshipId],
     queryFn: () => api.entities.UserProfile.list(),
   });
-
-  const profiles = profilesRaw.map((p) => ({
-    ...p,
-    continuous_learning: p.continuous_learning || { coverage_total: 0, key_themes: [] },
-  }));
 
   const { data: checkIns = [] } = useQuery({
     queryKey: ["checkins-home", activeRelationshipId],
@@ -236,6 +262,14 @@ export default function Home() {
     }));
   };
 
+  const toggleInboxItem = (id) => {
+    if (!id) return;
+    setExpandedInboxItems((current) => ({
+      ...current,
+      [id]: !current[id],
+    }));
+  };
+
   const handleSendMessage = async () => {
     if (!messageDraft.trim()) return;
     setSendingMessage(true);
@@ -263,6 +297,43 @@ export default function Home() {
       toast.error("Unable to send message right now.");
     } finally {
       setSendingMessage(false);
+    }
+  };
+
+  const handleGenerateMessageDraft = async () => {
+    if (!partnerName || !currentPersonName) return;
+    setGeneratingMessage(true);
+    setMessageConfirmation("");
+    try {
+      const prompt = [
+        "You are an elite relationship communication coach.",
+        `Write a direct message draft from ${currentPersonName} to ${partnerName}.`,
+        `Relationship type: ${terms.type}. Relationship bond label: ${terms.bond}.`,
+        "Goals:",
+        "1) Be emotionally intelligent and specific.",
+        "2) Show understanding of the other person's likely perspective.",
+        "3) Avoid blame, absolutist language, and passive aggression.",
+        "4) Keep it concise (120-220 words).",
+        "5) End with one clear, low-pressure next step.",
+        "",
+        "If a rough draft exists, improve it while preserving intent.",
+        `Current draft: ${messageDraft.trim() || "(none yet)"}`,
+        "",
+        "Return only the improved message text.",
+      ].join("\n");
+
+      const result = await api.integrations.Core.InvokeLLM({
+        prompt,
+        model: "claude_sonnet_4_6",
+      });
+      const text = (typeof result === "string" ? result : result?.response || "").trim();
+      if (!text) throw new Error("empty_ai_draft");
+      setMessageDraft(text);
+      toast.success(`AI draft generated for ${partnerName}.`);
+    } catch {
+      toast.error("Unable to generate a message draft right now.");
+    } finally {
+      setGeneratingMessage(false);
     }
   };
 
@@ -310,13 +381,28 @@ export default function Home() {
       </AnimatePresence>
 
       {/* Profile Status Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         {participants.map((name, index) => {
           const profile = index === 0 ? (tonyProfile || fallbackTony) : (drewProfile || fallbackDrew);
           const hasProfileData = Boolean(profile);
-          const learningCoverage = profile?.continuous_learning || { coverage_total: 0, key_themes: [] };
           const isExpanded = Boolean(expandedProfileCards[name]);
-          const previewText = profile?.communication_style || `${name}'s profile preview`;
+          const communicationPreview = compactText(
+            profile?.communication_style,
+            180,
+            `${name} is building a communication profile from questionnaire and session data.`,
+          );
+          const needsPreview = compactText(
+            profile?.needs_during_conflict,
+            170,
+            "Clear reassurance, direct communication, and steady follow-through.",
+          );
+          const watchPreview = compactText(
+            Array.isArray(profile?.emotional_triggers)
+              ? profile.emotional_triggers.slice(0, 3).join(", ")
+              : profile?.emotional_triggers,
+            170,
+            "Misattunement, assumptions, and unspoken stress buildup.",
+          );
           return (
             <motion.div
               key={name}
@@ -324,23 +410,62 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index === 0 ? 0.1 : 0.2 }}
             >
-              <Card className="h-full border border-primary/15 bg-card/95 backdrop-blur-sm hover:shadow-lg hover:border-primary/25 transition-all duration-300">
-                <CardContent className="flex h-full flex-col p-5 sm:p-6">
-                  <div className="mb-4 flex items-center justify-between gap-3">
+              <Card className="h-full border border-border/70 bg-card/90 backdrop-blur-sm hover:shadow-md transition-shadow">
+                <CardContent className="flex h-full flex-col p-6">
+                  <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-display text-xl sm:text-2xl font-semibold leading-tight text-foreground">{name}</h3>
-                      <p className="mt-1 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground/80">
-                        {learningCoverage?.key_themes?.length
-                          ? learningCoverage.key_themes.join(" • ")
-                          : `${learningCoverage.coverage_total || 0} credible sources`}
+                      <h3 className="font-display text-[2rem] font-semibold leading-none text-foreground">{name}</h3>
+                      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        Balanced Profile Snapshot
                       </p>
                     </div>
-                    <div>{hasProfileData ? <Star className="w-5 h-5 text-primary fill-primary" /> : <Zap className="w-4 h-4 text-muted-foreground/40" />}</div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 rounded-full border border-primary/20 text-primary hover:bg-primary/5"
+                        onClick={() => setExpandedProfile(name)}
+                        title={`View full ${name} profile preview`}
+                      >
+                        <Expand className="h-4 w-4" />
+                      </Button>
+                      {hasProfileData ? (
+                        <Star className="w-4 h-4 text-primary" />
+                      ) : (
+                        <Zap className="w-4 h-4 text-muted-foreground/40" />
+                      )}
+                    </div>
                   </div>
                   {profile?.ai_behavioral_summary ? (
-                    <div className="flex-1 space-y-3 sm:space-y-4">
+                    <div className="flex-1 space-y-4">
+                      <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-3">
+                        <div className="rounded-2xl border border-primary/15 bg-primary/5 px-3 py-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Communication</p>
+                          <p className="mt-1 min-h-[66px] text-xs leading-5 text-foreground">{communicationPreview}</p>
+                        </div>
+                        <div className="rounded-2xl border border-primary/15 bg-primary/5 px-3 py-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Needs</p>
+                          <p className="mt-1 min-h-[66px] text-xs leading-5 text-foreground">{needsPreview}</p>
+                        </div>
+                        <div className="rounded-2xl border border-primary/15 bg-primary/5 px-3 py-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Watch For</p>
+                          <p className="mt-1 min-h-[66px] text-xs leading-5 text-foreground">{watchPreview}</p>
+                        </div>
+                      </div>
+
+                      {isExpanded ? (
+                        <div className="max-h-48 overflow-y-auto rounded-2xl border border-border/60 bg-background/60 px-4 py-3">
+                          <p className="text-sm leading-7 text-muted-foreground">
+                            {profile.ai_behavioral_summary}
+                          </p>
+                        </div>
+                      ) : null}
+
                       {!isExpanded ? (
-                        <p className="text-sm text-muted-foreground leading-relaxed">{previewText}</p>
+                        <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+                          Expand this section to view the full profile summary, needs, and watch-for patterns.
+                        </div>
                       ) : null}
 
                       <AnimatePresence initial={false}>
@@ -469,6 +594,16 @@ export default function Home() {
               </div>
             ) : null}
             <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleGenerateMessageDraft}
+                disabled={generatingMessage || sendingMessage}
+                className="gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                {generatingMessage ? "Generating..." : "AI Draft For This Pairing"}
+              </Button>
               <Button onClick={handleSendMessage} disabled={sendingMessage || !messageDraft.trim()} className="gap-2">
                 <Send className="h-4 w-4" />
                 {sendingMessage ? "Sending..." : `Send to ${partnerName}`}
@@ -503,10 +638,28 @@ export default function Home() {
                 inboxMessages.slice(0, 6).map((note) => (
                   <div key={note.id} className="rounded-2xl border border-border/60 bg-muted/10 p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-semibold text-foreground">From {note.person_name}</p>
-                      {!note.read_by_recipient ? <span className="text-xs font-medium text-primary">Unread</span> : null}
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          From {note.person_name}: {firstSentence(note.content, 96)}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">{formatInboxTimestamp(note)}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!note.read_by_recipient ? <span className="text-xs font-medium text-primary">Unread</span> : null}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => toggleInboxItem(note.id)}
+                        >
+                          {expandedInboxItems[note.id] ? "Collapse" : "Expand"}
+                        </Button>
+                      </div>
                     </div>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{note.content}</p>
+                    {expandedInboxItems[note.id] ? (
+                      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{note.content}</p>
+                    ) : null}
                   </div>
                 ))
               ) : (
@@ -519,8 +672,23 @@ export default function Home() {
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Recently Sent</p>
                   <div className="mt-3 space-y-2">
                     {sentMessages.slice(0, 3).map((note) => (
-                      <div key={note.id} className="text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground">To {note.recipient_name || partnerName}:</span> {note.content}
+                      <div key={note.id} className="rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm text-muted-foreground">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate text-sm">
+                            <span className="font-medium text-foreground">To {note.recipient_name || partnerName}:</span> {firstSentence(note.content, 84)}
+                          </p>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-[11px]"
+                            onClick={() => toggleInboxItem(`sent-${note.id}`)}
+                          >
+                            {expandedInboxItems[`sent-${note.id}`] ? "Collapse" : "Expand"}
+                          </Button>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">{formatInboxTimestamp(note)}</p>
+                        {expandedInboxItems[`sent-${note.id}`] ? <p className="mt-2 whitespace-pre-wrap text-xs leading-5">{note.content}</p> : null}
                       </div>
                     ))}
                   </div>

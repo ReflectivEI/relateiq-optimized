@@ -270,7 +270,7 @@ Format your response with clear section headers and short readable paragraphs.`;
       ai_response: result,
       tool_type: "coach",
     });
-  } catch (_) {}
+  } catch (_) { }
 
   return result;
 }

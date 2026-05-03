@@ -482,7 +482,7 @@ export default function Coach() {
 
   const handleSuggestionPill = (pillId) => {
     setSelectedPill(pillId);
-    
+
     // Convert pill to situation text
     const situationMap = {
       handling_conflict: `We're having or heading into a conflict. I need help navigating this conversation and knowing how to approach it.`,
@@ -754,65 +754,66 @@ export default function Coach() {
               .map((session) => {
                 const summary = summarizeCoachSession(session);
                 return (
-                <Card
-                  key={session.id}
-                  className="cursor-pointer border-2 border-primary/15 bg-white transition-all hover:border-primary/30 hover:shadow-sm"
-                  onClick={() => loadSessionIntoComposer(session)}
-                >
-                  <CardContent className="p-4 flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-[#eef7f8]">
-                      <MessageCircle className="w-4 h-4 text-[#0e6f72]" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <p className="text-sm font-semibold text-foreground">{summary.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {session.speaker} → {session.speaking_to}
-                        </p>
-                        <span className="hidden text-muted-foreground/40 sm:inline">•</span>
-                        <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock3 className="h-3 w-3" />
-                          {new Date(session.created_date).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            hour: "numeric",
-                            minute: "2-digit",
-                          })}
+                  <Card
+                    key={session.id}
+                    className="cursor-pointer border-2 border-primary/15 bg-white transition-all hover:border-primary/30 hover:shadow-sm"
+                    onClick={() => loadSessionIntoComposer(session)}
+                  >
+                    <CardContent className="p-4 flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-[#eef7f8]">
+                        <MessageCircle className="w-4 h-4 text-[#0e6f72]" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <p className="text-sm font-semibold text-foreground">{summary.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {session.speaker} → {session.speaking_to}
+                          </p>
+                          <span className="hidden text-muted-foreground/40 sm:inline">•</span>
+                          <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock3 className="h-3 w-3" />
+                            {new Date(session.created_date).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                        <p className="mt-1 text-sm text-[#14263f]">
+                          {summary.description}
                         </p>
                       </div>
-                      <p className="mt-1 text-sm text-[#14263f]">
-                        {summary.description}
-                      </p>
-                    </div>
-                    <div className="ml-auto flex shrink-0 items-center gap-1">
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 rounded-full border border-[#0e6f72]/15 bg-[#eef8f7] text-[#0e6f72] hover:bg-[#d9f4f1]"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          loadSessionIntoComposer(session);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="delete-action-button h-8 w-8 rounded-full border border-[#c03b3b]/15 bg-[#fff6f6]"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleDeleteSession(session.id);
-                        }}
-                      >
-                        <Trash2 className="delete-action-icon h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )})}
+                      <div className="ml-auto flex shrink-0 items-center gap-1">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-full border border-[#0e6f72]/15 bg-[#eef8f7] text-[#0e6f72] hover:bg-[#d9f4f1]"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            loadSessionIntoComposer(session);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="delete-action-button h-8 w-8 rounded-full border border-[#c03b3b]/15 bg-[#fff6f6]"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDeleteSession(session.id);
+                          }}
+                        >
+                          <Trash2 className="delete-action-icon h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
           </div>
         </div>
       )}

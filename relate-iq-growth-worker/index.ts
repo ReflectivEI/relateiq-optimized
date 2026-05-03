@@ -700,6 +700,46 @@ function withRelationshipScope<T extends Record<string, unknown>>(
   };
 }
 
+function buildRelationshipLayerVersion(relationship: Relationship): string {
+  const relationshipId = normalizeText(relationship.id);
+  const relationshipType = normalizeText(relationship.type || "other") || "other";
+  const updatedAt = normalizeText(relationship.updated_at || relationship.created_at || "") || "unknown";
+  return `layer_${relationshipId}_${relationshipType}_${updatedAt}`;
+}
+
+async function resolveRelationshipStamp(
+  env: Env,
+  relationshipId: string,
+  existing?: Record<string, unknown> | null,
+): Promise<{ relationship_id: string; relationship_type: string; relationship_layer_version: string }> {
+  const relationship = await getRelationshipPersistent(env, relationshipId);
+  const existingType = normalizeText(existing?.relationship_type);
+  const existingLayerVersion = normalizeText(existing?.relationship_layer_version);
+  const resolvedType = existingType || normalizeText(relationship?.type || "other") || "other";
+  const resolvedLayerVersion =
+    existingLayerVersion ||
+    (relationship ? buildRelationshipLayerVersion(relationship) : `layer_${relationshipId}_${resolvedType}_unknown`);
+
+  return {
+    relationship_id: relationshipId,
+    relationship_type: resolvedType,
+    relationship_layer_version: resolvedLayerVersion,
+  };
+}
+
+function buildScopedLlmSystemPrompt(relationship: Relationship): string {
+  const participants = (relationship.participants || []).filter(Boolean).join(", ");
+  return [
+    "RELATEIQ CONNECTION SCOPE (MANDATORY)",
+    `relationship_id: ${normalizeText(relationship.id)}`,
+    `relationship_type: ${normalizeText(relationship.type || "other") || "other"}`,
+    participants ? `participants: ${participants}` : "participants: unavailable",
+    "Only generate guidance for this exact relationship scope.",
+    "Do not reference any other relationship, pairing, or participant outside this scope.",
+    "If details are missing, state that scoped data is insufficient rather than inventing facts.",
+  ].join("\n");
+}
+
 function getResponseArray(
   raw: Record<string, unknown> | Array<Record<string, unknown>>,
 ): Array<Record<string, unknown>> {
@@ -2249,6 +2289,7 @@ async function upsertQuestionnaireResponse(
   if (relationshipId !== DEFAULT_RELATIONSHIP_ID) {
     const provisionalId = normalizeText(existingId);
     const current = provisionalId ? await getEntityRecord(env, "QuestionnaireResponse", provisionalId, relationshipId) : null;
+    const stamp = await resolveRelationshipStamp(env, relationshipId, current);
     const person = await resolveScopedQuestionnairePerson(env, relationshipId, incoming, current, provisionalId);
     const questionId =
       normalizeText(incoming.question_id) ||
@@ -2262,6 +2303,7 @@ async function upsertQuestionnaireResponse(
     const record: StoredRecord = {
       ...(current || {}),
       ...withRelationshipScope(incoming, relationshipId),
+      ...stamp,
       id: baseId,
       relationship_id: relationshipId,
       person_name: person,
@@ -2583,8 +2625,13 @@ async function createEntityRecord(
   }
 
   const timestamp = nowIso();
+  const stamp =
+    relationshipId !== DEFAULT_RELATIONSHIP_ID
+      ? await resolveRelationshipStamp(env, relationshipId)
+      : null;
   const record: StoredRecord = {
     ...withRelationshipScope(body, relationshipId),
+    ...(stamp || {}),
     id: normalizeText(body.id) || createId(entity.toLowerCase()),
     created_date: normalizeText(body.created_date) || timestamp,
     updated_date: timestamp,
@@ -2606,9 +2653,14 @@ async function updateEntityRecord(
 
   const current = await getEntityRecord(env, entity, id, relationshipId);
   if (!current) return null;
+  const stamp =
+    relationshipId !== DEFAULT_RELATIONSHIP_ID
+      ? await resolveRelationshipStamp(env, relationshipId, current)
+      : null;
   const record: StoredRecord = {
     ...current,
     ...withRelationshipScope(body, relationshipId),
+    ...(stamp || {}),
     id,
     created_date: normalizeText(current.created_date) || nowIso(),
     updated_date: nowIso(),
@@ -4318,8 +4370,18 @@ function buildPlayLabExportText(result: Record<string, unknown>) {
   return lines.join("\n");
 }
 
-async function handleLlmRequest(request: Request, env: Env): Promise<Response> {
+async function handleLlmRequest(request: Request, env: Env, url: URL): Promise<Response> {
   const body = await readJson(request);
+  const scoped = await requireScopedRelationship(request, env, url, body);
+  if ("error" in scoped) {
+    return json({ error: scoped.error }, request, env, scoped.status);
+  }
+
+  const bodyRelationshipId = normalizeText(body?.relationship_id);
+  if (bodyRelationshipId && bodyRelationshipId !== scoped.relationshipId) {
+    return json({ error: "relationship_scope_mismatch" }, request, env, 403);
+  }
+
   const prompt = normalizeText(body?.prompt);
   const responseSchema = body?.response_json_schema;
   const messages = Array.isArray(body?.messages)
@@ -4348,6 +4410,11 @@ async function handleLlmRequest(request: Request, env: Env): Promise<Response> {
           content: prompt,
         },
       ];
+
+  promptMessages.unshift({
+    role: "system",
+    content: buildScopedLlmSystemPrompt(scoped.relationship),
+  });
 
   if (responseSchema) {
     promptMessages.unshift({
@@ -4897,7 +4964,7 @@ export default {
       }
 
       if (url.pathname === "/api/llm" && request.method === "POST") {
-        return handleLlmRequest(request, env);
+        return handleLlmRequest(request, env, url);
       }
 
       if (url.pathname === "/api/files/upload" && request.method === "POST") {
