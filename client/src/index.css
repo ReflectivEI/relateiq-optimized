@@ -27,11 +27,11 @@
 
     /* Secondary: muted navy */
     --secondary: 218 35% 22%;
-    --secondary-foreground: 50 40% 85%;
+    --secondary-foreground: 50 55% 92%;
 
     /* Muted: dark navy muted layer */
     --muted: 218 38% 18%;
-    --muted-foreground: 218 20% 60%;
+    --muted-foreground: 218 24% 74%;
 
     /* Accent stays within the navy/teal enterprise system */
     --accent: 201 40% 93%;
@@ -41,8 +41,8 @@
     --destructive-foreground: 0 0% 100%;
 
     /* Borders: visible but subtle navy line */
-    --border: 218 35% 26%;
-    --input: 218 35% 26%;
+    --border: 218 35% 30%;
+    --input: 218 35% 30%;
     --ring: 178 55% 42%;
 
     --chart-1: 178 55% 42%;
@@ -106,15 +106,15 @@
     --primary: 178 55% 42%;
     --primary-foreground: 0 0% 100%;
     --secondary: 218 35% 22%;
-    --secondary-foreground: 50 40% 85%;
+    --secondary-foreground: 50 55% 92%;
     --muted: 218 38% 18%;
-    --muted-foreground: 218 20% 60%;
+    --muted-foreground: 218 24% 74%;
     --accent: 47 80% 88%;
     --accent-foreground: 218 47% 11%;
     --destructive: 0 55% 45%;
     --destructive-foreground: 0 0% 100%;
-    --border: 218 35% 26%;
-    --input: 218 35% 26%;
+    --border: 218 35% 30%;
+    --input: 218 35% 30%;
     --ring: 178 55% 42%;
     --chart-1: 178 55% 42%;
     --chart-2: 47 80% 70%;

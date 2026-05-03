@@ -4,7 +4,7 @@
  */
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingDown, TrendingUp, CheckCircle2 } from "lucide-react";
+import { TrendingDown, CheckCircle2 } from "lucide-react";
 import { predictOutcome } from "@/lib/predictiveEngine";
 import { cn } from "@/lib/utils";
 
@@ -23,8 +23,8 @@ export default function PredictiveOutcomeBlock({ speaker, speakingTo, situation,
         targetTraits: targetTraits,
       }),
       icon: TrendingDown,
-      color: "text-red-500",
-      bg: "bg-red-50 border-red-200",
+      color: "text-red-600 dark:text-red-300",
+      bg: "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800/70",
     },
     {
       scenario: "If you respond emotionally",
@@ -36,8 +36,8 @@ export default function PredictiveOutcomeBlock({ speaker, speakingTo, situation,
         targetTraits: targetTraits,
       }),
       icon: TrendingDown,
-      color: "text-orange-500",
-      bg: "bg-orange-50 border-orange-200",
+      color: "text-orange-600 dark:text-orange-300",
+      bg: "bg-orange-50 border-orange-200 dark:bg-orange-950/25 dark:border-orange-800/70",
     },
     {
       scenario: "If you use this guidance",
@@ -49,8 +49,8 @@ export default function PredictiveOutcomeBlock({ speaker, speakingTo, situation,
         targetTraits: targetTraits,
       }),
       icon: CheckCircle2,
-      color: "text-green-600",
-      bg: "bg-green-50 border-green-200",
+      color: "text-green-700 dark:text-green-300",
+      bg: "bg-green-50 border-green-200 dark:bg-green-950/25 dark:border-green-800/70",
     },
   ];
 
@@ -69,8 +69,8 @@ export default function PredictiveOutcomeBlock({ speaker, speakingTo, situation,
                 <Icon className={cn("w-4 h-4", p.color)} />
                 <p className="text-sm font-semibold text-foreground">{p.scenario}</p>
               </div>
-              <p className="text-sm text-foreground/80">{p.prediction?.predicted_behavior || "Conflict escalation likely"}</p>
-              <p className="text-xs text-muted-foreground italic">
+              <p className="text-sm text-foreground/90">{p.prediction?.predicted_behavior || "Conflict escalation likely"}</p>
+              <p className="text-xs text-foreground/75 italic">
                 Risk: {p.prediction?.risk_level === "high" ? "🔴 High" : p.prediction?.risk_level === "medium" ? "🟡 Medium" : "🟢 Low"}
               </p>
             </div>
