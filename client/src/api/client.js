@@ -791,6 +791,17 @@ export const api = {
       });
     },
   },
+  coachLearning: {
+    getState(params) {
+      return request("/api/coach/mode-learning", { params });
+    },
+    trackEvent(payload) {
+      return request("/api/coach/mode-learning", {
+        method: "POST",
+        body: payload,
+      });
+    },
+  },
   integrations: {
     Core: {
       InvokeLLM(params) {

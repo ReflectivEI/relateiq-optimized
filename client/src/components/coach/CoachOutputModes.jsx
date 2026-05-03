@@ -1,16 +1,17 @@
 /**
  * CoachOutputModes — Multi-output mode selector for Coach responses.
- * Transform base response without additional AI calls.
+ * Selects specialized coaching views (full explainability, robust summary,
+ * adaptive action plan, and dynamic script guidance).
  */
 import React from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MODES = [
   { id: "full", label: "Full Guidance", tooltip: "Complete guidance with all sections" },
-  { id: "explain", label: "Explain", tooltip: "Simplified explanation" },
-  { id: "60second", label: "60-Second", tooltip: "Quick summary" },
-  { id: "action", label: "Action Steps", tooltip: "Concrete steps only" },
-  { id: "script", label: "What to Say", tooltip: "Conversation script" },
+  { id: "explain", label: "Explain", tooltip: "Why this guidance was generated and what evidence it is based on" },
+  { id: "60second", label: "60-Second", tooltip: "Compressed but complete briefing of the full guidance" },
+  { id: "action", label: "Action Steps", tooltip: "Tailored, scenario-specific execution plan" },
+  { id: "script", label: "What to Say", tooltip: "Dynamic scripts for likely response paths" },
 ];
 
 export default function CoachOutputModes({ mode, onModeChange }) {

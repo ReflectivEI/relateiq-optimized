@@ -158,6 +158,171 @@ function resolveCoachTarget(speakerValue, targetValue, participants) {
   return { speaker: normalizedSpeaker, speakingTo: normalizedTarget };
 }
 
+function parseJsonObjectFromText(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  try {
+    return JSON.parse(trimmed);
+  } catch (_) {
+    const firstBrace = trimmed.indexOf("{");
+    const lastBrace = trimmed.lastIndexOf("}");
+    if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) return null;
+    const candidate = trimmed.slice(firstBrace, lastBrace + 1);
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      return null;
+    }
+  }
+}
+
+function isUsefulModeText(value) {
+  return typeof value === "string" && value.trim().length >= 120;
+}
+
+function trimSessionText(value, max = 260) {
+  const clean = cleanSituationText(value);
+  if (!clean) return "";
+  return clean.length > max ? `${clean.slice(0, max - 3)}...` : clean;
+}
+
+const COACH_MODE_LEARNING_KEY = "relateiq.coach.modeLearning.v1";
+
+function getLearningStore() {
+  try {
+    const raw = localStorage.getItem(COACH_MODE_LEARNING_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function setLearningStore(nextStore) {
+  try {
+    localStorage.setItem(COACH_MODE_LEARNING_KEY, JSON.stringify(nextStore));
+  } catch {
+    // Ignore storage failures in private mode or quota pressure.
+  }
+}
+
+function getLearningProfileKey(relationshipId, speaker, target) {
+  return [relationshipId || "no-relationship", speaker || "unknown-speaker", target || "unknown-target"].join("::");
+}
+
+function getLearningSignals(relationshipId, speaker, target) {
+  const store = getLearningStore();
+  return store[getLearningProfileKey(relationshipId, speaker, target)] || {
+    modeUsage: { full: 0, explain: 0, "60second": 0, action: 0, script: 0 },
+    copiedByMode: { full: 0, explain: 0, "60second": 0, action: 0, script: 0 },
+    recentSituations: [],
+    successfulOpenings: [],
+    updatedAt: null,
+  };
+}
+
+function updateLearningSignals(relationshipId, speaker, target, updater) {
+  const store = getLearningStore();
+  const key = getLearningProfileKey(relationshipId, speaker, target);
+  const current = getLearningSignals(relationshipId, speaker, target);
+  const next = updater(current) || current;
+  store[key] = {
+    ...next,
+    updatedAt: new Date().toISOString(),
+  };
+  setLearningStore(store);
+  return store[key];
+}
+
+function normalizeLearningSignalsShape(raw) {
+  if (!raw || typeof raw !== "object") return null;
+
+  const normalizeCounterMap = (value) => {
+    const source = value && typeof value === "object" ? value : {};
+    return {
+      full: Number(source.full || 0) || 0,
+      explain: Number(source.explain || 0) || 0,
+      "60second": Number(source["60second"] || 0) || 0,
+      action: Number(source.action || 0) || 0,
+      script: Number(source.script || 0) || 0,
+    };
+  };
+
+  return {
+    modeUsage: normalizeCounterMap(raw.modeUsage || raw.mode_usage),
+    copiedByMode: normalizeCounterMap(raw.copiedByMode || raw.copied_by_mode),
+    recentSituations: Array.isArray(raw.recentSituations || raw.recent_situations)
+      ? (raw.recentSituations || raw.recent_situations).filter(Boolean).slice(0, 8)
+      : [],
+    successfulOpenings: Array.isArray(raw.successfulOpenings || raw.successful_openings)
+      ? (raw.successfulOpenings || raw.successful_openings).filter(Boolean).slice(0, 10)
+      : [],
+    updatedAt: raw.updatedAt || raw.updated_date || null,
+  };
+}
+
+function mergeLearningSignals(localSignals, remoteSignals) {
+  if (!remoteSignals) return localSignals;
+
+  const mergedCounter = (localMap, remoteMap) => ({
+    full: Math.max(Number(localMap?.full || 0), Number(remoteMap?.full || 0)),
+    explain: Math.max(Number(localMap?.explain || 0), Number(remoteMap?.explain || 0)),
+    "60second": Math.max(Number(localMap?.["60second"] || 0), Number(remoteMap?.["60second"] || 0)),
+    action: Math.max(Number(localMap?.action || 0), Number(remoteMap?.action || 0)),
+    script: Math.max(Number(localMap?.script || 0), Number(remoteMap?.script || 0)),
+  });
+
+  const mergeList = (localList, remoteList, limit) =>
+    [...new Set([...(remoteList || []), ...(localList || [])].filter(Boolean))].slice(0, limit);
+
+  return {
+    modeUsage: mergedCounter(localSignals?.modeUsage, remoteSignals?.modeUsage),
+    copiedByMode: mergedCounter(localSignals?.copiedByMode, remoteSignals?.copiedByMode),
+    recentSituations: mergeList(localSignals?.recentSituations, remoteSignals?.recentSituations, 8),
+    successfulOpenings: mergeList(localSignals?.successfulOpenings, remoteSignals?.successfulOpenings, 10),
+    updatedAt: remoteSignals.updatedAt || localSignals?.updatedAt || null,
+  };
+}
+
+async function getLearningSignalsHybrid(relationshipId, speaker, target) {
+  const localSignals = getLearningSignals(relationshipId, speaker, target);
+  if (!relationshipId || !speaker || !target) return localSignals;
+
+  try {
+    const envelope = await api.coachLearning.getState({
+      relationship_id: relationshipId,
+      speaker,
+      target,
+    });
+    const remoteSignals = normalizeLearningSignalsShape(envelope?.learning || envelope);
+    if (!remoteSignals) return localSignals;
+
+    const merged = mergeLearningSignals(localSignals, remoteSignals);
+    updateLearningSignals(relationshipId, speaker, target, () => merged);
+    return merged;
+  } catch {
+    return localSignals;
+  }
+}
+
+function trackLearningEventServer(payload) {
+  if (!payload || !payload.relationship_id || !payload.speaker || !payload.target) return;
+
+  api.coachLearning
+    .trackEvent(payload)
+    .then((envelope) => {
+      const remoteSignals = normalizeLearningSignalsShape(envelope?.learning || envelope);
+      if (!remoteSignals) return;
+      updateLearningSignals(payload.relationship_id, payload.speaker, payload.target, (current) =>
+        mergeLearningSignals(current, remoteSignals)
+      );
+    })
+    .catch(() => null);
+}
+
 export default function Coach() {
   const { activeRelationshipId, activeRelationship, participants, relationships } = useRelationshipAuth();
   const activeParticipants = useMemo(
@@ -180,6 +345,7 @@ export default function Coach() {
   const [baseResponse, setBaseResponse] = useState(null);
   const [coachModes, setCoachModes] = useState(null);
   const [creditError, setCreditError] = useState(false);
+  const [refreshingModes, setRefreshingModes] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const [predictiveOutput, setPredictiveOutput] = useState(null);
   const [selectedPill, setSelectedPill] = useState(null);
@@ -462,24 +628,197 @@ export default function Coach() {
 
     // ENFORCE STRUCTURE
     const structuredOutput = enforceCoachStructure(result, situationText);
-    const modes = deriveCoachModes(structuredOutput);
+    const fallbackModes = deriveCoachModes(structuredOutput);
+
+    const buildAdaptiveModes = async () => {
+      const learningSignals = await getLearningSignalsHybrid(activeRelationshipId, normalizedSpeaker, resolvedTarget);
+      const recentSessionEvidence = safePastSessions
+        .filter((s) => s.speaker === normalizedSpeaker || s.speaking_to === normalizedSpeaker)
+        .slice(0, 8)
+        .map((s, index) => `${index + 1}. ${s.speaker} -> ${s.speaking_to}: ${trimSessionText(s.situation)}`)
+        .join("\n");
+
+      const checkInEvidence = safeRecentCheckIns
+        .filter((c) => c.person_name === normalizedSpeaker || c.person_name === resolvedTarget)
+        .slice(0, 6)
+        .map((c, index) => `${index + 1}. ${c.person_name}: mood=${c.mood || "n/a"}, worked="${trimSessionText(c.what_worked, 120)}", improve="${trimSessionText(c.what_could_improve, 120)}"`)
+        .join("\n");
+
+      const adaptivePrompt = `${buildActiveConnectionContextBlock(scopeContext)}
+
+You are generating specialized output modes for RelateIQ AI Coach.
+Use all available relationship evidence and avoid generic language.
+
+CURRENT SITUATION
+- Speaker: ${normalizedSpeaker}
+- Speaking to: ${resolvedTarget}
+- Severity: ${severity}/5
+- Situation text: ${situationText}
+
+PROFILE AND QUESTIONNAIRE EVIDENCE
+- ${normalizedSpeaker} profile summary: ${speakerProfile?.ai_behavioral_summary || "Not available"}
+- ${resolvedTarget} profile summary: ${targetProfile?.ai_behavioral_summary || "Not available"}
+- ${normalizedSpeaker} questionnaire count: ${speakerResponses.length}
+- ${resolvedTarget} questionnaire count: ${targetResponses.length}
+
+RECENT COACH SESSIONS
+${recentSessionEvidence || "None"}
+
+RECENT CHECK-IN SIGNALS
+${checkInEvidence || "None"}
+
+LEARNING SIGNALS FROM THIS CONNECTION
+- Mode usage counts: ${JSON.stringify(learningSignals.modeUsage || {})}
+- Copy/save preference counts: ${JSON.stringify(learningSignals.copiedByMode || {})}
+- Recent situations where coaching was requested: ${(learningSignals.recentSituations || []).join(" | ") || "None"}
+- Openings that were previously copied/saved most often: ${(learningSignals.successfulOpenings || []).join(" | ") || "None"}
+
+Use these signals to adapt voice and level of detail while staying specific to current context.
+
+FULL GUIDANCE TO REWRITE BY MODE
+${fallbackModes.full}
+
+Return ONLY valid JSON (no markdown wrapper) with keys:
+{
+  "explain": "...",
+  "60second": "...",
+  "action": "...",
+  "script": "..."
+}
+
+Mode requirements:
+1) explain:
+- Must explain why the AI reached this guidance, including evidence from profiles/questionnaires/sessions.
+- Include sections with markdown headings: Core Dynamic, Evidence, Predictive Read, Why This Recommendation.
+- Must feel analytical and specific to ${normalizedSpeaker} and ${resolvedTarget}.
+
+2) 60second:
+- This is NOT a short generic blurb.
+- Produce a robust compressed briefing that summarizes full guidance in about 45-90 seconds of reading.
+- Include headings: Snapshot, Drivers, Main Risk, What To Do First, What To Do Next, Exact Line To Use.
+
+3) action:
+- Produce a tailored numbered plan with 5-7 concrete steps, each specific to this situation.
+- Include at least one branching step (for example: If they become defensive, do X; if they go quiet, do Y).
+- Include a short completion checkpoint at the end.
+
+4) script:
+- Produce a dynamic dialogue toolkit, not one static line.
+- Include headings: Opening, If They Are Defensive, If They Withdraw, If They Engage, Boundary Line, Close.
+- Every line must sound natural and specific to this scenario.
+
+Hard constraints:
+- Mention only allowed participants from scope.
+- No placeholders like "Person A" or "partner" when names are known.
+- No generic fallback statements.`;
+
+      const adaptiveRaw = await safeInvokeLLM(
+        {
+          prompt: adaptivePrompt,
+          model: "claude_sonnet_4_6",
+          partnerLanguage: { personName: normalizedSpeaker, partnerName: resolvedTarget },
+        },
+        35000,
+        null,
+      );
+
+      const parsed = parseJsonObjectFromText(adaptiveRaw);
+      if (!parsed || typeof parsed !== "object") {
+        return null;
+      }
+
+      const candidate = {
+        explain: String(parsed.explain || "").trim(),
+        "60second": String(parsed["60second"] || "").trim(),
+        action: String(parsed.action || "").trim(),
+        script: String(parsed.script || "").trim(),
+      };
+
+      if (!isUsefulModeText(candidate.explain) || !isUsefulModeText(candidate["60second"]) || !isUsefulModeText(candidate.action) || !isUsefulModeText(candidate.script)) {
+        return null;
+      }
+
+      const explainScope = validateOutputScope(candidate.explain, scopeContext);
+      const summaryScope = validateOutputScope(candidate["60second"], scopeContext);
+      const actionScope = validateOutputScope(candidate.action, scopeContext);
+      const scriptScope = validateOutputScope(candidate.script, scopeContext);
+      if (!explainScope.ok || !summaryScope.ok || !actionScope.ok || !scriptScope.ok) {
+        return null;
+      }
+
+      return {
+        ...fallbackModes,
+        ...candidate,
+      };
+    };
 
     // Save session with structured output
     const session = await api.entities.CoachSession.create({
       speaker: normalizedSpeaker,
       speaking_to: resolvedTarget,
       situation: situationText,
-      ai_response: modes.full, // Store full mode by default
+      ai_response: fallbackModes.full, // Store full mode by default
       tool_type: "coach",
     });
     setSessionId(session?.id || null);
 
     setBaseResponse(result);
-    setCoachModes(modes);
-    setResponse(modes.full);
+    setCoachModes(fallbackModes);
+    setResponse(fallbackModes.full);
     setOutputMode("full");
     setLoading(false);
     queryClient.invalidateQueries({ queryKey: ["coach-sessions", activeRelationshipId] });
+
+    updateLearningSignals(activeRelationshipId, normalizedSpeaker, resolvedTarget, (current) => ({
+      ...current,
+      recentSituations: [
+        trimSessionText(situationText, 180),
+        ...(current.recentSituations || []),
+      ]
+        .filter(Boolean)
+        .slice(0, 8),
+    }));
+    trackLearningEventServer({
+      relationship_id: activeRelationshipId,
+      speaker: normalizedSpeaker,
+      target: resolvedTarget,
+      eventType: "situation",
+      situation: trimSessionText(situationText, 180),
+    });
+
+    setRefreshingModes(true);
+    buildAdaptiveModes()
+      .then((adaptiveModes) => {
+        if (!adaptiveModes) return;
+        setCoachModes(adaptiveModes);
+
+        const adaptiveOpenings = String(adaptiveModes.script || "")
+          .split("\n")
+          .map((line) => line.trim())
+          .filter((line) => line.startsWith('"') && line.endsWith('"'))
+          .slice(0, 3)
+          .map((line) => line.replace(/^"|"$/g, ""));
+
+        updateLearningSignals(activeRelationshipId, normalizedSpeaker, resolvedTarget, (current) => ({
+          ...current,
+          successfulOpenings: [...adaptiveOpenings, ...(current.successfulOpenings || [])].filter(Boolean).slice(0, 10),
+        }));
+        trackLearningEventServer({
+          relationship_id: activeRelationshipId,
+          speaker: normalizedSpeaker,
+          target: resolvedTarget,
+          eventType: "openings",
+          successfulOpenings: adaptiveOpenings,
+        });
+
+        setResponse((currentResponse) => {
+          if (outputMode === "full") return currentResponse;
+          return adaptiveModes[outputMode] || currentResponse;
+        });
+      })
+      .finally(() => {
+        setRefreshingModes(false);
+      });
   };
 
   const handleSuggestionPill = (pillId) => {
@@ -511,6 +850,21 @@ export default function Coach() {
 
   const handleModeSwitch = (mode) => {
     setOutputMode(mode);
+    updateLearningSignals(activeRelationshipId, currentSpeaker, currentSpeakingTo, (current) => ({
+      ...current,
+      modeUsage: {
+        ...(current.modeUsage || {}),
+        [mode]: Number(current?.modeUsage?.[mode] || 0) + 1,
+      },
+    }));
+    trackLearningEventServer({
+      relationship_id: activeRelationshipId,
+      speaker: currentSpeaker,
+      target: currentSpeakingTo,
+      eventType: "mode_switch",
+      mode,
+    });
+
     if (coachModes?.[mode]) {
       setResponse(coachModes[mode]);
       return;
@@ -527,6 +881,20 @@ export default function Coach() {
   const handleCopyResponse = () => {
     if (!response) return;
     navigator.clipboard.writeText(response);
+    updateLearningSignals(activeRelationshipId, currentSpeaker, currentSpeakingTo, (current) => ({
+      ...current,
+      copiedByMode: {
+        ...(current.copiedByMode || {}),
+        [outputMode]: Number(current?.copiedByMode?.[outputMode] || 0) + 1,
+      },
+    }));
+    trackLearningEventServer({
+      relationship_id: activeRelationshipId,
+      speaker: currentSpeaker,
+      target: currentSpeakingTo,
+      eventType: "copy",
+      mode: outputMode,
+    });
     toast.success("Response copied to clipboard");
   };
 
@@ -697,6 +1065,9 @@ export default function Coach() {
           <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
             {/* Output Mode Selector */}
             <CoachOutputModes mode={outputMode} onModeChange={handleModeSwitch} />
+            {refreshingModes && (
+              <p className="text-xs text-muted-foreground">Refreshing mode-specific guidance with full relationship context...</p>
+            )}
 
             {/* Main Response */}
             <Card className="bg-card border border-primary/15" ref={responseRef}>

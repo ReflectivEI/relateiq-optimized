@@ -2555,6 +2555,142 @@ function dedupeMetricStateRecords(entity: string, records: StoredRecord[]) {
   return [...deduped.values()];
 }
 
+const COACH_MODE_KEYS = ["full", "explain", "60second", "action", "script"] as const;
+type CoachModeKey = (typeof COACH_MODE_KEYS)[number];
+
+function normalizeCoachMode(value: unknown): CoachModeKey {
+  const normalized = normalizeText(value).toLowerCase();
+  if (normalized === "full") return "full";
+  if (normalized === "explain") return "explain";
+  if (normalized === "60second" || normalized === "60-second" || normalized === "summary") return "60second";
+  if (normalized === "action" || normalized === "action-plan") return "action";
+  if (normalized === "script" || normalized === "what-to-say" || normalized === "what_to_say") return "script";
+  return "full";
+}
+
+function normalizeCoachModeCounterMap(value: unknown) {
+  const input = isObject(value) ? value : {};
+  return COACH_MODE_KEYS.reduce((acc, key) => {
+    const raw = Number(input[key]);
+    acc[key] = Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
+    return acc;
+  }, {} as Record<CoachModeKey, number>);
+}
+
+function mergeUniqueLimited(items: string[], nextItems: string[], limit: number) {
+  const deduped = [...new Set([...nextItems, ...items].map((entry) => normalizeText(entry)).filter(Boolean))];
+  return deduped.slice(0, limit);
+}
+
+function buildCoachLearningRecordId(relationshipId: string, speaker: string, target: string) {
+  return `coachmodelearning_${slugifyEntity(relationshipId)}_${slugifyEntity(speaker)}_${slugifyEntity(target)}`;
+}
+
+function buildDefaultCoachLearningState(relationshipId: string, speaker: string, target: string): StoredRecord {
+  return {
+    id: buildCoachLearningRecordId(relationshipId, speaker, target),
+    relationship_id: relationshipId,
+    speaker,
+    target,
+    mode_usage: normalizeCoachModeCounterMap({}),
+    copied_by_mode: normalizeCoachModeCounterMap({}),
+    recent_situations: [],
+    successful_openings: [],
+    created_date: nowIso(),
+    updated_date: nowIso(),
+  };
+}
+
+function normalizeCoachLearningRecord(record: StoredRecord | null, relationshipId: string, speaker: string, target: string): StoredRecord {
+  const baseline = buildDefaultCoachLearningState(relationshipId, speaker, target);
+  if (!record) return baseline;
+
+  return {
+    ...baseline,
+    ...record,
+    id: normalizeText(record.id) || baseline.id,
+    relationship_id: relationshipId,
+    speaker,
+    target,
+    mode_usage: normalizeCoachModeCounterMap(record.mode_usage),
+    copied_by_mode: normalizeCoachModeCounterMap(record.copied_by_mode),
+    recent_situations: toStringArray(record.recent_situations, []).slice(0, 8),
+    successful_openings: toStringArray(record.successful_openings, []).slice(0, 10),
+    created_date: normalizeText(record.created_date) || baseline.created_date,
+    updated_date: normalizeText(record.updated_date) || baseline.updated_date,
+  };
+}
+
+async function getCoachLearningState(
+  env: Env,
+  relationshipId: string,
+  speaker: string,
+  target: string,
+): Promise<StoredRecord> {
+  const record = await getEntityRecord(
+    env,
+    "CoachModeLearningState",
+    buildCoachLearningRecordId(relationshipId, speaker, target),
+    relationshipId,
+  );
+  return normalizeCoachLearningRecord(record, relationshipId, speaker, target);
+}
+
+async function upsertCoachLearningState(
+  env: Env,
+  relationshipId: string,
+  speaker: string,
+  target: string,
+  body: Record<string, unknown>,
+): Promise<StoredRecord> {
+  const recordId = buildCoachLearningRecordId(relationshipId, speaker, target);
+  const currentRaw = await getEntityRecord(env, "CoachModeLearningState", recordId, relationshipId);
+  const current = normalizeCoachLearningRecord(currentRaw, relationshipId, speaker, target);
+  const eventType = normalizeText(body.eventType).toLowerCase();
+  const mode = normalizeCoachMode(body.mode);
+
+  const nextModeUsage = normalizeCoachModeCounterMap(current.mode_usage);
+  const nextCopied = normalizeCoachModeCounterMap(current.copied_by_mode);
+  let nextSituations = toStringArray(current.recent_situations, []);
+  let nextOpenings = toStringArray(current.successful_openings, []);
+
+  if (eventType === "mode_switch" || eventType === "mode_usage") {
+    nextModeUsage[mode] = Number(nextModeUsage[mode] || 0) + 1;
+  }
+
+  if (eventType === "copy" || eventType === "copied") {
+    nextCopied[mode] = Number(nextCopied[mode] || 0) + 1;
+  }
+
+  const situation = normalizeText(body.situation);
+  if (eventType === "situation" && situation) {
+    nextSituations = mergeUniqueLimited(nextSituations, [situation], 8);
+  }
+
+  const openings = toStringArray(body.successfulOpenings, []);
+  if ((eventType === "openings" || eventType === "script_openings") && openings.length > 0) {
+    nextOpenings = mergeUniqueLimited(nextOpenings, openings, 10);
+  }
+
+  const payload: Record<string, unknown> = {
+    ...current,
+    id: recordId,
+    relationship_id: relationshipId,
+    speaker,
+    target,
+    mode_usage: nextModeUsage,
+    copied_by_mode: nextCopied,
+    recent_situations: nextSituations,
+    successful_openings: nextOpenings,
+  };
+
+  const saved = currentRaw
+    ? await updateEntityRecord(env, "CoachModeLearningState", recordId, payload, relationshipId)
+    : await createEntityRecord(env, "CoachModeLearningState", payload, relationshipId);
+
+  return normalizeCoachLearningRecord(saved, relationshipId, speaker, target);
+}
+
 async function queryEntityCollection(
   env: Env,
   entity: string,
@@ -4841,6 +4977,45 @@ export default {
           request,
           env,
         );
+      }
+
+      if (url.pathname === "/api/coach/mode-learning" && request.method === "GET") {
+        const scoped = await requireScopedRelationship(request, env, url);
+        if ("error" in scoped) {
+          return json({ error: scoped.error }, request, env, scoped.status);
+        }
+
+        const participants = getScopedParticipants(scoped.relationship);
+        const speaker = normalizeScopedPerson(url.searchParams.get("speaker"), participants, 0);
+        let target = normalizeScopedPerson(url.searchParams.get("target"), participants, speaker === participants[0] ? 1 : 0);
+        if (speaker === target) {
+          target = getScopedPartner(speaker, participants);
+        }
+
+        const learning = await getCoachLearningState(env, scoped.relationshipId, speaker, target);
+        return json({ ok: true, learning }, request, env);
+      }
+
+      if (url.pathname === "/api/coach/mode-learning" && request.method === "POST") {
+        const body = await readJson(request);
+        if (!isObject(body)) {
+          return json({ error: "invalid_payload" }, request, env, 400);
+        }
+
+        const scoped = await requireScopedRelationship(request, env, url, body);
+        if ("error" in scoped) {
+          return json({ error: scoped.error }, request, env, scoped.status);
+        }
+
+        const participants = getScopedParticipants(scoped.relationship);
+        const speaker = normalizeScopedPerson(body.speaker, participants, 0);
+        let target = normalizeScopedPerson(body.target, participants, speaker === participants[0] ? 1 : 0);
+        if (speaker === target) {
+          target = getScopedPartner(speaker, participants);
+        }
+
+        const learning = await upsertCoachLearningState(env, scoped.relationshipId, speaker, target, body);
+        return json({ ok: true, learning }, request, env);
       }
 
       if (url.pathname === "/api/state" && request.method === "GET") {
