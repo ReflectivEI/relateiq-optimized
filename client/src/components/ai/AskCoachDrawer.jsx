@@ -69,8 +69,8 @@ export default function AskCoachDrawer({ ctx, defaultOpen = false }) {
       originalOutput: ctx.originalOutput
         ? ctx.originalOutput
         : messages.length > 0
-        ? messages.map((m) => `${m.role === "user" ? "User" : "AI"}: ${m.content}`).join("\n\n")
-        : null,
+          ? messages.map((m) => `${m.role === "user" ? "User" : "AI"}: ${m.content}`).join("\n\n")
+          : null,
     };
 
     const result = await askCoach({ question: q, ctx: enrichedCtx });
@@ -126,12 +126,12 @@ export default function AskCoachDrawer({ ctx, defaultOpen = false }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20" onClick={() => setOpen(false)}>
-                  <ChevronDown className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20" onClick={() => { setOpen(false); setMessages([]); }}>
-                  <X className="w-4 h-4" />
-                </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20" onClick={() => setOpen(false)}>
+                    <ChevronDown className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20" onClick={() => { setOpen(false); setMessages([]); }}>
+                    <X className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             </div>

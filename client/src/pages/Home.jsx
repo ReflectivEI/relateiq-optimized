@@ -465,14 +465,14 @@ export default function Home() {
                       </div>
 
                       {isExpanded ? (
-                      <div className="max-h-48 overflow-y-auto rounded-2xl border border-border/60 bg-background/60 px-4 py-3">
-                        <p className="text-sm leading-7 text-muted-foreground">
-                          {profile.ai_behavioral_summary || profile.communication_style || (name + "'s full profile detail will appear here as more data is collected.")}
-                        </p>
-                      </div>
-                    ) : null}
+                        <div className="max-h-48 overflow-y-auto rounded-2xl border border-border/60 bg-background/60 px-4 py-3">
+                          <p className="text-sm leading-7 text-muted-foreground">
+                            {profile.ai_behavioral_summary || profile.communication_style || (name + "'s full profile detail will appear here as more data is collected.")}
+                          </p>
+                        </div>
+                      ) : null}
 
-                    {!isExpanded ? (
+                      {!isExpanded ? (
                         <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
                           Expand this section to view the full profile summary, needs, and watch-for patterns.
                         </div>

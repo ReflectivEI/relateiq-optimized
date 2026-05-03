@@ -64,10 +64,10 @@ export default function Profile() {
       return stored
         ? JSON.parse(stored)
         : {
-            notifications: true,
-            dailyDigest: true,
-            dataSharing: true,
-          };
+          notifications: true,
+          dailyDigest: true,
+          dataSharing: true,
+        };
     } catch {
       return {
         notifications: true,

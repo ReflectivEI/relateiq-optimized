@@ -471,8 +471,8 @@ export function getRiskSummary({
       overall >= 0.7
         ? "⚠️ High conflict risk detected (5-7 days ahead). Micro-repairs needed soon."
         : overall >= 0.4
-        ? "Elevated risk signals detected (5-7 days). Consider proactive repairs."
-        : "✓ Monitor patterns. Consider preventative steps.",
+          ? "Elevated risk signals detected (5-7 days). Consider proactive repairs."
+          : "✓ Monitor patterns. Consider preventative steps.",
     overall_score: overall,
     signals,
     repairs,

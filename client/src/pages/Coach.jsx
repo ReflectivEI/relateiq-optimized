@@ -386,7 +386,7 @@ export default function Coach() {
       pastSessions: safePastSessions
         .filter((s) => s.speaker === normalizedSpeaker || s.speaking_to === normalizedSpeaker)
         .slice(0, 10),
-    }) + (triggerCtx ? `\n\nTRIGGER MEMORY:\n${triggerCtx}` : "") + `\n\nSITUATION SEVERITY: ${severity}/5 (${["Very Low","Low","Moderate","High","Critical"][severity - 1]})\nCalibrate the tone, urgency, and directness of your guidance accordingly. ${severity >= 4 ? "High-stakes — be direct, specific, and action-focused." : severity <= 2 ? "Low-intensity — be exploratory, educational, and calm." : "Balanced — thorough but measured."}`;
+    }) + (triggerCtx ? `\n\nTRIGGER MEMORY:\n${triggerCtx}` : "") + `\n\nSITUATION SEVERITY: ${severity}/5 (${["Very Low", "Low", "Moderate", "High", "Critical"][severity - 1]})\nCalibrate the tone, urgency, and directness of your guidance accordingly. ${severity >= 4 ? "High-stakes — be direct, specific, and action-focused." : severity <= 2 ? "Low-intensity — be exploratory, educational, and calm." : "Balanced — thorough but measured."}`;
 
     const scopeContext = buildActiveConnectionContext({
       pairId: activeRelationshipId,

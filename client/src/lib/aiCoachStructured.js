@@ -169,7 +169,7 @@ All fields must be specific to ${perspective}. Use profile data. Reference patte
 
   try {
     const parsed = JSON.parse(jsonStr);
-    
+
     // Attach framework explanations
     const frameworkExplanations = buildFrameworkExplanations(matchedFrameworks, {
       actor,

@@ -11,6 +11,7 @@
 ### 1. ANALYSIS ENGINE: `generateAnalysis()`
 
 **Client invocation** (AnalysisEngine.jsx):
+
 ```javascript
 import { generateAnalysis } from './lib/analysisEngine.js'
 
@@ -24,6 +25,7 @@ const result = await generateAnalysis({
 ```
 
 **Engine implementation** (analysisEngine.js, line 417-551):
+
 ```javascript
 export async function generateAnalysis({ 
   checkIns, 
@@ -49,6 +51,7 @@ export async function generateAnalysis({
 ```
 
 **Gateway interception** (aiSafe.js, line 154):
+
 ```javascript
 export async function safeInvokeLLM(params, timeoutMs = 35000) {
   // Line 154: Call unified gateway
@@ -60,6 +63,7 @@ export async function safeInvokeLLM(params, timeoutMs = 35000) {
 ```
 
 **Gateway enforcement** (client.js, line 489-505):
+
 ```javascript
 export function withScopedLlmPayload(params) {
   // Line 489-492: Extract required scoping
@@ -79,6 +83,7 @@ export function withScopedLlmPayload(params) {
 ```
 
 **Server validation** (worker/index.ts, line 4373-4417):
+
 ```typescript
 async function handleLlmRequest(request: Request, env: Env, url: URL) {
   // Line 4373: Validate scope before processing
@@ -102,6 +107,7 @@ async function handleLlmRequest(request: Request, env: Env, url: URL) {
 ```
 
 **Result stamping** (worker/index.ts, line 2617-2641):
+
 ```typescript
 async function createEntityRecord(env, entity, body, relationshipId) {
   // Line 2624-2627: Resolve immutable stamp
@@ -121,6 +127,7 @@ async function createEntityRecord(env, entity, body, relationshipId) {
 ```
 
 **FLOW SUMMARY**:
+
 ```
 generateAnalysis()
   → safeInvokeLLM()
@@ -139,6 +146,7 @@ generateAnalysis()
 ### 2. COACH SERVICE: `runCoachCall()`
 
 **Client invocation** (Coach.jsx):
+
 ```javascript
 import { aiCoachService } from '../lib/aiCoachService.js'
 
@@ -150,6 +158,7 @@ const response = await aiCoachService.runCoachCall({
 ```
 
 **Service implementation** (aiCoachService.js):
+
 ```javascript
 export const aiCoachService = {
   async runCoachCall({ relationshipId, topic, goal }) {
@@ -166,6 +175,7 @@ export const aiCoachService = {
 ```
 
 **Worker handler** (worker/index.ts, line 5133-5155):
+
 ```typescript
 if ((url.pathname === "/api/coach" || url.pathname === "/coach") && request.method === "POST") {
   // Line 5135: Validate scoped relationship
@@ -191,6 +201,7 @@ if ((url.pathname === "/api/coach" || url.pathname === "/coach") && request.meth
 ### 3. CHECK-IN ANALYSIS: `buildAiCheckInResponse()`
 
 **Entry point** (CheckIn.jsx):
+
 ```javascript
 const response = await api.integrations.Core.InvokeLLM({
   relationship_id: activeRelationshipId,  // ← SCOPED
@@ -200,6 +211,7 @@ const response = await api.integrations.Core.InvokeLLM({
 ```
 
 **Worker routing** (worker/index.ts, line 5157):
+
 ```typescript
 if ((url.pathname === "/api/check-in" || url.pathname === "/check-in") && request.method === "POST") {
   // Check-in always goes through requireScopedRelationship()
@@ -214,6 +226,7 @@ if ((url.pathname === "/api/check-in" || url.pathname === "/check-in") && reques
 ### 4. REPAIR SUGGESTION: `generateRepairSuggestion()`
 
 **Client invocation** (Home.jsx, line 303-338):
+
 ```javascript
 const { draft } = await generateRepairSuggestion({
   relationshipId,     // ← SCOPING KEY
@@ -225,6 +238,7 @@ const { draft } = await generateRepairSuggestion({
 ```
 
 **Engine implementation** (repairSuggestionEngine.js, line 198-310):
+
 ```javascript
 export async function generateRepairSuggestion({ 
   relationshipId,   // ← REQUIRED
@@ -249,6 +263,7 @@ export async function generateRepairSuggestion({
 ### 5. PREDICTIVE ENGINE: `predictOutcome()`
 
 **Client invocation** (Profiles.jsx):
+
 ```javascript
 const prediction = await predictOutcome({
   relationshipId,   // ← SCOPING KEY
@@ -258,6 +273,7 @@ const prediction = await predictOutcome({
 ```
 
 **Engine implementation** (predictiveEngine.js):
+
 ```javascript
 export async function predictOutcome({ 
   relationshipId,   // ← REQUIRED
@@ -283,6 +299,7 @@ export async function predictOutcome({
 ### 6. FRAMEWORK ENGINE: `matchFrameworks()`
 
 **Client invocation** (AnalysisEngine.jsx):
+
 ```javascript
 const frameworks = matchFrameworks({
   relationshipType: 'romantic',  // Not AI, fully deterministic
@@ -292,6 +309,7 @@ const frameworks = matchFrameworks({
 ```
 
 **Engine implementation** (frameworkEngine.js):
+
 ```javascript
 export async function matchFrameworks({ 
   relationshipType, 
@@ -312,6 +330,7 @@ export async function matchFrameworks({
 ### 7. EARLY WARNING SYSTEM: `detectRiskSignals()`
 
 **Client invocation** (Home.jsx):
+
 ```javascript
 const risks = detectRiskSignals({
   checkIns,     // Relationship-scoped data only
@@ -320,6 +339,7 @@ const risks = detectRiskSignals({
 ```
 
 **Engine implementation** (earlyWarningEngine.js):
+
 ```javascript
 export async function detectRiskSignals({ checkIns, profiles }) {
   // Line 19+: Pure deterministic detection
@@ -341,6 +361,7 @@ export async function detectRiskSignals({ checkIns, profiles }) {
 ### 8. CONTEXT BUILDER: `buildContext()`
 
 **Client invocation** (AnalysisEngine.jsx):
+
 ```javascript
 const context = await buildContext({
   relationshipId,   // ← SCOPING KEY
@@ -350,6 +371,7 @@ const context = await buildContext({
 ```
 
 **Implementation** (contextBuilder.js):
+
 ```javascript
 export async function buildContext({ 
   relationshipId,   // ← REQUIRED
@@ -379,11 +401,13 @@ export async function buildContext({
 ### 9. ANALYSIS TRANSFORMS: `applyMode()`
 
 **Client invocation** (Grow.jsx):
+
 ```javascript
 const summary = applyMode(baseAnalysis, 'summary')
 ```
 
 **Implementation** (analysisTransforms.js):
+
 ```javascript
 export function applyMode(baseAnalysis, mode) {
   // Line 30+: Pure transform on existing analysis
@@ -404,6 +428,7 @@ export function applyMode(baseAnalysis, mode) {
 ### 10. PIPELINE ENGINE: `executePipeline()`
 
 **Client invocation** (implicit via analysis chain):
+
 ```javascript
 const pipeline = await buildPipeline({
   relationshipId,
@@ -412,6 +437,7 @@ const pipeline = await buildPipeline({
 ```
 
 **Implementation** (pipelineEngine.js):
+
 ```javascript
 export async function executePipeline({ 
   relationshipId,   // ← SCOPING KEY
